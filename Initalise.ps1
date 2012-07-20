@@ -30,6 +30,7 @@ function Write-Telligent
 	Write-LogoPart "  / /" "  / /" "  / /" "   | |  __/ | | | (_| |  __/ | | | |_ "
 	Write-LogoPart " /_/ " " /_/ " " /_/ " "   |_|\___|_|_|_|\__, |\___|_| |_|\__|"
 	Write-LogoPart "     " "     " "     " "                 |___/                "
+	Write-Host
 }
 
 Write-Telligent
