@@ -15,9 +15,9 @@
 			[string]$part3,
 			[string]$part4
 		)
-		Write-Host $part1 -ForegroundColor DarkBlue -NoNewline
-		Write-Host $part2 -ForegroundColor Blue -NoNewline
-		Write-Host $part3 -ForegroundColor DarkCyan -NoNewline
+		Write-Host $part1 -ForegroundColor Blue -NoNewline
+		Write-Host $part2 -ForegroundColor DarkCyan -NoNewline
+		Write-Host $part3 -ForegroundColor Cyan -NoNewline
 		Write-Host $part4 -ForegroundColor $textColour
 	}
 
