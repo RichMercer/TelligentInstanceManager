@@ -88,7 +88,6 @@ function Add-SolrCore {
         
         Write-Progress "Solr Core" "Registering Core"
 		$url = "${coreAdmin}?action=CREATE&name=${name}&instanceDir=${instanceDir}"
-		Write-Host $url
         $webClient.DownloadString($url) | out-null
     }    
 }
