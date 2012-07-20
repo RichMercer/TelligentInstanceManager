@@ -1,6 +1,4 @@
-﻿$env:PSModulePath +=  ";$env:TelligentPowershell"
-
-function Write-Telligent
+﻿function Write-Telligent
 {
 	$hostColor = $host.UI.RawUI.BackgroundColor
 	if($hostColor -eq [ConsoleColor]::Black -or $hostColor -match "Dark") {
@@ -17,21 +15,22 @@ function Write-Telligent
 			[string]$part3,
 			[string]$part4
 		)
-		Write-Host $part1 -ForegroundColor Blue -NoNewline
-		Write-Host $part2 -ForegroundColor DarkCyan -NoNewline
-		Write-Host $part3 -ForegroundColor Cyan -NoNewline
+		Write-Host $part1 -ForegroundColor DarkBlue -NoNewline
+		Write-Host $part2 -ForegroundColor Blue -NoNewline
+		Write-Host $part3 -ForegroundColor DarkCyan -NoNewline
 		Write-Host $part4 -ForegroundColor $textColour
 	}
 
 
-	Write-LogoPart " __  " " __  " " __  " "  _____    _ _ _                  _   "
-	Write-LogoPart " \ \ " " \ \ " " \ \ " " |_   _|__| | (_) __ _  ___ _ __ | |_ "
-	Write-LogoPart "  \ \" "  \ \" "  \ \" "   | |/ _ \ | | |/ _ |/ _ \ '_ \| __| "
-	Write-LogoPart "  / /" "  / /" "  / /" "   | |  __/ | | | (_| |  __/ | | | |_ "
-	Write-LogoPart " /_/ " " /_/ " " /_/ " "   |_|\___|_|_|_|\__, |\___|_| |_|\__|"
-	Write-LogoPart "     " "     " "     " "                 |___/                "
-	Write-Host
+	Write-LogoPart "__ " "__ " "__  " " _       _ _ _                  _   "
+	Write-LogoPart "\ \" "\ \" "\ \ " "| |_ ___| | (_) ___  ___   ___ | |_ "
+	Write-LogoPart " \ \" "\ \" "\ \" "| __/ _ \ | | |/ _ \/ _ \ / _ \| __| "
+	Write-LogoPart " / /" "/ /" "/ /" "| |_| __/ | | | (_| |  _/| | | | |_ "
+	Write-LogoPart "/_/" "/_/" "/_/ " " \__\___|_|_|_|\__, |\___|_| |_|\__|"
+	Write-LogoPart "   " "   " "    " "               |___/                "
 }
+
+$env:PSModulePath +=  ";$env:TelligentPowershell"
 
 Write-Telligent
 
