@@ -29,7 +29,7 @@ function Install-EvolutionDatabase {
     $tempDir = join-path $env:temp ([guid]::NewGuid())
     Expand-Zip -zipPath $package -destination $tempDir -zipDir "SqlScripts" -zipFile "cs_CreateFullDatabase.sql"
     $sqlScript = join-path $tempDir cs_CreateFullDatabase.sql | resolve-path
-    Invoke-Sqlcmd -serverinstance $server -Database $database -InputFile $sqlScript -QueryTimeout 450 |out-null
+    Invoke-Sqlcmd -serverinstance $server -Database $database -InputFile $sqlScript -QueryTimeout 6000 |out-null
     #TODO: Cleanup temp
 
     Write-Progress "Database: $database" "Creating Community"

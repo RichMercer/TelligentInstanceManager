@@ -1,81 +1,51 @@
-﻿function Install-DevEvolution {
-    param(
-        [parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [string] $name,
-        [parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [string] $webDir,
-        [parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$package,
-        [ValidateNotNullOrEmpty()]
-        [int]$port
-    )
-
-    $solrUrl = "http://localhost:8090/solr"
-    $solrCoreBase = "C:\temp\Tomcat\solr\"
-
-    New-EvolutionWebsite -name $name -path $webDir -package $package -domain "localhost" -port $port
-    Install-EvolutionDatabase -server "." -package $package -database $name -webDomain "localhost"
-
-    $identity = Get-IISAppPoolIdentity $name
-    
-    Grant-EvolutionDatabaseAccess -server "." -database $name -username $identity
-    Add-SolrCore $name -package $package -coreBaseDir $solrCoreBase -coreAdmin "$solrUrl/admin/cores"
-
-    pushd $webdir 
-    try {
-        Update-ConnectionStrings -database $name -server "."
-        Update-EvolutionSolrUrl "$solrUrl/$name/"
-        Register-TasksInWebProcess $package
-        Disable-CustomErrors
-    }
-    finally {
-    	popd
-    }
-
-
-}
-
-function Install-Evolution {
+﻿function Install-Evolution {
 	<#
 	.Synopsis
-		Sets up a new Evolution Community
+		Sets up a new Evolution Community.
 	.Description
-		Extensive description of the function
-	.Parameter name
-	    The name of the community to create
+		The Install-Evolution cmdlet automates the process of creating a new Telligent Evolution community.
+		
+		It takes the installation package, and from it deploys the website to IIS and a creates a new database using
+		the scripts from the package.  It also sets permissions automatically.
+		
+		Optionally, you can specify a path to a licence file and this will be installed into your community.
+		
+		By default, authentication between the web and databases uses the Applicaiton Pool Identity, but SQL authentiation
+		is used if an explicity username & password are provided.
 	.Parameter package
 	    The path to the zip package containing the Telligent Evolution installation files from Telligent Support
 	.Parameter hotfixPackage
 	    If specified applys the hotfix from the referenced zip file.
+	.Parameter name
+	    The name of the community to create
 	.Parameter webDir
-	    The directory to place the Evolution website in
+	    The directory to place the Telligent Evolution website in
 	.Parameter webDomain
-	    The domain name to use in the community's IIS binding
-	.Parameter webPort
-	    The port number to use int the community's IIS binding.  Defaults to 80
+	    The domain name the community will be accessible at
 	.Parameter appPool
-	    The name of the Applicaiton Pool to use the community with.  If not specified creates a new apppool using ApplicationPoolIdentity identity
+	    The name of the Applicaiton Pool to use the community with.  If not specified creates a new apppool.
 	.Parameter dbServer
-	    The DNS name of your SQL server.  Must be able to connect using Windows Auhtenticaiton from the current machine.  Only supports Default instances.
+	    The DNS name of your SQL server.  Must be able to connect using Windows Authenticaiton from the current machine.  Only supports Default instances.
 	.Parameter dbName
-	    The name of the database to locate your community in
-	.Parameter searchDomain
-	    The DNS name of the tomcat instance Solr will be installed to
-	.Parameter searchPort
-	    The port tomcat runs on - defaults to 8080
+	    The name of the database to locate your community in.  Defaults to the value provided for name.
+	.Parameter sqlAuth
+	    Specify if you want your community to connect using SQL Auth
+	.Parameter dbUsername
+	    If using SQL Authentication for your community to connect to the database, the username to use.  If this use doesn't exist, it will be created.
+	.Parameter dbPassword
+	    If using SQL Authentication for your community to connect to the database, the password to use.	
+	.Parameter searchUrl
+	    The url your community's solr instance can be found at
 	.Parameter licenceFile
 	    The path to the licence XML file to install in the community
-	.Example Basic Install
-		Install-Evolution -name "Powershell Test" -package "c:\temp\TelligentCommunitySuite-6.0.119.19092.zip" -webDir "c:\temp\PowershellTest\Web\" -webDomain "mydomain.com" -searchDir "c:\temp\PowershellTest\Search\" -tomcatContextDir "C:\Program Files\Apache Software Foundation\Tomcat 7.0\conf\Catalina\localhost" -licenceFile "c:\temp\licence.xml"
+	.Example Standard install using Windows Auth to connect to DB
+		Install-Evolution -name "Telligent Evolution" -package "d:\temp\TelligentCommunity-7.0.1824.27400.zip" -webDir "d:\inetpub\TelligentEvolution\" -webdomain "mydomain.com" -searchUrl "http://localhost:8080/solr/"
+	.Example Standard install using SQL Auth to connect to DB, as well as specifying a licence file
+		Install-Evolution -name "Telligent Evolution" -package "d:\temp\TelligentCommunity-7.0.1824.27400.zip" -webDir "d:\inetpub\TelligentEvolution\" -webdomain "mydomain.com" -searchUrl "http://localhost:8080/solr/" -dbUsername "TellgientEvolutionSql" -dbPassword "Mega$ecretP@$$w0rd" -licenceFile "c:\licence.xml"
 	#>
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName='WindowsAuth')]
     param (
-        [parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$name,
+		#Packages
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
 		[ValidateScript({Test-Zip $_ })]
@@ -84,84 +54,90 @@ function Install-Evolution {
 		[ValidateScript({Test-Zip $_ })]
         [string]$hotfixPackage,
 
+		#Web Settings
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [string]$webDir,
+        [string]$name,
+        [parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$webDir, #TODO: Validate Dir is Empty
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [string]$webDomain,
-        [uint16]$webPort = 80,
-        [string]$appPool,
-
         [ValidateNotNullOrEmpty()]
-        [string]$dbServer = "localhost",
+		[string]$appPool, #TODO: Validate AppPool Exists
+		
+		#Database Connection
+        [ValidateNotNullOrEmpty()]
+        [string]$dbServer = "(local)", #TODO: Validate SQL Server can be found
         [ValidateNotNullOrEmpty()]
         [string]$dbName = $name,
-        [string]$sqlUsername,
-        [string]$sqlPassword,
+		
+		#Database Auth
+		[parameter(ParameterSetName='SqlAuth')]
+        [switch]$sqlAuth,
+        [parameter(ParameterSetName='SqlAuth', Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$dbUsername,
+        [parameter(ParameterSetName='SqlAuth', Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$dbPassword,
 
-        [uri]$searchUrl,
-        [string]$licenceFile
+		#Misc
+        [ValidateNotNullOrEmpty()]
+        [uri]$searchUrl, #TODO: Validate Search Url
+        [ValidateNotNullOrEmpty()]
+        [string]$licenceFile #TODO: Validate file exists
     )   
     $ErrorActionPreference = "Stop"
-    
-    Write-Progress "Website" "Creating IIS Website $name"
-    New-IISWebsite -name $name -path $webDir -domain $webDomain -port $webPort -appPool $appPool
-    if (!$appPool) {
-        $appPool = $name
-    }
 
-    Write-Progress "Website" "Extracting Web Files: $webDir"
-    Expand-Zip -zipPath $package -destination $webDir -zipDir "Web"
-
-
-    $appPoolIdentity = Get-IISAppPoolIdentity $appPool
-    Write-Progress "Website" "Granting Permissions to $appPoolIdentity"
-    $filestorage = join-path $webDir filestorage
-    #TODO: outputs a status message.  switch to Set-Acl instead
-    icacls "$webDir" /grant "${appPoolIdentity}:(OI)(CI)RX" /Q
-    icacls "$filestorage" /grant "${appPoolIdentity}:(OI)(CI)M" /Q
-
-
-    #If Create DB
-    Install-EvolutionDatabase -server $dbServer -package $package -name $dbName -username $dbUsername -password $dbPassword
-
-    if ($hotfixPackage) {
-        Install-EvolutionHotfix -communityDir $webDir -package $hotfixPackage -dbServer $dbServer -dbName $dbName
-    }
-
+	if(!$appPool){
+		#TODO: Test if app pool exists before creating new one
+		$appPool = $name
+		New-IISAppPool $appPool -netVersion 4.0
+	}
+	$sqlConnectionSettings = @{
+		server = $dbServer
+		database = $dbName
+	}
+	$sqlAuthSettings = @{}
+	if($sqlAuth) {
+		$sqlAuthSettings.username = $dbUsername
+		$sqlAuthSettings.password = $dbPassword
+	}
+	else {
+		$sqlAuthSettings.username = Get-IISAppPoolIdentity $name
+	}
 	
-    if ($sqlUsername) {
-        Write-Progress "Database" "Granting Permissions to SQL Auth: $dbUsername"
-        Grant-EvolutionDatabaseAccess -server $dbServer -database $dbName -username $sqlUsername -password $sqlPassword
-    }
-    else {
-        Write-Progress "Database" "Granting Permissions to Windows Auth: $appPoolIdentity"
-        Grant-EvolutionDatabaseAccess -server $dbServer -database $dbName -username $appPoolIdentity
-    }
+    New-EvolutionWebsite -name $name -path $webDir -package $package -domain $webDomain -appPool $appPool
 
-    Write-Progress "Search" "Configuring Search url in community" 
-    AddChangeAttributeOverride -webDir $webDir -xpath /CommunityServer/Search/Solr -name host -value "http://${searchdomain}:$searchPort/$searchWebPath/"
+    Install-EvolutionDatabase -package $package -webDomain $webDomain @sqlConnectionSettings 
+    Grant-EvolutionDatabaseAccess @sqlConnectionSettings @sqlAuthSettings
 
-    if ($licenceFile) {
-        Write-Progress "Configuration" "Installing Licence"
-        Install-EvolutionLicence $licenceFile $dbServer $dbName
-    }
-    else {
-        Write-Warning "No licence specified. Not installing a licence will affect your ability to use the community. You may install a licence at a later date through the Control Panel, or Install-EvolutionLicence cmdlet"
-    }
+	if($hotfixPackage) {
+        Install-EvolutionHotfix -communityDir $webDir -package $hotfixPackage @sqlConnectionSettings
+	}	
 
-    Write-Progress "Configuration" "Updating Solr Url"
-    if ($searchUrl) {
-        Update-EvolutionSolrUrl $webDir $searchUrl
-    }
-    else {
-        Write-Warning "No solr url specifies. Without search, a number of features will be unavailable in your community"
-    }
+	pushd $webdir 
+    try {
+        Update-ConnectionStrings @sqlConnectionSettings @sqlAuthSettings
+		if($searchUrl) {
+	        Update-EvolutionSolrUrl $searchUrl
+		}
+		else {
+			Write-Warning "No search url specified.  Many features will not work until search is configured."
+		}
 
-	
-    Write-Progress "Configuration" "Updating connectionstrings.config"
-    Update-ConnectionStrings -path (join-path $webDir connectionstrings.config) -dbServer $dbServer -dbName $dbName	
+		if ($licenceFile) {
+        	Resolve-Path $licenceFile | Install-EvolutionLicence @sqlConnectionSettings 
+		}
+		else {
+			Write-Warning "No Licence installed."
+		}
+    }
+    finally {
+    	popd
+    }
 }
 
 
@@ -175,7 +151,7 @@ function Install-EvolutionHotfix {
         [ValidateNotNullOrEmpty()]
         [string]$package,
         [ValidateNotNullOrEmpty()]
-        [string]$dbServer = ".",
+        [string]$dbServer = "(local)",
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [string]$dbName
@@ -194,11 +170,6 @@ function Install-EvolutionHotfix {
         }
     }
    
-}
-
-function Install-EvolutionMobile {
-}
-function Install-EvolutionCalendar {
 }
 
 

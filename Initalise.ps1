@@ -9,12 +9,22 @@
 	}
 	function Write-LogoPart
 	{
+		[CmdletBinding()]
 		param(
+			[parameter(Mandatory=$true)]
+			[ValidateNotNullOrEmpty()]
 			[string]$part1,
+			[parameter(Mandatory=$true)]
+			[ValidateNotNullOrEmpty()]
 			[string]$part2,
+			[parameter(Mandatory=$true)]
+			[ValidateNotNullOrEmpty()]
 			[string]$part3,
+			[parameter(Mandatory=$true)]
+			[ValidateNotNullOrEmpty()]
 			[string]$part4
 		)
+		Write-Host ' ' -NoNewLine
 		Write-Host $part1 -ForegroundColor Blue -NoNewline
 		Write-Host $part2 -ForegroundColor DarkCyan -NoNewline
 		Write-Host $part3 -ForegroundColor Cyan -NoNewline
@@ -28,6 +38,7 @@
 	Write-LogoPart " / /" "/ /" "/ /" "| |_| __/ | | | (_| |  _/| | | | |_ "
 	Write-LogoPart "/_/" "/_/" "/_/ " " \__\___|_|_|_|\__, |\___|_| |_|\__|"
 	Write-LogoPart "   " "   " "    " "               |___/                "
+	Write-Host
 }
 
 $env:PSModulePath +=  ";$env:TelligentPowershell"
