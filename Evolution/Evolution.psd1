@@ -42,7 +42,7 @@ PowerShellHostVersion = ''
 DotNetFrameworkVersion = '4.0'
 
 # Minimum version of the common language runtime (CLR) required by this module
-CLRVersion = '4.0'
+CLRVersion = '2.0'
 
 # Processor architecture (None, X86, Amd64, IA64) required by this module
 ProcessorArchitecture = ''

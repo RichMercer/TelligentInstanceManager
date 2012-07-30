@@ -3,6 +3,7 @@ function Install-EvolutionDatabase {
     param(
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
+		[alias('dbServer')]
         [string]$server,
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
@@ -10,6 +11,7 @@ function Install-EvolutionDatabase {
         [string]$package,
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
+		[alias('dbName')]
         [string]$database,
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
@@ -50,9 +52,11 @@ function Grant-EvolutionDatabaseAccess {
     param(
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
+		[alias('dbServer')]
         [string]$server,
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
+		[alias('dbName')]
         [string]$database,
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
@@ -90,8 +94,10 @@ function New-Database {
     param(
         [parameter(Mandatory=$true, Position=0, ValueFromPipeline=$true)]
         [ValidateNotNullOrEmpty()]
+		[alias('dbName')]
         [string]$name,
         [ValidateNotNullOrEmpty()]
+		[alias('dbServer')]
         [string]$server = "."
     )
     # need to encode the . used for the local server

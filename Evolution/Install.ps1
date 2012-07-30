@@ -50,8 +50,7 @@
         [ValidateNotNullOrEmpty()]
 		[ValidateScript({Test-Zip $_ })]
         [string]$package,
-        [ValidateNotNullOrEmpty()]
-		[ValidateScript({Test-Zip $_ })]
+		[ValidateScript({!$_ -or (Test-Zip $_) })]
         [string]$hotfixPackage,
 
 		#Web Settings
@@ -65,8 +64,9 @@
         [ValidateNotNullOrEmpty()]
         [string]$webDomain,
         [ValidateNotNullOrEmpty()]
+		[ValidateScript({Resolve-Path IIS:\AppPools\$_})]
 		[string]$appPool, #TODO: Validate AppPool Exists
-		
+
 		#Database Connection
         [ValidateNotNullOrEmpty()]
         [string]$dbServer = "(local)", #TODO: Validate SQL Server can be found
@@ -85,9 +85,11 @@
 
 		#Misc
         [ValidateNotNullOrEmpty()]
+		#[ValidateScript({(New-Object System.Net.WebClient).DownloadString("$_/admin/")})]
         [uri]$searchUrl, #TODO: Validate Search Url
-        [ValidateNotNullOrEmpty()]
-        [string]$licenceFile #TODO: Validate file exists
+		[ValidateNotNullOrEmpty()]
+		[ValidateScript({Resolve-Path $_ })]
+        [string]$licenceFile
     )   
     $ErrorActionPreference = "Stop"
 
@@ -97,8 +99,8 @@
 		New-IISAppPool $appPool -netVersion 4.0
 	}
 	$sqlConnectionSettings = @{
-		server = $dbServer
-		database = $dbName
+		dbServer = $dbServer
+		dbName = $dbName
 	}
 	$sqlAuthSettings = @{}
 	if($sqlAuth) {
@@ -109,7 +111,11 @@
 		$sqlAuthSettings.username = Get-IISAppPoolIdentity $name
 	}
 	
-    New-EvolutionWebsite -name $name -path $webDir -package $package -domain $webDomain -appPool $appPool
+    New-EvolutionWebsite -name $name `
+		-path $webDir `
+		-package $package `
+		-domain $webDomain `
+		-appPool $appPool
 
     Install-EvolutionDatabase -package $package -webDomain $webDomain @sqlConnectionSettings 
     Grant-EvolutionDatabaseAccess @sqlConnectionSettings @sqlAuthSettings
@@ -120,16 +126,16 @@
 
 	pushd $webdir 
     try {
-        Update-ConnectionStrings @sqlConnectionSettings @sqlAuthSettings
+        Set-ConnectionStrings @sqlConnectionSettings @sqlAuthSettings
 		if($searchUrl) {
-	        Update-EvolutionSolrUrl $searchUrl
+	        Set-EvolutionSolrUrl $searchUrl
 		}
 		else {
 			Write-Warning "No search url specified.  Many features will not work until search is configured."
 		}
 
 		if ($licenceFile) {
-        	Resolve-Path $licenceFile | Install-EvolutionLicence @sqlConnectionSettings 
+        	Install-EvolutionLicence $licenceFile @sqlConnectionSettings 
 		}
 		else {
 			Write-Warning "No Licence installed."

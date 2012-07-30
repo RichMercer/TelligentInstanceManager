@@ -54,7 +54,7 @@ function Install-Solr {
     
     New-SolrInstance -package $package -solrDir $solrDir -solrLocalDir $solrLocalDir -tomcatContextDir $tomcatContextDir -solrWebPath $solrWebPath
     
-    AddChangeAttributeOverride -webDir $communityDir -xpath /CommunityServer/Search/Solr -name host -value "http://${domain}:$port/$webPath/"
+    Add-ChangeAttributeOverride -webDir $communityDir -xpath /CommunityServer/Search/Solr -name host -value "http://${domain}:$port/$webPath/"
 
 }
 

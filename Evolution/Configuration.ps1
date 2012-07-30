@@ -1,10 +1,12 @@
-﻿function Update-ConnectionStrings {
+﻿function Set-ConnectionStrings {
     [CmdletBinding()]
     param(
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
+		[alias('dbName')]
         [string]$database,
         [ValidateNotNullOrEmpty()]
+		[alias('dbServer')]
         [string]$server = ".",
         [ValidateNotNullOrEmpty()]
         [string]$username,
@@ -28,7 +30,7 @@
     $connectionStrings.Save($path)     
 }
 
-function AddChangeAttributeOverride {
+function Add-ChangeAttributeOverride {
     param(
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
@@ -56,7 +58,7 @@ function AddChangeAttributeOverride {
 }
 
 
-function Update-EvolutionSolrUrl {
+function Set-EvolutionSolrUrl {
 	<#
 	.Synopsis
 		Updates the Search Url used by a community
@@ -73,7 +75,7 @@ function Update-EvolutionSolrUrl {
     )
     Write-Progress "Configuration" "Updating Solr Url"
     
-    AddChangeAttributeOverride `
+    Add-ChangeAttributeOverride `
         -xpath /CommunityServer/Search/Solr `
         -name host `
         -value $url
@@ -293,11 +295,11 @@ function Enable-WindowsAuth {
         profileRefreshInterval = 1
     }
     
-    AddChangeAttributeOverride -xpath /CommunityServer/Core/extensionModules `
+    Add-ChangeAttributeOverride -xpath /CommunityServer/Core/extensionModules `
         -name enabled -value true
 
     $values.GetEnumerator() |%{
-        AddChangeAttributeOverride -xpath "/CommunityServer/Core/extensionModules/add[@name='WindowsAuthentication']" `
+        Add-ChangeAttributeOverride -xpath "/CommunityServer/Core/extensionModules/add[@name='WindowsAuthentication']" `
             -name $_.Key -value $_.Value
     }
 
