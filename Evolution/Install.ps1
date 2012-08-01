@@ -146,7 +146,6 @@
     }
 }
 
-
 function Install-EvolutionHotfix {
     [CmdletBinding()]
     param (
@@ -177,53 +176,4 @@ function Install-EvolutionHotfix {
     }
    
 }
-
-
-function CCTest {
-    [CmdletBinding()]
-    param(
-        $port = (Get-Random -min 1000 -max 9999)
-    )
-    $ErrorActionPreference = "Stop"
-    
-    "Creating website http://${port}.alex.support.telligent.com/"
-    $name = "PS-$port"
-    $package = "C:\OOTB\Packages\TelligentCommunitySuite-6.0.119.19092.zip"
-    
-    $passwordPlain = [guid]::NewGuid()
-    $password = ConvertTo-SecureString $passwordPlain -AsPlainText -force
-  
-    #TODO: Currently adds the user to the Domain Users group.  Don't want this
-    Write-Progress "Active Directory" "Creating User $name"
-    New-ADUser $name `
-          -AccountPassword $password  `
-          -Path "OU=ServiceAccounts,DC=support,DC=telligent,DC=com" `
-          -CannotChangePassword $true `
-          -ChangePasswordAtLogon $false `
-          -PasswordNeverExpires $true `
-          -Enabled $true `
-	        | Add-ADPrincipalGroupMembership -MemberOf "Service Users" -PassThru `
-			| Remove-ADPrincipalGroupMembership -MemberOf "Domain Users" -PassThru
-  
-    Create-IISDomainAppPool -name $name -username "SUPPORT\$name" -password $passwordPlain    
-    
-    Add-SolrCore $name `
-        -package $package `
-        -coreBaseDir "\\tomcat.support.telligent.com\c$\SolrMultiCore" `
-        -coreAdmin "http://tomcat.support.telligent.com/solr/1-4/admin/cores"
-
-    $webDir = "c:\Alex\$name\"
-    Install-Evolution -name "$name" `
-       -package $package `
-       -webDir $webDir `
-       -webDomain "${port}.alex.support.telligent.com" `
-       -searchUrl "http://tomcat.support.telligent.com/solr/1-4/$name/" `
-       -licenceFile C:\OOTB\Licences\Community6.xml `
-       -dbServer "sql.support.telligent.com\SQL2008R2" `
-       -appPool $name
-       
-    Register-TasksInWebProcess $webDir $package
-    Disable-CustomErrors $webDir
-}
-
 
