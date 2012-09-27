@@ -38,10 +38,18 @@
 	    The url your community's solr instance can be found at
 	.Parameter licenceFile
 	    The path to the licence XML file to install in the community
-	.Example Standard install using Windows Auth to connect to DB
+	.Example
 		Install-Evolution -name "Telligent Evolution" -package "d:\temp\TelligentCommunity-7.0.1824.27400.zip" -webDir "d:\inetpub\TelligentEvolution\" -webdomain "mydomain.com" -searchUrl "http://localhost:8080/solr/"
-	.Example Standard install using SQL Auth to connect to DB, as well as specifying a licence file
+		
+		Description
+		-----------
+		Standard install using Windows Auth to connect to DB
+	.Example
 		Install-Evolution -name "Telligent Evolution" -package "d:\temp\TelligentCommunity-7.0.1824.27400.zip" -webDir "d:\inetpub\TelligentEvolution\" -webdomain "mydomain.com" -searchUrl "http://localhost:8080/solr/" -dbUsername "TellgientEvolutionSql" -dbPassword "Mega$ecretP@$$w0rd" -licenceFile "c:\licence.xml"
+		
+		Description
+		-----------
+		Standard install using SQL Auth to connect to DB, as well as specifying a licence file
 	#>
     [CmdletBinding(DefaultParameterSetName='WindowsAuth')]
     param (

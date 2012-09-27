@@ -1,4 +1,40 @@
-﻿
+﻿function Add-SolrCore {
+    [CmdletBinding()]
+    param (
+        [parameter(Mandatory=$true, Position=0)]
+        [ValidateNotNullOrEmpty()]
+        [string]$name,
+        [parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$package,
+        [parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$coreBaseDir,
+        [parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [Uri]$coreAdmin
+    )
+    begin{
+        $webClient = new-object System.Net.WebClient
+    }
+    process {
+        $date = get-date -f yyy-MM-dd
+        $instanceDir = "${name}\$date\"
+        $coreDir = join-path $coreBaseDir $instanceDir
+        new-item $coreDir -type directory | out-null
+        
+        Write-Progress "Solr Core" "Creating Core"
+        Expand-Zip $package $coreDir -zipDir "search\solr"
+        
+        Write-Progress "Solr Core" "Registering Core"
+		$url = "${coreAdmin}?action=CREATE&name=${name}&instanceDir=${instanceDir}"
+        $webClient.DownloadString($url) | out-null
+    }    
+}
+
+
+##Untested for a while now
+
 function New-SolrInstance {
     param(
         [parameter(Mandatory=$true)]
@@ -56,38 +92,4 @@ function Install-Solr {
     
     Add-ChangeAttributeOverride -webDir $communityDir -xpath /CommunityServer/Search/Solr -name host -value "http://${domain}:$port/$webPath/"
 
-}
-
-function Add-SolrCore {
-    [CmdletBinding()]
-    param (
-        [parameter(Mandatory=$true, Position=0)]
-        [ValidateNotNullOrEmpty()]
-        [string]$name,
-        [parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$package,
-        [parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$coreBaseDir,
-        [parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [Uri]$coreAdmin
-    )
-    begin{
-        $webClient = new-object System.Net.WebClient
-    }
-    process {
-        $date = get-date -f yyy-MM-dd
-        $instanceDir = "${name}\$date\"
-        $coreDir = join-path $coreBaseDir $instanceDir
-        new-item $coreDir -type directory | out-null
-        
-        Write-Progress "Solr Core" "Creating Core"
-        Expand-Zip $package $coreDir -zipDir "search\solr"
-        
-        Write-Progress "Solr Core" "Registering Core"
-		$url = "${coreAdmin}?action=CREATE&name=${name}&instanceDir=${instanceDir}"
-        $webClient.DownloadString($url) | out-null
-    }    
 }

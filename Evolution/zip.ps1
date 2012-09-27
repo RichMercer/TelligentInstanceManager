@@ -10,6 +10,24 @@
         The directory within the zip folder to extract.  If not specified, extracts the whole zip file
     .Parameter zipFileName
         The name of a specific file within zipDir to extract
+	.Example 
+		Expand-Zip c:\sample.zip c:\files\
+		
+		Description
+		-----------
+		This command extracts the entire contents of c:\sample.zip to c:\files\	
+	.Example
+		Expand-Zip c:\sample.zip c:\sample\web\ -zipDir web
+		
+		Description
+		-----------
+		This command extracts the contents of the web directory	of c:\sample.zip to c:\sample\web
+	.Example
+		Expand-Zip c:\sample.zip c:\test\ -zipDir documentation -zipFileName sample.txt
+		
+		Description
+		-----------
+		This command extracts the sample.txt file from the web directory of c:\sample.zip to c:\sample\sample.txt
 	#>
     [CmdletBinding()]
     param(
@@ -52,7 +70,19 @@
 }
 
 function Test-Zip {
-    [CmdletBinding()]
+	<#
+	.Synopsis
+		Tests whether a file exists and is a valid zip file.
+	.Parameter zipFile
+	    The path to the file to test
+	.Example
+		Test-Zip c:\sample.zip
+		
+		Description
+		-----------
+		This command checks if the file c:\sample.zip exists		
+	#>
+	[CmdletBinding()]
     param(
         [parameter(Mandatory=$true, Position=0)]
         [ValidateNotNullOrEmpty()]

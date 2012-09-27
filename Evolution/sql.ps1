@@ -1,5 +1,12 @@
-﻿
-function Install-EvolutionDatabase {
+﻿function Install-EvolutionDatabase {
+	<#
+	.Synopsis
+		Grants a user access to an evolution database.  If the user or login doesn't exist, in the SQL server, they
+		are created before being granted the 
+	.Parameter zipFile
+	    The path to the file to test
+	#>
+	[CmdletBinding()]
     param(
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
@@ -48,17 +55,46 @@ function Install-EvolutionDatabase {
 }
 
 function Grant-EvolutionDatabaseAccess {
-    [CmdletBinding()]
+	<#
+	.Synopsis
+		Grants a user access to an Evolution database.  If the user or login doesn't exist, in the SQL server, they
+		are created before being granted access to the database.
+	.Parameter server
+		The SQL server the database is contained on
+	.Parameter dbName
+		The name of the database
+	.Parameter username
+		The name of the user to grant access to.  If no password is specified, the user is assumed to be a Windows
+		login.
+	.Parameter password
+		The password for the SQL user
+	.Example
+		Grant-EvolutionDatabaseAccess (local)\SqlExpress SampleCommunity "NT AUTHORITY\NETWORK SERVICE"
+
+		Description
+		-----------
+		This command grant access to the SampleCommunity database on the SqlExpress instance of the local SQL server
+		for the Network Service Windows account
+	.Example
+		Grant-EvolutionDatabaseAccess ServerName SampleCommunity CommunityUser -password SqlPa$$w0rd
+		
+		Description
+		-----------
+		This command grant access to the SampleCommunity database on the default instance of the ServerName SQL server
+		for the CommunityUser SQL account. If this login does not exist, it gets created using the password SqlPa$$w0rd
+
+	#>
+	[CmdletBinding()]
     param(
-        [parameter(Mandatory=$true)]
+        [parameter(Mandatory=$true, Position = 0)]
         [ValidateNotNullOrEmpty()]
 		[alias('dbServer')]
         [string]$server,
-        [parameter(Mandatory=$true)]
+        [parameter(Mandatory=$true, Position = 1)]
         [ValidateNotNullOrEmpty()]
 		[alias('dbName')]
         [string]$database,
-        [parameter(Mandatory=$true)]
+        [parameter(Mandatory=$true, Position = 2)]
         [ValidateNotNullOrEmpty()]
         [string]$username,
         [ValidateNotNullOrEmpty()]

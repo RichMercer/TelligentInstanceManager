@@ -387,7 +387,7 @@ function Enable-Ldap {
     $packages = [xml](gc $packagesPath)
     $date = get-date -format yyyy-MM-dd
     $package = [xml]"<Package Name=""Ldap"" Version=""1.0"" DateInstalled=""$date"" Id=""4BF1091D-376C-42b2-B375-E2FE9480E845"" />"
-    $packages.Packages.AppendChild($packages.ImportNode($package.DocumentElement, $true)) | out-null
+    $packages.DocumentElement.AppendChild($packages.ImportNode($package.DocumentElement, $true)) | out-null
     $packages.Save($packagesPath)
 
     #Configure Web.config
