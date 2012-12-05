@@ -11,7 +11,7 @@
 		Optionally, you can specify a path to a licence file and this will be installed into your community.
 		
 		By default, authentication between the web and databases uses the Applicaiton Pool Identity, but SQL authentiation
-		is used if an explicity username & password are provided.
+		is used if an explicit username & password are provided.
 	.Parameter package
 	    The path to the zip package containing the Telligent Evolution installation files from Telligent Support
 	.Parameter hotfixPackage
@@ -23,9 +23,9 @@
 	.Parameter webDomain
 	    The domain name the community will be accessible at
 	.Parameter appPool
-	    The name of the Applicaiton Pool to use the community with.  If not specified creates a new apppool.
+	    The name of the Application Pool to use the community with.  If not specified creates a new apppool.
 	.Parameter dbServer
-	    The DNS name of your SQL server.  Must be able to connect using Windows Authenticaiton from the current machine.  Only supports Default instances.
+	    The DNS name of your SQL server.  Must be able to connect using Windows Authentication from the current machine.  Only supports Default instances.
 	.Parameter dbName
 	    The name of the database to locate your community in.  Defaults to the value provided for name.
 	.Parameter sqlAuth
@@ -53,6 +53,10 @@
 	#>
     [CmdletBinding(DefaultParameterSetName='WindowsAuth')]
     param (
+        [parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$name,
+
 		#Packages
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
@@ -64,16 +68,13 @@
 		#Web Settings
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [string]$name,
-        [parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
         [string]$webDir, #TODO: Validate Dir is Empty
-        [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [string]$webDomain,
+        [string]$webDomain = "localhost",
+        [uint16]$port= 80,
         [ValidateNotNullOrEmpty()]
 		[ValidateScript({Resolve-Path IIS:\AppPools\$_})]
-		[string]$appPool, #TODO: Validate AppPool Exists
+		[string]$appPool,
 
 		#Database Connection
         [ValidateNotNullOrEmpty()]
@@ -103,8 +104,8 @@
 
 	if(!$appPool){
 		#TODO: Test if app pool exists before creating new one
-		$appPool = $name
 		New-IISAppPool $appPool -netVersion 4.0
+		$appPool = $name
 	}
 	$sqlConnectionSettings = @{
 		dbServer = $dbServer
@@ -134,6 +135,7 @@
 
 	pushd $webdir 
     try {
+        Write-Progress "Configuration" "Updating Connection Strings"
         Set-ConnectionStrings @sqlConnectionSettings @sqlAuthSettings
 		if($searchUrl) {
 	        Set-EvolutionSolrUrl $searchUrl

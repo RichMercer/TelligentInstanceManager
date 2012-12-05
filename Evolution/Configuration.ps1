@@ -13,7 +13,6 @@
         [ValidateNotNullOrEmpty()]
         [string]$password
     )
-    Write-Progress "Configuration" "Updating Connection Strings"
     
     if ($username -and $password){
         $connectionString = "Server=$server;Database=$database;uid=$username;pwd=$password;"
@@ -30,7 +29,7 @@
     $connectionStrings.Save($path)     
 }
 
-function Add-ChangeAttributeOverride {
+function Add-OverrideChangeAttribute {
     param(
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
@@ -85,10 +84,12 @@ function Install-EvolutionLicence {
 	<#
 	.Synopsis
 		Installs a licence file into your community
-	.Parameter webDir
-	    The root directory of the Telligent Evolution websites
-	.Parameter package
-	    The path to the zip package containing the Telligent Evolution installation files from Telligent Support
+	.Parameter licenceFile
+	    The XML Licence file provided by Telligent Support
+	.Parameter dbServer
+	    The server the community database is located on
+	.Parameter dbName
+	    The name of the community 
 	#>
     [CmdletBinding()]
     param(

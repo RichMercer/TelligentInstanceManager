@@ -16,7 +16,9 @@
         [ValidateNotNullOrEmpty()]
         [int]$port = 80,
         [ValidateNotNullOrEmpty()]
-        [string]$appPool = $name
+        [string]$appPool = $name,
+ 		[ValidateSet(2.0,4.0)]
+        [double]$netVersion = 4.0
     )
 
     
@@ -29,11 +31,6 @@
     Expand-Zip $package $path -zipDir "Web"
 
     Grant-EvolutionWebPermissions $path
-}
-
-function Install-EvolutionWebsiteHotfix {
-    Write-Progress "Applying Hotfix" "Updating Web"
-    Expand-Zip $package $communityDir -zipDir "Web"
 }
 
 function Grant-EvolutionWebPermissions {
@@ -72,7 +69,9 @@ function New-IISWebsite {
         [ValidateNotNullOrEmpty()]
         [int]$port = 80,
         [ValidateNotNullOrEmpty()]
-        [string]$appPool = $name
+        [string]$appPool = $name,
+ 		[ValidateSet(2.0,4.0)]
+        [double]$netVersion = 4.0
     )
     
     if (!(test-path $path)) {
@@ -80,7 +79,7 @@ function New-IISWebsite {
     }
     if (!(test-path IIS:\AppPools\$appPool)) {
         Write-Progress "Website: $name" "Creating IIS App Pool"
-        New-IISAppPool $name
+        New-IISAppPool $name -netVersion $netVersion
     }
     
     pushd IIS:\Sites\
@@ -100,6 +99,7 @@ function New-IISAppPool{
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [string]$name,
+ 		[ValidateSet(2.0,4.0)]
         [double]$netVersion = 4.0,
         [string]$username,
         [string]$password

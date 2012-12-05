@@ -63,19 +63,32 @@ TypesToProcess = @()
 FormatsToProcess = @()
 
 # Modules to import as nested modules of the module specified in ModuleToProcess
-NestedModules = @('zip.ps1', 'iis.ps1', 'sql.ps1', 'solr.ps1', 'configuration.ps1', 'install.ps1')
+NestedModules = @('zip.ps1', 'iis.ps1', 'sql.ps1', 'solr.ps1', 'configuration.ps1', 'install.ps1', 'dev.ps1')
 
 # Functions to export from this module
-FunctionsToExport = '*'
+FunctionsToExport = @('Add-OverrideChangeAttribute',
+                    'Add-SolrCore',
+                    'Disable-CustomErrors',
+                    'Get-EvolutionBuild',
+                    'Install-DevEvolution',
+                    'Install-Evolution',
+                    'Install-EvolutionHotfix',
+                    'Install-EvolutionLicence',
+                    'New-IISAppPool',
+                    'Register-TasksInWebProcess',
+                    'Set-ConnectionStrings',
+                    'Set-EvolutionSolrUrl',
+                    'Test-Zip'
+                )
 
 # Cmdlets to export from this module
-CmdletsToExport = '*'
+CmdletsToExport = ''
 
 # Variables to export from this module
 VariablesToExport = ''
 
 # Aliases to export from this module
-AliasesToExport = ''
+AliasesToExport = '*'
 
 # List of all modules packaged with this module
 ModuleList = @()
