@@ -1,4 +1,4 @@
-﻿$base = "d:\Telligent\PowerShell"
+﻿$base = "w:\"
 
 $pathData = @{
     # The Directory where full installation packages can be found
@@ -92,38 +92,11 @@ function Install-DevEvolution {
 }
 
 function Get-EvolutionBuild {
+    param(
+        [string]$versionPattern
+    )
 
-    $basePackages = Get-VersionedEvolutionPackages $pathData.PackagesPath
-    $basePackages |% {
-         New-Object PSObject -Property ([ordered]@{
-                Product = $_.Product
-                Version = $_.Version
-                BasePackage = $_.Path
-                HotfixPackage = $null #Ensure column shows up for hotfixes
-            })
-    }
-
-    Get-VersionedEvolutionPackages $pathData.HotfixesPath|
-        % {
-            $hotfix = $_
-            $base = $basePackages |
-                ? { $_.Version.Major -eq $hotfix.Version.Major -and $_.Version.Minor -eq $hotfix.Version.Minor }|
-                sort Version -Descending |
-                select -First 1
-
-            if ($base) 
-            {
-                New-Object PSObject -Property ([ordered]@{
-                        Product = $_.Product
-                        Version = $_.Version
-                        BasePackage = $base.Path
-                        HotfixPackage = $_.Path
-                    })
-            }
-        }    
-}
-
-function Get-VersionedEvolutionPackages {
+    function Get-VersionedEvolutionPackages {
     param(
         [string]$path
     )
@@ -148,5 +121,38 @@ function Get-VersionedEvolutionPackages {
                 })
             }
         }
+
+    }
+
+    $basePackages = Get-VersionedEvolutionPackages $pathData.PackagesPath
+    $fullBuilds = $basePackages |
+        select Product,Version,@{Expression={$_.Path};Label="BasePackage"},@{Expression={$null};Label="HotfixPackage"}
+
+    $hotfixBuilds = Get-VersionedEvolutionPackages $pathData.HotfixesPath|
+        % {
+            $hotfix = $_
+            $base = $basePackages |
+                ? { $_.Version.Major -eq $hotfix.Version.Major -and $_.Version.Minor -eq $hotfix.Version.Minor }|
+                sort Version -Descending |
+                select -First 1
+
+            if ($base) 
+            {
+                $_ |select Product,Version,@{Expression={$base.Path};Label="BasePackage"},@{Expression={$_.Path};Label="HotfixPackage"}
+            }
+        }  
+		
+	$results = $fullBuilds + $hotfixBuilds |
+        sort version
+		
+	if($versionPattern){
+		$results = $results |
+            ? version -match "^$versionPattern"
+
+        if($true) {
+            $results = $results | select -Last 1
+        }
+	}
+    $results
 
 }
