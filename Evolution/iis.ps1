@@ -21,7 +21,6 @@
         [double]$netVersion = 4.0
     )
 
-    
     if(!(test-path $path)) {
         new-item $path -type directory | out-null
     }    
@@ -46,10 +45,10 @@ function Grant-EvolutionWebPermissions {
         Write-Progress "Website: $name" "Granting read access to $appPoolIdentity"
         $filestorage = join-path $webDir filestorage
         #TODO: outputs a status message.  switch to Set-Acl instead
-        icacls "$webDir" /grant "${appPoolIdentity}:(OI)(CI)RX" /Q | out-null
+        &icacls "$webDir" /grant "${appPoolIdentity}:(OI)(CI)RX" /Q | out-null
         if (test-path $filestorage) {
             Write-Progress "Website: $name" "Granting modify access to $appPoolIdentity for ~/filestorage/"
-            icacls "$filestorage" /grant "${appPoolIdentity}:(OI)(CI)M" /Q | out-null
+            &icacls "$filestorage" /grant "${appPoolIdentity}:(OI)(CI)M" /Q | out-null
         }
     }
 }
@@ -67,7 +66,7 @@ function New-IISWebsite {
         [ValidateNotNullOrEmpty()]
         [string]$domain,
         [ValidateNotNullOrEmpty()]
-        [int]$port = 80,
+        [uint16]$port = 80,
         [ValidateNotNullOrEmpty()]
         [string]$appPool = $name,
  		[ValidateSet(2.0,4.0)]
@@ -85,8 +84,8 @@ function New-IISWebsite {
     pushd IIS:\Sites\
     try {
         Write-Progress "Website: $name" "Creating IIS Website"
-        New-Item $name -bindings @{protocol="http";bindingInformation=":${port}:${domain}"} -physicalPath $path -force |out-null
-        Set-ItemProperty $name -name applicationPool -value $appPool
+        New-Item $name -bindings @{protocol="http";bindingInformation=":${port}:${domain}"} -physicalPath $path -force |
+            Set-ItemProperty -name applicationPool -value $appPool
     }
     finally{
         popd

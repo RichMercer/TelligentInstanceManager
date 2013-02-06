@@ -1,4 +1,7 @@
-﻿function Expand-Zip {
+﻿        add-type -AssemblyName System.IO.Compression
+        add-type -AssemblyName System.IO.Compression.FileSystem
+
+function Expand-Zip {
 	<#
 	.Synopsis
 		Extracts files from a zip folder
@@ -29,8 +32,7 @@
 		-----------
 		This command extracts the sample.txt file from the web directory of c:\sample.zip to c:\sample\sample.txt
 	#>
-    [CmdletBinding()]
-    param(
+    [CmdletBinding()]    param(
         [parameter(Mandatory=$true, Position=0)]
         [ValidateNotNullOrEmpty()]
 		[ValidateScript({Test-Zip $_ })]
@@ -39,34 +41,73 @@
         [ValidateNotNullOrEmpty()]
         [string]$destination,
         [string]$zipDir,
-        [ValidateNotNullOrEmpty()]
         [string]$zipFileName
-    )
-    begin{
-        $shell_app=new-object -com shell.application 
+    )   
+
+    $prefix = ""
+    if($zipDir){
+        $prefix = $zipDir.Replace('\','/').Trim('/') + '/'
     }
-    process {
-        if (!($zipPath -and (test-path $zipPath))){
-            throw "$zipPath does not exist"
-        }
-        
-        if (!(test-path $destination)) {
-          new-item $destination -type directory |out-null
-        }   
-        
-        $shellNamesapce= Join-Path $zipPath $zipDir
-        $zip_file = $shell_app.namespace($shellNamesapce) 
-        $destinationFolder = $shell_app.namespace($destination)
-        if ($zipFileName) {
-            $zip_file.items() |
-                ? { (Split-Path $_.Path -leaf) -eq $zipFileName } |
-                % { $destinationFolder.Copyhere($_, 3604) }
+    if (!(test-path $destination)) {
+        New-item $destination -Type Directory | out-null
+    }
+    $absoluteDestination = Convert-Path $destination
+
+    $zipPackage = [IO.Compression.ZipFile]::OpenRead((Convert-Path $zipPath))
+    try {
+
+        if ($zipFileName){
+            $zipPackage.Entries |
+                ? {$_.FullName -eq "${prefix}${zipFileName}"} |
+                select -first 1 |
+                %{ Expand-ZipArchiveEntry $_ (join-path $absoluteDestination $zipFileName) }
         }
         else {
-            $destinationFolder.Copyhere($zip_file.items(), 3604)
+            #Filter out directories
+            $entries = $zipPackage.Entries |? Name
+            if ($zipDir) {
+                #Filter out itmes not in filtered directory
+                $entries = $entries |? { $_.FullName.StartsWith($prefix, "OrdinalIgnoreCase")}
+            }
+
+            $totalFileSize = ($entries |% length |measure-object -sum).Sum
+            $processedFileSize = 0
+            $entries |% {
+                $destination = join-path $absoluteDestination $_.FullName.Substring($prefix.Length)
+                #Write-Progress "Extracting Zip" -CurrentOperation $_.FullName -PercentComplete ($processedFileSize / $totalFileSize * 100) 
+
+                Expand-ZipArchiveEntry $_ $destination 
+
+                $processedFileSize += $_.Length
+            }
+            Write-Progress "Extracting Zip" -completed
         }
-        #For more info on CopyHere - http://msdn.microsoft.com/en-us/library/windows/desktop/bb787866(v=vs.85).aspx
     }
+    finally {
+        $zipPackage.Dispose()
+    }
+}
+
+function Expand-ZipArchiveEntry {
+    [CmdletBinding()]
+    param(
+        [parameter(Mandatory=$true, Position=0)]
+        [ValidateNotNullOrEmpty()]
+        [IO.Compression.ZipArchiveEntry]$entry,
+        [parameter(Mandatory=$true, Position=1)]
+        [ValidateNotNullOrEmpty()]
+        [string]$destination            
+    )
+
+    if (!$entry.Name){
+        return
+        }
+
+    $itemDir = split-path $destination -Parent
+    if (!(test-path $itemDir)) {
+        New-item $itemDir -Type Directory | out-null
+    }
+    [IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $destination, $true)
 }
 
 function Test-Zip {

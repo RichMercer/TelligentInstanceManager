@@ -38,7 +38,11 @@
     $tempDir = join-path $env:temp ([guid]::NewGuid())
     Expand-Zip -zipPath $package -destination $tempDir -zipDir "SqlScripts" -zipFile "cs_CreateFullDatabase.sql"
     $sqlScript = join-path $tempDir cs_CreateFullDatabase.sql | resolve-path
-    Invoke-Sqlcmd -serverinstance $server -Database $database -InputFile $sqlScript -QueryTimeout 6000 |out-null
+
+    $VerbosePreference = 'continue'
+    Invoke-Sqlcmd -serverinstance $server -Database $database -InputFile $sqlScript -QueryTimeout 6000  4>&1 |
+       ? { $_ -is 'System.Management.Automation.VerboseRecord'}  |
+       % { Write-Progress "Database: $database" "Creating Schema" -CurrentOperation $_.Message }
     #TODO: Cleanup temp
 
     Write-Progress "Database: $database" "Creating Community"
@@ -51,7 +55,10 @@
                 , @AdminPassword = N'password'
                 , @PasswordFormat = 0
                 , @CreateSamples = 1
-"@       |out-null
+"@ 4>&1 |
+       ? { $_ -is 'System.Management.Automation.VerboseRecord'}  |
+       % { Write-Progress "Database: $database" "Creating Community" -CurrentOperation $_.Message }
+
 }
 
 function Grant-EvolutionDatabaseAccess {

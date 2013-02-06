@@ -1,4 +1,7 @@
-﻿$base = "w:\"
+﻿$base = $env:EvoDevLocation
+if (!$base) {
+    $base = $PSScriptRoot
+}
 
 $pathData = @{
     # The Directory where full installation packages can be found
@@ -24,61 +27,60 @@ $pathData = @{
 	SolrCoreBase = Join-Path $base 'Solr\{0}\Cores\'
 }
 $versionRegex = [regex]"[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+"
-
 function Install-DevEvolution {
     param(
         [parameter(Mandatory=$true)]
+        [ValidatePattern('^[a-z1-9\-\._]+$')]
         [ValidateNotNullOrEmpty()]
         [string] $name,
         [parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-        [ValidateNotNullOrEmpty()]
  		[ValidateSet('Community','Enterprise')]
  		[string] $product,
         [parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
 		[ValidateNotNullOrEmpty()]
-        [version] $version      
+        [version] $version,
+        [parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+		[ValidateNotNullOrEmpty()]
+        [string] $basePackage,
+        [parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+        [string] $hotfixPackage,
+        [switch] $noSearch
     )
+    $ErrorActionPreference = "Stop"
 
-    #$ErrorActionPreference = "Stop"
-	$buildInfo = Get-EvolutionBuild | ? {$_.Product -ieq $product -and $_.Version -eq $version }
-	
-	if (!$buildInfo){
-		throw "Invalid Build specified"
-	}
-    
-	$solrVersion = if(@(2,3,5,6) -contains $version.Major){ "1-4" } else {"3-6" }
+    if(!$noSearch) {
+	    $solrVersion = if(@(2,3,5,6) -contains $version.Major){ "1-4" } else {"3-6" }
+	    $coreName = $name.ToLower()
+	    $solrUrl = ($pathData.SolrUrl -f $solrVersion).TrimEnd("/")
 
-	$coreName = $name.ToLower()
-	$solrUrl = ($pathData.SolrUrl -f $solrVersion).TrimEnd("/")
-    Add-SolrCore $coreName `
-		-package $buildInfo.BasePackage `
-		-coreBaseDir ($pathData.SolrCoreBase -f $solrVersion) `
-		-coreAdmin "$solrUrl/admin/cores"
-	$solrUrl += "/$coreName/"
+        Add-SolrCore $coreName `
+		    -package $basePackage `
+		    -coreBaseDir ($pathData.SolrCoreBase -f $solrVersion) `
+		    -coreAdmin "$solrUrl/admin/cores"
 
-	$licenceFile = join-path $pathData.LicencesPath "${product}$($version.Major).xml"
-    $licenceData = @{}
-    if (test-path $licenceFile) {
-        $licenceData.LicenceFile = $licenceFile;
+	    $solrUrl += "/$coreName/"
     }
+	$licenceFile = join-path $pathData.LicencesPath "${product}$($version.Major).xml"
 
     $webDir = Join-Path $pathData.WebBase $name
+    $domain = "${name}.local"
 
 	Install-Evolution -name $name `
-		-package $buildInfo.BasePackage `
-		-hotfixPackage $buildInfo.HotfixPackage `
+		-package $basePackage `
+		-hotfixPackage $hotfixPackage `
 		-webDir $webDir `
 		-searchUrl $solrUrl  `
 		-appPool $name `
-        -netVersion (if (@(2,5) -contains $version.Major) { 2.0 } else { 4.0 }) `
-        @licenceData
+        -netVersion $(if (@(2,5) -contains $version.Major) { 2.0 } else { 4.0 }) `
+        -webDomain $domain `
+        -licenceFile $licenceFile
 
     pushd $webdir 
     try {
 		Disable-CustomErrors
 
 		if(($product -eq 'community' -and $version -gt 5.6) -or ($product -eq 'enterprise' -and $version -gt 2.6)) {
-            Register-TasksInWebProcess $buildInfo.BasePackage
+            Register-TasksInWebProcess $basePackage
         }
 
         if ($product -eq "enterprise") {
@@ -88,45 +90,22 @@ function Install-DevEvolution {
     finally {
     	popd
     }
-	Write-Host "Created website at http://${webDomain}/"
+
+    #Add site to hosts files
+    Add-Content -value "127.0.0.1 $domain" -path (join-path $env:SystemRoot system32\drivers\etc\hosts)
+	Write-Host "Created website at http://$domain/"
+    Start-Process "http://$domain/"
 }
 
 function Get-EvolutionBuild {
     param(
         [string]$versionPattern
     )
-
-    function Get-VersionedEvolutionPackages {
-    param(
-        [string]$path
-    )
-
-    Get-ChildItem $path  *.zip|
-        %{
-            if ($_.Name -match "community") {
-                $product = "Community"
-            }elseif ($_.Name -match "enterprise") {
-                $product ="Enterprise"
-            } else {
-                #$product doesn't get reset on each iteration, so reset it to null for an invalid package
-                $product = $null
-            }
-            $match = $versionRegex.Match($_.Name)
-
-            if ($product -and $match.Value) {                
-                New-Object PSObject -Property (@{
-                    Product = $product
-                    Version = [version]$match.Value
-                    Path = $_.FullName
-                })
-            }
-        }
-
-    }
-
     $basePackages = Get-VersionedEvolutionPackages $pathData.PackagesPath
     $fullBuilds = $basePackages |
-        select Product,Version,@{Expression={$_.Path};Label="BasePackage"},@{Expression={$null};Label="HotfixPackage"}
+        select Product,Version, `
+            @{Expression={$_.Path};Label="BasePackage"},`
+            @{Expression={$null};Label="HotfixPackage"}
 
     $hotfixBuilds = Get-VersionedEvolutionPackages $pathData.HotfixesPath|
         % {
@@ -138,7 +117,9 @@ function Get-EvolutionBuild {
 
             if ($base) 
             {
-                $_ |select Product,Version,@{Expression={$base.Path};Label="BasePackage"},@{Expression={$_.Path};Label="HotfixPackage"}
+                $_ |select Product,Version,`
+                @{Expression={$base.Path};Label="BasePackage"},`
+                @{Expression={$_.Path};Label="HotfixPackage"}
             }
         }  
 		
@@ -154,5 +135,33 @@ function Get-EvolutionBuild {
         }
 	}
     $results
+
+}
+
+function Get-VersionedEvolutionPackages {
+param(
+    [string]$path
+)
+
+Get-ChildItem $path  *.zip|
+    %{
+        if ($_.Name -match "community") {
+            $product = "Community"
+        }elseif ($_.Name -match "enterprise") {
+            $product ="Enterprise"
+        } else {
+            #$product doesn't get reset on each iteration, so reset it to null for an invalid package
+            $product = $null
+        }
+        $match = $versionRegex.Match($_.Name)
+
+        if ($product -and $match.Value) {                
+            New-Object PSObject -Property (@{
+                Product = $product
+                Version = [version]$match.Value
+                Path = $_.FullName
+            })
+        }
+    }
 
 }

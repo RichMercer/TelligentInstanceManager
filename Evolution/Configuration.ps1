@@ -30,6 +30,7 @@
 }
 
 function Add-OverrideChangeAttribute {
+    [CmdletBinding()]
     param(
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
@@ -57,24 +58,26 @@ function Add-OverrideChangeAttribute {
 }
 
 
-function Set-EvolutionSolrUrl {
+function Set-EvolutionSolrUrl() {
 	<#
 	.Synopsis
-		Updates the Search Url used by a community
-	.Parameter communityDir
-	    The root directory of the Telligent Evolution community
+		Updates the Search Url used by the Telligent Evolution community in the current directory
 	.Parameter url
-	    The path to the zip package containing the Telligent Evolution installation files from Telligent Support
+	    The url of the solr instance to use
 	#>
     [CmdletBinding()]
     param(
-        [parameter(Mandatory=$true, ValueFromPipeline=$true, Position=1)]
+        [parameter(Mandatory=$true, ValueFromPipeline=$true)]
         [ValidateNotNullOrEmpty()]
         [uri]$url
     )
+
+    try { Invoke-WebRequest ($url.AbsoluteUri.TrimEnd('/') + "/admin/") -Method HEAD -UseBasicParsing | out-null }
+    catch { Write-Warning ("Solr Url '$url' is inaccessible ") }
+
     Write-Progress "Configuration" "Updating Solr Url"
     
-    Add-ChangeAttributeOverride `
+    Add-OverrideChangeAttribute `
         -xpath /CommunityServer/Search/Solr `
         -name host `
         -value $url
@@ -83,13 +86,13 @@ function Set-EvolutionSolrUrl {
 function Install-EvolutionLicence {
 	<#
 	.Synopsis
-		Installs a licence file into your community
+		Installs a licence file into a Telligent Evolution Community
 	.Parameter licenceFile
-	    The XML Licence file provided by Telligent Support
+	    The XML Licence file
 	.Parameter dbServer
 	    The server the community database is located on
 	.Parameter dbName
-	    The name of the community 
+	    The name of the database containing the community 
 	#>
     [CmdletBinding()]
     param(
@@ -113,7 +116,8 @@ function Install-EvolutionLicence {
 function Register-TasksInWebProcess {
 	<#
 	.Synopsis
-		Registers the Job Scheduler tasks in the web process of the current directory for a development environment
+		Registers the Job Scheduler tasks in the web process of the Telligent Evolution 
+        instance in the current directory for a development environment
     .Details
         Do NOT use this in a production environment
         
@@ -130,7 +134,6 @@ function Register-TasksInWebProcess {
 		[ValidateScript({Test-Zip $_ })]
         [string]$package
     )
-    Write-Progress "Configuration" "Registrating tasks in Web Process"
     Write-Warning "Registering Tasks in the web process is not supported for production environments. Only do this in non production environments"
 
     $tempDir = join-path $env:temp ([guid]::NewGuid())
@@ -147,7 +150,146 @@ function Register-TasksInWebProcess {
 	}
 	else {
 		#5.6
-		$tasks = [xml]@"
+		$tasks = [xml]$tasks5x
+		$tasks.jobs.job |% {
+    	    $webTasks.scheduler.jobs.AppendChild($webTasks.ImportNode($_, $true)) | out-null
+	    }
+		$version = [Version](Get-Item "bin\CommunityServer.Components.dll").FileVersionInfo.FileVersion
+		if($version.Revision -ge 17537) {
+			$reindexNode = [xml]"<job schedule=""30 * * * * ? *"" type=""CommunityServer.Search.SiteReindexJob, CommunityServer.Search""/>"
+    	    $webTasks.scheduler.jobs.AppendChild($webTasks.ImportNode($reindexNode.job, $true)) | out-null
+		}
+	}
+
+	$webTasks.Save($webTasksPath)
+	
+}
+
+function Disable-CustomErrors {
+	<#
+	.Synopsis
+		Disables Custom Errors for the ASP.Net website in the current directory
+	.Example
+		Disable-CustomErrors 
+	#>
+    
+    Write-Warning "Disabling Custom Errors poses a security risk. Only do this in non production environments"
+    $configPath = resolve-path "web.config"
+    $webConfig = [xml] (get-content $configPath )
+    
+    $webConfig.configuration.{system.web}.customErrors.mode = "Off"
+    $webConfig.Save($configPath)
+}
+
+function Enable-WindowsAuth {
+	<#
+	.Synopsis
+		Configures IIS to use Windows Authentication for the ASP.Net website
+        in the current directory
+	.Example
+		Enable-WindowsAuth
+	#>
+    $configPath = resolve-path web.config
+    $webConfig = [xml] (get-content $configPath )
+    
+    $webConfig.configuration.{system.web}.authentication.mode = "Windows"
+    $webConfig.Save($configPath)
+    
+    $values = @{
+        adminWindowsGroup = "SUPPORT\Community Admins";
+        emailDomain = "@support.telligent.com";
+        profileRefreshInterval = 1
+    }
+    
+    Add-OverrideChangeAttribute -xpath /CommunityServer/Core/extensionModules `
+        -name enabled -value true
+
+    $values.GetEnumerator() |%{
+        Add-OverrideChangeAttribute -xpath "/CommunityServer/Core/extensionModules/add[@name='WindowsAuthentication']" `
+            -name $_.Key -value $_.Value
+    }
+
+    Get-IISWebsites |% {
+        &c:\Windows\System32\inetsrv\appcmd.exe set config $_.Name /section:windowsAuthentication /enabled:true /commit:apphost  | out-null
+        &c:\Windows\System32\inetsrv\appcmd.exe set config $_.Name /section:anonymousAuthentication /enabled:false /commit:apphost | out-null
+    }
+    ##For some reason, the following tries to use .net 2.0, and fails because it can't find a configuraiton
+    ## section for system.web.extensions
+
+    #    Set-WebConfigurationProperty -filter /system.webServer/security/authentication/anonymousAuthentication -name enabled `
+    #        -value false -PSPath IIS:\ -location $iisSiteName
+    #    Set-WebConfigurationProperty -filter /system.webServer/security/authentication/windowsAuthentication -name enabled `
+    #        -value true -PSPath IIS:\ -location $iisSiteName
+
+}
+
+function Enable-Ldap {
+	<#
+	.Synopsis
+		Configures the Telligent Enterprise community in the current location to use LDAP
+	.Parameter server
+	    The name of the ldap server
+	.Parameter username
+        The username to connect with
+	.Parameter password
+        The password to connect with
+	.Parameter authenticationType
+        The authenticaiton type to use.
+	.Parameter port
+        The port to connect to the LDAP server on        
+	.Parameter 
+        The baseDn to use
+	#>
+    [CmdletBinding()]
+    param(
+        [parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$server,
+        [parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$username,
+        [parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$password,
+        [string]$authenticationType = "Secure",
+        [int]$port = 389,
+        [string]$baseDn
+    )
+
+    #Install Package
+    $packagesPath = resolve-path packages.config
+    $packages = [xml](gc $packagesPath)
+    $date = get-date -format yyyy-MM-dd
+    $package = [xml]"<Package Name=""Ldap"" Version=""1.0"" DateInstalled=""$date"" Id=""4BF1091D-376C-42b2-B375-E2FE9480E845"" />"
+    $packages.DocumentElement.AppendChild($packages.ImportNode($package.DocumentElement, $true)) | out-null
+    $packages.Save($packagesPath)
+
+    #Configure Web.config
+    $webConfigPath = resolve-path web.config
+    $webConfig = [xml] (get-content $webConfigPath )
+
+    $ldapSection = [xml]"<section name=""LdapConnection"" type=""System.Configuration.NameValueSectionHandler"" />"
+    $webConfig.configuration.configSections.AppendChild($webConfig.ImportNode($ldapSection.DocumentElement, $true)) | out-null
+    $ldapConfiguration= $webConfig.CreateElement("LdapConnection")
+    @{
+        Server="LDAP://$server";
+        Port=$port;
+        BaseDN=$baseDn;
+        UserDN=$username;
+        Password = $password;
+        Authentication = $authenticationType;
+    } |% {
+        $add = $ldapConfiguration.OwnerDocument.CreateElement("add")
+        $add.SetAttribute("key", $_.Key)
+        $add.SetAttribute("value", $_.Value)
+        $ldapConfiguration.AppendChild($add) | out-null
+    }
+    $webConfig.configuration.AppendChild($ldapConfiguration) | out-null   
+
+    $webConfig.Save($webConfigPath)
+}
+
+$tasks5x = data {@"
 <jobs>
 	<job schedule="0 */3 * * * ? *" type="CommunityServer.Components.AnonymousUserJob, CommunityServer.Components" />
 	<job schedule="0 */3 * * * ? *" type="CommunityServer.Components.ReferralsJob, CommunityServer.Components" />
@@ -236,182 +378,4 @@ function Register-TasksInWebProcess {
 
 
 </jobs>
-"@
-		$tasks.jobs.job |% {
-    	    $webTasks.scheduler.jobs.AppendChild($webTasks.ImportNode($_, $true)) | out-null
-	    }
-		$version = [Version](Get-Command "bin\CommunityServer.Components.dll").FileVersionInfo.FileVersion
-		if($version -and $version.Revision -ge 17537) {
-			$reindexNode = [xml]"<job schedule=""30 * * * * ? *"" type=""CommunityServer.Search.SiteReindexJob, CommunityServer.Search""/>"
-    	    $webTasks.scheduler.jobs.AppendChild($webTasks.ImportNode($reindexNode.job, $true)) | out-null
-		}
-	}
-
-	$webTasks.Save($webTasksPath)
-	
-}
-
-function Disable-CustomErrors {
-	<#
-	.Synopsis
-		Disables Custom Errors for an ASP.Net website
-	.Example
-		Disable-CustomErrors 
-	#>
-    [CmdletBinding()]
-    param(
-    )
-    
-    Write-Warning "Disabling Custom Errors poses a security risk. Only do this in non production environments"
-    $configPath = resolve-path "web.config"
-    $webConfig = [xml] (get-content $configPath )
-    
-    $webConfig.configuration.{system.web}.customErrors.mode = "Off"
-    $webConfig.Save($configPath)
-}
-
-function Enable-WindowsAuth {
-	<#
-	.Synopsis
-		Configures IIS to use Windows Authentication for an ASP.Net website
-	.Parameter webDir
-	    The root directory of the ASP.Net website
-	.Parameter iisSiteName
-	    The name of the IIS Website
-	.Example
-		Enable-WindowsAuth c:\Websites\TestSite\ TestSite
-	#>
-    [CmdletBinding()]
-    param(
-    )
-    $configPath = resolve-path web.config
-    $webConfig = [xml] (get-content $configPath )
-    
-    $webConfig.configuration.{system.web}.authentication.mode = "Windows"
-    $webConfig.Save($configPath)
-    
-    $values = @{
-        adminWindowsGroup = "SUPPORT\Community Admins";
-        emailDomain = "@support.telligent.com";
-        profileRefreshInterval = 1
-    }
-    
-    Add-ChangeAttributeOverride -xpath /CommunityServer/Core/extensionModules `
-        -name enabled -value true
-
-    $values.GetEnumerator() |%{
-        Add-ChangeAttributeOverride -xpath "/CommunityServer/Core/extensionModules/add[@name='WindowsAuthentication']" `
-            -name $_.Key -value $_.Value
-    }
-
-    Get-IISWebsites |% {
-        &c:\Windows\System32\inetsrv\appcmd.exe set config $_.Name /section:windowsAuthentication /enabled:true /commit:apphost  | out-null
-        &c:\Windows\System32\inetsrv\appcmd.exe set config $_.Name /section:anonymousAuthentication /enabled:false /commit:apphost | out-null
-    }
-    ##For some reason, the following tries to use .net 2.0, and fails because it can't find a configuraiton
-    ## section for system.web.extensions
-
-    #    Set-WebConfigurationProperty -filter /system.webServer/security/authentication/anonymousAuthentication -name enabled `
-    #        -value false -PSPath IIS:\ -location $iisSiteName
-    #    Set-WebConfigurationProperty -filter /system.webServer/security/authentication/windowsAuthentication -name enabled `
-    #        -value true -PSPath IIS:\ -location $iisSiteName
-
-}
-
-function Enable-AppFabricCache {
-
-    [CmdletBinding()]
-    param(
-        [parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$host
-    )
-    #Configure Web.config
-    $webConfigPath = resolve-path web.config
-    $webConfig = [xml] (get-content $webConfigPath )
-
-    $ldapSection = [xml]"<section name=""dataCacheClient"" type=""Microsoft.ApplicationServer.Caching.DataCacheClientSection, Microsoft.ApplicationServer.Caching.Core, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35"" allowLocation=""true"" allowDefinition=""Everywhere"" />"
-    $webConfig.configuration.configSections.AppendChild($webConfig.ImportNode($ldapSection.DocumentElement, $true)) | out-null
-	
-	$cacheConfig = [xml]@"
-<dataCacheClient>
-   <hosts>
-      <host name="" cachePort="22233"/>
-   </hosts>
-   <securityProperties mode="None" protectionLevel="None" />
-</dataCacheClient>
-"@
-	$cacheConfig.dataCacheClient.hosts.host.name = $host
-	   
-    $webConfig.configuration.AppendChild($cacheConfig) | out-null   
-
-    $webConfig.Save($webConfigPath)
-}
-
-function Enable-Ldap {
-	<#
-	.Synopsis
-		Configures a Telligent Enterprise community to use LDAP
-	.Parameter communityDir
-	    The root directoyr of the Telligent Enterprise websites
-	.Parameter server
-	    The name of the ldap server
-	.Parameter username
-        The username to connect with
-	.Parameter password
-        The password to connect with
-	.Parameter authenticationType
-        The authenticaiton type to use.
-	.Parameter port
-        The port to connect to the LDAP server on        
-	.Parameter 
-        The baseDn to use
-	#>
-    [CmdletBinding()]
-    param(
-        [parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$server,
-        [parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$username,
-        [parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$password,
-        [string]$authenticationType = "Secure",
-        [int]$port = 389,
-        [string]$baseDn
-    )
-
-    #Install Package
-    $packagesPath = resolve-path packages.config
-    $packages = [xml](gc $packagesPath)
-    $date = get-date -format yyyy-MM-dd
-    $package = [xml]"<Package Name=""Ldap"" Version=""1.0"" DateInstalled=""$date"" Id=""4BF1091D-376C-42b2-B375-E2FE9480E845"" />"
-    $packages.DocumentElement.AppendChild($packages.ImportNode($package.DocumentElement, $true)) | out-null
-    $packages.Save($packagesPath)
-
-    #Configure Web.config
-    $webConfigPath = resolve-path web.config
-    $webConfig = [xml] (get-content $webConfigPath )
-
-    $ldapSection = [xml]"<section name=""LdapConnection"" type=""System.Configuration.NameValueSectionHandler"" />"
-    $webConfig.configuration.configSections.AppendChild($webConfig.ImportNode($ldapSection.DocumentElement, $true)) | out-null
-    $ldapConfiguration= $webConfig.CreateElement("LdapConnection")
-    @{
-        Server="LDAP://$server";
-        Port=$port;
-        BaseDN=$baseDn;
-        UserDN=$username;
-        Password = $password;
-        Authentication = $authenticationType;
-    }.GetEnumerator() |% {
-        $add = $ldapConfiguration.OwnerDocument.CreateElement("add")
-        $add.SetAttribute("key", $_.Key)
-        $add.SetAttribute("value", $_.Value)
-        $ldapConfiguration.AppendChild($add) | out-null
-    }
-    $webConfig.configuration.AppendChild($ldapConfiguration) | out-null   
-
-    $webConfig.Save($webConfigPath)
-}
+"@}

@@ -43,13 +43,13 @@
 		
 		Description
 		-----------
-		Standard install using Windows Auth to connect to DB
+		Local install using Windows Auth to connect to DB
 	.Example
 		Install-Evolution -name "Telligent Evolution" -package "d:\temp\TelligentCommunity-7.0.1824.27400.zip" -webDir "d:\inetpub\TelligentEvolution\" -webdomain "mydomain.com" -searchUrl "http://localhost:8080/solr/" -dbUsername "TellgientEvolutionSql" -dbPassword "Mega$ecretP@$$w0rd" -licenceFile "c:\licence.xml"
 		
 		Description
 		-----------
-		Standard install using SQL Auth to connect to DB, as well as specifying a licence file
+		Local install using SQL Auth to connect to DB, as well as specifying a licence file
 	#>
     [CmdletBinding(DefaultParameterSetName='WindowsAuth')]
     param (
@@ -69,16 +69,18 @@
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [string]$webDir, #TODO: Validate Dir is Empty
+        [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [string]$webDomain = "localhost",
         [uint16]$port= 80,
-        [ValidateNotNullOrEmpty()]
-		[ValidateScript({Resolve-Path IIS:\AppPools\$_})]
 		[string]$appPool,
+        [ValidateSet(2.0, 4.0)]
+        [double]$netVersion = 4.0, 
 
 		#Database Connection
         [ValidateNotNullOrEmpty()]
         [string]$dbServer = "(local)", #TODO: Validate SQL Server can be found
+        [ValidatePattern('^[a-z1-9\-\._]+$')]
         [ValidateNotNullOrEmpty()]
         [string]$dbName = $name,
 		
@@ -94,17 +96,14 @@
 
 		#Misc
         [ValidateNotNullOrEmpty()]
-		#[ValidateScript({(New-Object System.Net.WebClient).DownloadString("$_/admin/")})]
-        [uri]$searchUrl, #TODO: Validate Search Url
-		[ValidateNotNullOrEmpty()]
-		[ValidateScript({Resolve-Path $_ })]
+        [uri]$searchUrl, 
+		[ValidateScript({(!$_) -or (Resolve-Path $_) })]
         [string]$licenceFile
     )   
-    $ErrorActionPreference = "Stop"
 
-	if(!$appPool){
+	if(!(Join-Path IIS:\AppPools\ $appPool| Test-Path)){
 		#TODO: Test if app pool exists before creating new one
-		New-IISAppPool $appPool -netVersion 4.0
+		New-IISAppPool $appPool -netVersion $netVersion
 		$appPool = $name
 	}
 	$sqlConnectionSettings = @{
@@ -124,7 +123,8 @@
 		-path $webDir `
 		-package $package `
 		-domain $webDomain `
-		-appPool $appPool
+		-appPool $appPool `
+        -port $port
 
     Install-EvolutionDatabase -package $package -webDomain $webDomain @sqlConnectionSettings 
     Grant-EvolutionDatabaseAccess @sqlConnectionSettings @sqlAuthSettings
@@ -144,7 +144,7 @@
 			Write-Warning "No search url specified.  Many features will not work until search is configured."
 		}
 
-		if ($licenceFile) {
+		if (test-path $licenceFile) {
         	Install-EvolutionLicence $licenceFile @sqlConnectionSettings 
 		}
 		else {
@@ -181,7 +181,10 @@ function Install-EvolutionHotfix {
         Expand-Zip -zipPath $package -destination $tempDir -zipFile $_
         $sqlPath = join-path $tempDir $_
         if (test-path $sqlPath) {
-            Invoke-Sqlcmd -serverinstance $dbServer -Database $dbName -InputFile $sqlPath |out-null
+            $VerbosePreference = 'continue'
+            Invoke-Sqlcmd -serverinstance $dbServer -Database $dbName -InputFile $sqlPath 4>&1 |
+               ? { $_ -is 'System.Management.Automation.VerboseRecord'}  |
+               % { Write-Progress "Applying Hotfix" "Updating Database" -CurrentOperation $_.Message }
         }
     }
    
