@@ -54,6 +54,7 @@
     [CmdletBinding(DefaultParameterSetName='WindowsAuth')]
     param (
         [parameter(Mandatory=$true)]
+        [ValidatePattern('^[a-z0-9\-\._ ]+$')]
         [ValidateNotNullOrEmpty()]
         [string]$name,
 
@@ -73,30 +74,50 @@
         [ValidateNotNullOrEmpty()]
         [string]$webDomain = "localhost",
         [uint16]$port= 80,
-		[string]$appPool,
+        [ValidateNotNullOrEmpty()]
+		[string]$appPool = $name,
         [ValidateSet(2.0, 4.0)]
         [double]$netVersion = 4.0, 
 
 		#Database Connection
         [ValidateNotNullOrEmpty()]
         [string]$dbServer = "(local)", #TODO: Validate SQL Server can be found
-        [ValidatePattern('^[a-z1-9\-\._]+$')]
+        [ValidatePattern('^[a-z0-9\-\._ ]+$')]
         [ValidateNotNullOrEmpty()]
         [string]$dbName = $name,
 		
 		#Database Auth
 		[parameter(ParameterSetName='SqlAuth')]
+		[parameter(ParameterSetName='SqlAuthSolrCore')]
         [switch]$sqlAuth,
         [parameter(ParameterSetName='SqlAuth', Mandatory=$true)]
+        [parameter(ParameterSetName='SqlAuthSolrCore', Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [string]$dbUsername,
         [parameter(ParameterSetName='SqlAuth', Mandatory=$true)]
+        [parameter(ParameterSetName='SqlAuthSolrCore', Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [string]$dbPassword,
 
-		#Misc
+		#Sorl Params
+		[parameter(ParameterSetName='SolrCore')]
+        [parameter(ParameterSetName='SqlAuthSolrCore')]
+        [switch]$solrCore,
+        [parameter(ParameterSetName='SolrCore', Mandatory=$true)]
+        [parameter(ParameterSetName='SqlAuthSolrCore', Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [uri]$searchUrl, 
+        [uri]$solrUrl,
+        [parameter(ParameterSetName='SolrCore')]
+        [parameter(ParameterSetName='SqlAuthSolrCore')]
+        [ValidatePattern('^[a-z0-9\-\._ ]+$')]
+        [ValidateNotNullOrEmpty()]
+        [string]$solrCoreName = $name,
+        [parameter(ParameterSetName='SolrCore', Mandatory=$true)]
+        [parameter(ParameterSetName='SqlAuthSolrCore', Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$solrCoreDir,
+
+		#Misc
 		[ValidateScript({(!$_) -or (Resolve-Path $_) })]
         [string]$licenceFile
     )   
@@ -118,7 +139,7 @@
 	else {
 		$sqlAuthSettings.username = Get-IISAppPoolIdentity $name
 	}
-	
+
     New-EvolutionWebsite -name $name `
 		-path $webDir `
 		-package $package `
@@ -137,12 +158,6 @@
     try {
         Write-Progress "Configuration" "Updating Connection Strings"
         Set-ConnectionStrings @sqlConnectionSettings @sqlAuthSettings
-		if($searchUrl) {
-	        Set-EvolutionSolrUrl $searchUrl
-		}
-		else {
-			Write-Warning "No search url specified.  Many features will not work until search is configured."
-		}
 
 		if (test-path $licenceFile) {
         	Install-EvolutionLicence $licenceFile @sqlConnectionSettings 
@@ -150,6 +165,19 @@
 		else {
 			Write-Warning "No Licence installed."
 		}
+
+	    if(!$solrCore) {
+		    Write-Warning "No search url specified.  Many features will not work until search is configured."
+	    }
+	    else {
+            Add-SolrCore $solrCoreName `
+		        -package $package `
+		        -coreBaseDir $solrCoreDir `
+		        -coreAdmin "$solrUrl/admin/cores"
+
+            $searchUrl = $solrUrl.AbsoluteUri.TrimEnd('/') + "/$solrCoreName/"
+	        Set-EvolutionSolrUrl $searchUrl
+	    }
     }
     finally {
     	popd
@@ -187,6 +215,6 @@ function Install-EvolutionHotfix {
                % { Write-Progress "Applying Hotfix" "Updating Database" -CurrentOperation $_.Message }
         }
     }
-   
+    remove-item $tempDir -Recurse -Force |out-null   
 }
 

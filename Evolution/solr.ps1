@@ -15,9 +15,7 @@
 		#[ValidateScript({ Invoke-WebRequest $_ -UseBasicParsing -Method HEAD })]
         [Uri]$coreAdmin
     )
-    $webClient = new-object System.Net.WebClient
-    $date = get-date -f yyy-MM-dd
-    $instanceDir = "${name}\$date\"
+    $instanceDir = "${name}\$(get-date -f yyy-MM-dd)\"
     $coreDir = join-path $coreBaseDir $instanceDir
     new-item $coreDir -type directory | out-null
         
@@ -26,5 +24,5 @@
         
     Write-Progress "Solr Core" "Registering Core"
 	$url = "${coreAdmin}?action=CREATE&name=${name}&instanceDir=${instanceDir}"
-    $webClient.DownloadString($url) | out-null
+    Invoke-WebRequest $url -UseBasicParsing -Method Post | out-null
 }

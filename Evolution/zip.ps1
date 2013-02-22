@@ -1,5 +1,5 @@
-﻿        add-type -AssemblyName System.IO.Compression
-        add-type -AssemblyName System.IO.Compression.FileSystem
+﻿add-type -AssemblyName System.IO.Compression
+add-type -AssemblyName System.IO.Compression.FileSystem
 
 function Expand-Zip {
 	<#
@@ -32,7 +32,8 @@ function Expand-Zip {
 		-----------
 		This command extracts the sample.txt file from the web directory of c:\sample.zip to c:\sample\sample.txt
 	#>
-    [CmdletBinding()]    param(
+    [CmdletBinding()]
+    param(
         [parameter(Mandatory=$true, Position=0)]
         [ValidateNotNullOrEmpty()]
 		[ValidateScript({Test-Zip $_ })]

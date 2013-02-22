@@ -43,7 +43,7 @@
     Invoke-Sqlcmd -serverinstance $server -Database $database -InputFile $sqlScript -QueryTimeout 6000  4>&1 |
        ? { $_ -is 'System.Management.Automation.VerboseRecord'}  |
        % { Write-Progress "Database: $database" "Creating Schema" -CurrentOperation $_.Message }
-    #TODO: Cleanup temp
+    Remove-Item $tempDir -Recurse -force | out-null
 
     Write-Progress "Database: $database" "Creating Community"
     Invoke-Sqlcmd -serverInstance $server -database $database -query @"
@@ -59,6 +59,31 @@
        ? { $_ -is 'System.Management.Automation.VerboseRecord'}  |
        % { Write-Progress "Database: $database" "Creating Community" -CurrentOperation $_.Message }
 
+}
+
+function Invoke-SqlcmdWithProgress
+{
+	[CmdletBinding()]
+    param(
+        [parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+		[alias('dbServer')]
+        [string]$serverInstance,
+        [parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+		[ValidateScript({Test-Zip $_ })]
+        [string]$package,
+        [parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+		[alias('dbName')]
+        [string]$database,
+        [parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$webDomain,
+        [string]$username,
+        [string]$password
+    )
+	throw "TODO"
 }
 
 function Grant-EvolutionDatabaseAccess {

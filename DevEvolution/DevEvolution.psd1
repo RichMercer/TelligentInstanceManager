@@ -48,7 +48,7 @@ CLRVersion = '4.0'
 ProcessorArchitecture = ''
 
 # Modules that must be imported into the global environment prior to importing this module
-RequiredModules = @('webadministration','sqlps')
+RequiredModules = @('evolution')
 
 # Assemblies that must be loaded prior to importing this module
 RequiredAssemblies = @()
@@ -63,23 +63,11 @@ TypesToProcess = @()
 FormatsToProcess = @()
 
 # Modules to import as nested modules of the module specified in ModuleToProcess
-NestedModules = @('zip.ps1', 'iis.ps1', 'sql.ps1', 'solr.ps1', 'configuration.ps1', 'install.ps1', 'packages.ps1')
+NestedModules = @('dev.ps1')
 
 # Functions to export from this module
-FunctionsToExport = @('Add-OverrideChangeAttribute',
-                    'Add-SolrCore',
-                    'Disable-CustomErrors',
-                    'Install-Evolution',
-                    'Install-EvolutionHotfix',
-                    'Install-EvolutionLicence',
-                    'New-IISAppPool',
-                    'Register-TasksInWebProcess',
-                    'Enable-WindowsAuth',
-                    'Enable-Ldap'
-                    'Set-ConnectionStrings',
-                    'Set-EvolutionSolrUrl',
-                    'Test-Zip',
-                    'Get-EvolutionBuild'
+FunctionsToExport = @(
+                    'Install-DevEvolution'
                 )
 
 # Cmdlets to export from this module
