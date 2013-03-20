@@ -1,26 +1,20 @@
-﻿$base = $env:EvolutionPackageLocation
-if (!$base) {
-    $base = $PSScriptRoot
-}
-
-$pathData = @{
+﻿$pathData = @{
     # The directory where licences can be found.
     # Licences in this directory should be named in the format "{Product}{MajorVersion}.xml"
     # i.e. Community7.xml for a Community 7.x licence
-	LicencesPath = Join-Path $env:EvolutionPackageLocation Licences | Resolve-Path
+	LicencesPath = 'd:\Telligent\MassInstall\Licences'
 
     # The directory where web folders are created for each website
-	WebBase = Join-Path $base Web
+	WebBase = 'c:\sites\'
 
     #Solr Url for solr cores.
     #{0} gets replaced with 1-4 or 3-6 depending on the solr version needed
-	SolrUrl = 'http://localhost:8080/{0}'
+	SolrUrl = 'http://localhost:8080/shared_3-6/'
 
     # Solr core Directories.
-    # {0} gets replaced in the same way as for SolrUrl
-	SolrCoreBase = Join-Path $base 'Solr\{0}\Cores\'
+	SolrCoreBase = 'C:\telligentsearch\shared_3-6\'
 }
-function Install-DevEvolution {
+function Install-DemoEvolution {
     param(
         [parameter(Mandatory=$true)]
         [ValidatePattern('^[a-z0-9\-\._]+$')]
@@ -38,37 +32,31 @@ function Install-DevEvolution {
         [string] $basePackage,
         [parameter(ValueFromPipelineByPropertyName=$true)]
 		[ValidateScript({!$_ -or (Test-Zip $_) })]
-        [string] $hotfixPackage,
-        [switch] $noSearch
+        [string] $hotfixPackage
     )
     $ErrorActionPreference = "Stop"
+    $webDir = Join-Path (Join-Path $pathData.WebBase $name) (Get-Date -f yyyyMMdd)
 
-    $solrVersion = if(@(2,3,5,6) -contains $version.Major){ "1-4" } else {"3-6" }
-    $webDir = (Join-Path $pathData.WebBase $name)
-    $domain = "$name.local"
+    $domain = "${name}.telligentdemo.com"
 
     Install-Evolution -name $name `
         -package $basePackage `
         -hotfixPackage $hotfixPackage `
         -webDir $webDir `
-        -netVersion $(if (@(2,5) -contains $version.Major) { 2.0 } else { 4.0 }) `
         -webDomain $domain `
         -licenceFile (join-path $pathData.LicencesPath "${product}$($version.Major).xml") `
-        -solrCore:(!$noSearch) `
-        -solrUrl ($pathData.SolrUrl -f $solrVersion).TrimEnd("/") `
-        -solrCoreDir ($pathData.SolrCoreBase -f $solrVersion) 
+        -solrUrl $pathData.SolrUrl.TrimEnd("/") `
+        -solrCoreDir $pathData.SolrCoreBase  
+
+    #Install JS
+
+    #Install Addons
+
+    #Filestorage
 
     pushd $webdir 
     try {
-		Disable-CustomErrors
-
-		if(($product -eq 'community' -and $version -gt 5.6) -or ($product -eq 'enterprise' -and $version -gt 2.6)) {
-            Register-TasksInWebProcess $basePackage
-        }
-
-        if ($product -eq "enterprise") {
-            Enable-WindowsAuth -emailDomain $domain -profileRefreshInterval 0
-        }        
+    #      
     }
     finally {
     	popd

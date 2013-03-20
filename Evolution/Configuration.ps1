@@ -189,6 +189,16 @@ function Enable-WindowsAuth {
 	.Example
 		Enable-WindowsAuth
 	#>
+    [CmdletBinding()]
+    param (
+        [ValidateNotNullOrEmpty()]
+        [string]$adminWindowsGroup = "$env:ComputerName\Administrators",
+        [parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$emailDomain,
+        [ValidateNotNullOrEmpty()]
+        [byte]$profileRefreshInterval = 7
+    )
     $configPath = resolve-path web.config
     $webConfig = [xml] (get-content $configPath )
     
@@ -196,9 +206,9 @@ function Enable-WindowsAuth {
     $webConfig.Save($configPath)
     
     $values = @{
-        adminWindowsGroup = "SUPPORT\Community Admins";
-        emailDomain = "@support.telligent.com";
-        profileRefreshInterval = 1
+        adminWindowsGroup = $adminWindowsGroup;
+        emailDomain = "@$($emailDomain.TrimStart('@'))";
+        profileRefreshInterval = $profileRefreshInterval
     }
     
     Add-OverrideChangeAttribute -xpath /CommunityServer/Core/extensionModules `
