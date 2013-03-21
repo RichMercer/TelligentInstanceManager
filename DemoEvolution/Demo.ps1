@@ -18,7 +18,7 @@
 	SolrCoreBase = 'C:\telligentsearch\shared_3-6\Cores\'
 
     # SQL Username
-    SqlUsername = "Demo"
+    SqlUsername = "Demoasfdasd"
 
     # SQL Password
     SqlPassword = "password"
@@ -63,8 +63,8 @@ function Install-DemoEvolution {
         -solrUrl $pathData.SolrUrl.TrimEnd("/") `
         -solrCoreDir $pathData.SolrCoreBase  `
         -sqlAuth `
-        -dbUsername $pathData.SqlUsername `
-        -dbPassword $pathData.SqlPassword
+        -dbUsername $name `
+        -dbPassword ([guid]::NewGuid().ToString())
 
     #Install JS
     $jsBase = "C:\telligentservices\${name}.jobscheduler"
