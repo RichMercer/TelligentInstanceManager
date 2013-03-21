@@ -2,18 +2,28 @@
     # The directory where licences can be found.
     # Licences in this directory should be named in the format "{Product}{MajorVersion}.xml"
     # i.e. Community7.xml for a Community 7.x licence
-	LicencesPath = 'd:\Telligent\MassInstall\Licences'
+	LicencesPath = 'c:\TelligentAutomation\Licences\'
 
     # The directory where web folders are created for each website
 	WebBase = 'c:\sites\'
 
-    #Solr Url for solr cores.
-    #{0} gets replaced with 1-4 or 3-6 depending on the solr version needed
+    # SQL Password
+    WebDomainBase = "telligentdemo.com"
+
+    # Solr Url for solr cores.
+    # {0} gets replaced with 1-4 or 3-6 depending on the solr version needed
 	SolrUrl = 'http://localhost:8080/shared_3-6/'
 
     # Solr core Directories.
-	SolrCoreBase = 'C:\telligentsearch\shared_3-6\'
+	SolrCoreBase = 'C:\telligentsearch\shared_3-6\Cores\'
+
+    # SQL Username
+    SqlUsername = "Demo"
+
+    # SQL Password
+    SqlPassword = "password"
 }
+
 function Install-DemoEvolution {
     param(
         [parameter(Mandatory=$true)]
@@ -35,35 +45,37 @@ function Install-DemoEvolution {
         [string] $hotfixPackage
     )
     $ErrorActionPreference = "Stop"
-    $webDir = Join-Path (Join-Path $pathData.WebBase $name) (Get-Date -f yyyyMMdd)
 
-    $domain = "${name}.telligentdemo.com"
+    $siteBase = Join-Path $pathData.WebBase $name
+    $webDir = Join-Path $siteBase (Get-Date -f yyyyMMdd)
+    $filestorage = Join-Path $siteBase filestorage
+
+    $domain = "${name}." + $pathData.WebDomainBase
 
     Install-Evolution -name $name `
         -package $basePackage `
         -hotfixPackage $hotfixPackage `
         -webDir $webDir `
         -webDomain $domain `
+        -filestorage $filestorage `
         -licenceFile (join-path $pathData.LicencesPath "${product}$($version.Major).xml") `
+        -solrCore `
         -solrUrl $pathData.SolrUrl.TrimEnd("/") `
-        -solrCoreDir $pathData.SolrCoreBase  
+        -solrCoreDir $pathData.SolrCoreBase  `
+        -sqlAuth `
+        -dbUsername $pathData.SqlUsername `
+        -dbPassword $pathData.SqlPassword
 
     #Install JS
+    $jsBase = "C:\telligentservices\${name}.jobscheduler"
+    Install-JobScheduler $name $basePackage $webDir $jsBase "NT AUTHORITY\Network Service" `
+        | Start-Service
 
-    #Install Addons
-
-    #Filestorage
-
-    pushd $webdir 
-    try {
-    #      
-    }
-    finally {
-    	popd
-    }
 
     #Add site to hosts files
-    Add-Content -value "127.0.0.1 $domain" -path (join-path $env:SystemRoot system32\drivers\etc\hosts)
+    Add-Content -value "`r`n127.0.0.1 $domain" -path (join-path $env:SystemRoot system32\drivers\etc\hosts)
 	Write-Host "Created website at http://$domain/"
+
+    #Open site in web browser
     Start-Process "http://$domain/"
 }

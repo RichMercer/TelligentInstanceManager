@@ -6,9 +6,11 @@
         [string]$name,
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
+		[ValidateScript({Test-Zip $_ })]
         [string]$package,
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
+		[ValidateScript({Resolve-Path $_ })]
         [string]$coreBaseDir,
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]

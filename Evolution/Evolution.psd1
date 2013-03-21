@@ -63,7 +63,7 @@ TypesToProcess = @()
 FormatsToProcess = @()
 
 # Modules to import as nested modules of the module specified in ModuleToProcess
-NestedModules = @('zip.ps1', 'iis.ps1', 'sql.ps1', 'solr.ps1', 'configuration.ps1', 'install.ps1', 'packages.ps1')
+NestedModules = @('zip.ps1', 'iis.ps1', 'sql.ps1', 'solr.ps1', 'configuration.ps1', 'install.ps1', 'packages.ps1', 'jobscheduler.ps1')
 
 # Functions to export from this module
 FunctionsToExport = @('Add-OverrideChangeAttribute',
@@ -79,7 +79,10 @@ FunctionsToExport = @('Add-OverrideChangeAttribute',
                     'Set-ConnectionStrings',
                     'Set-EvolutionSolrUrl',
                     'Test-Zip',
-                    'Get-EvolutionBuild'
+                    'Get-EvolutionBuild',
+                    'Expand-Zip',
+                    'Install-JobScheduler',
+                    'Update-JobSchedulerFromWeb'
                 )
 
 # Cmdlets to export from this module

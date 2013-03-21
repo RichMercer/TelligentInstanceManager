@@ -18,7 +18,8 @@
         [ValidateNotNullOrEmpty()]
         [string]$appPool = $name,
  		[ValidateSet(2.0,4.0)]
-        [double]$netVersion = 4.0
+        [double]$netVersion = 4.0,
+        [string]$filestorage
     )
 
     if(!(test-path $path)) {
@@ -29,7 +30,15 @@
     Write-Progress "Website: $name" "Extracting Web Files: $path"
     Expand-Zip $package $path -zipDir "Web"
 
-    Grant-EvolutionWebPermissions $path
+    if($filestorage) {
+        $originalFilestorage = join-path $path filestorage
+        move-item $originalFilestorage $filestorage -Force
+    }
+    else {
+        $filestorage = join-path $webDir filestorage        
+    }
+
+    Grant-EvolutionWebPermissions $path $filestorage
 }
 
 function Grant-EvolutionWebPermissions {
@@ -37,19 +46,24 @@ function Grant-EvolutionWebPermissions {
     param(
         [parameter(Position=0, Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [string]$webDir
+		[ValidateScript({Resolve-Path $_ })]
+        [string]$webDir,
+        [parameter(Position=1, Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+		[ValidateScript({Resolve-Path $_ })]
+        [string]$filestorage
     )
     Get-IISWebsites $webDir |% {
         $name = $_.name
         $appPoolIdentity = Get-IISAppPoolIdentity $_.applicationPool
         Write-Progress "Website: $name" "Granting read access to $appPoolIdentity"
-        $filestorage = join-path $webDir filestorage
+
         #TODO: outputs a status message.  switch to Set-Acl instead
         &icacls "$webDir" /grant "${appPoolIdentity}:(OI)(CI)RX" /Q | out-null
-        if (test-path $filestorage) {
-            Write-Progress "Website: $name" "Granting modify access to $appPoolIdentity for ~/filestorage/"
-            &icacls "$filestorage" /grant "${appPoolIdentity}:(OI)(CI)M" /Q | out-null
-        }
+
+        Write-Progress "Website: $name" "Granting modify access to $appPoolIdentity for $filestorage"
+        &icacls "$filestorage" /grant "${appPoolIdentity}:(OI)(CI)M" /Q | out-null
+
     }
 }
 

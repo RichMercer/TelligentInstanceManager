@@ -99,7 +99,7 @@
         [ValidateNotNullOrEmpty()]
         [string]$dbPassword,
 
-		#Sorl Params
+		#Solr Params
 		[parameter(ParameterSetName='SolrCore')]
         [parameter(ParameterSetName='SqlAuthSolrCore')]
         [switch]$solrCore,
@@ -116,6 +116,8 @@
         [parameter(ParameterSetName='SqlAuthSolrCore', Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [string]$solrCoreDir,
+
+        [string]$filestorage,
 
 		#Misc
 		[ValidateScript({(!$_) -or (Resolve-Path $_) })]
@@ -145,7 +147,8 @@
 		-package $package `
 		-domain $webDomain `
 		-appPool $appPool `
-        -port $port
+        -port $port `
+        -filestorage $filestorage
 
     Install-EvolutionDatabase -package $package -webDomain $webDomain @sqlConnectionSettings 
     Grant-EvolutionDatabaseAccess @sqlConnectionSettings @sqlAuthSettings
@@ -156,10 +159,18 @@
 
 	pushd $webdir 
     try {
-        Write-Progress "Configuration" "Updating Connection Strings"
+
+        Write-Progress "Configuration" "Setting Filestorage Path"
+        Add-OverrideChangeAttribute `
+            -xpath "/CommunityServer/CentralizedFileStorage/fileStoreGroup[@name='default']" `
+            -name basePath `
+            -value $filestorage
+
+        Write-Progress "Configuration" "Setting Connection Strings"
         Set-ConnectionStrings @sqlConnectionSettings @sqlAuthSettings
 
 		if (test-path $licenceFile) {
+            Write-Progress "Configuration" "Installing Licence"
         	Install-EvolutionLicence $licenceFile @sqlConnectionSettings 
 		}
 		else {
@@ -170,6 +181,7 @@
 		    Write-Warning "No search url specified.  Many features will not work until search is configured."
 	    }
 	    else {
+            Write-Progress "Search" "Setting Up Search"
             Add-SolrCore $solrCoreName `
 		        -package $package `
 		        -coreBaseDir $solrCoreDir `
