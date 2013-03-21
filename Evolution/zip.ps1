@@ -130,8 +130,10 @@ function Test-Zip {
         [ValidateNotNullOrEmpty()]
         [string]$zipFile
     )
-	if(!(Test-Path $zipFile) -or (Get-Item $zipFile ).Extension -ne ".zip"){
-		throw "$zipFile is not a valid zip file"
-	}
-	return $true
+    $ErrorActionPreference = "Stop"
+
+    Resolve-Path $zipFile
+    if((Get-Item $zipFile).Extension -ne ".zip") {
+		throw "$zipFile is not a zip file"
+    }
 }

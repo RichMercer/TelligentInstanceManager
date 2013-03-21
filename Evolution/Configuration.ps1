@@ -13,7 +13,7 @@
         [ValidateNotNullOrEmpty()]
         [string]$password
     )
-    
+
     if ($username -and $password){
         $connectionString = "Server=$server;Database=$database;uid=$username;pwd=$password;"
     }
@@ -98,6 +98,7 @@ function Install-EvolutionLicence {
     param(
         [parameter(Mandatory=$true, ValueFromPipeline=$true)]
         [ValidateNotNullOrEmpty()]
+		[ValidateScript({Resolve-Path $_})]
         [string]$licenceFile,
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
