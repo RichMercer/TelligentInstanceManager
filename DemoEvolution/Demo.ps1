@@ -16,12 +16,6 @@
 
     # Solr core Directories.
 	SolrCoreBase = 'C:\telligentsearch\shared_3-6\Cores\'
-
-    # SQL Username
-    SqlUsername = "Demoasfdasd"
-
-    # SQL Password
-    SqlPassword = "password"
 }
 
 function Install-DemoEvolution {

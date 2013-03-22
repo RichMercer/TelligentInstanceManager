@@ -86,7 +86,7 @@ function Update-JobSchedulerFromWeb {
         #TODO: is themes required if we copy *.config?
         @('modules', 'languages') |% {
             Write-Host "Syncing $_"
-            &robocopy "$_\" "$jsBase\$_\" /e /Mir @sharedParams 
+            &robocopy "$webBase\$_\" "$jsBase\$_\" /e /Mir @sharedParams 
         }
         &cd
 
