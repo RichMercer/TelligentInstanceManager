@@ -161,10 +161,12 @@
     try {
 
         Write-Progress "Configuration" "Setting Filestorage Path"
-        Add-OverrideChangeAttribute `
-            -xpath "/CommunityServer/CentralizedFileStorage/fileStoreGroup[@name='default']" `
-            -name basePath `
-            -value $filestorage
+        if($filestorage) {
+            Add-OverrideChangeAttribute `
+                -xpath "/CommunityServer/CentralizedFileStorage/fileStoreGroup[@name='default']" `
+                -name basePath `
+                -value $filestorage
+        }
 
         Write-Progress "Configuration" "Setting Connection Strings"
         Set-ConnectionStrings @sqlConnectionSettings @sqlAuthSettings

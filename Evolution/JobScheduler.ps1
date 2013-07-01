@@ -11,38 +11,37 @@
     	[parameter(Mandatory=$true,Position=2)]
         [ValidateNotNullOrEmpty()]
 		[ValidateScript({Resolve-Path $_ })]
-        [string]$webBase,
+        [string]$webPath,
     	[parameter(Mandatory=$true,Position=3)]
         [ValidateNotNullOrEmpty()]
-        [string]$jsBase,
+        [string]$jsPath,
 	    [parameter(Mandatory=$true,Position=4)]
         [ValidateNotNullOrEmpty()]
-        [string]$username,
-	    [parameter(Mandatory=$false,Position=5)]
-        [string]$password
+        [PSCredential]$credential
     )
 
     Write-Progress "Job Scheduler" "Creating Directory"
 
-    if(!(Test-Path $jsBase)) {
-        New-Item $jsBase -ItemType Directory | out-null
+    if(!(Test-Path $jsPath)) {
+        New-Item $jsPath -ItemType Directory | out-null
     }
 
     Write-Progress "Job Scheduler" "Extracting Base Job Scheduler"
-    Expand-Zip $package $jsBase -zipDir "tasks"
+    Expand-Zip $package $jsPath -zipDir "tasks"
 
 
     Write-Progress "Job Scheduler" "Extracting Base Job Scheduler"
-    Update-JobSchedulerFromWeb $webBase $jsBase | Write-Host
+    Update-JobSchedulerFromWeb $webPath $jsPath | Write-Host
 
     Write-Progress "Job Scheduler" "Setting up Service"
-    $servicePath = join-path $jsBase Telligent.JobScheduler.Service.exe
+    $servicePath = join-path $jsPath Telligent.JobScheduler.Service.exe
     $serviceName = "Telligent.JobScheduler-$name"
     New-Service $serviceName `
         -BinaryPathName $servicePath `
         -DisplayName "Telligent Job Scheduler - $name" `
         -Description "Telligent Job Scheduler service for $domainName" `
         -StartupType Automatic `
+        -Credential $credential
         | out-null
         
     $wmiService = Get-Wmiobject win32_service -filter "name='$serviceName'" 
@@ -60,11 +59,11 @@ function Update-JobSchedulerFromWeb {
     	[parameter(Mandatory=$true,Position=0)]
         [ValidateNotNullOrEmpty()]
 		[ValidateScript({Resolve-Path $_ })]
-        [string]$webBase,
+        [string]$webPath,
     	[parameter(Mandatory=$true,Position=1)]
         [ValidateNotNullOrEmpty()]
 		[ValidateScript({Resolve-Path $_ })]
-        [string]$jsBase
+        [string]$jsPath
     )
     $sharedParams = @(
         # 1 second Wait between retries, max 5 retries
@@ -73,20 +72,20 @@ function Update-JobSchedulerFromWeb {
         '/NP', '/NJH', '/NDL', '/NJS', '/XX'
     )
 
-    if ($pscmdlet.ShouldProcess($jsBase)) {
+    if ($pscmdlet.ShouldProcess($jsPath)) {
         #$sharedParams += '/L'
 
         #Copy web /bin/ to JS root
-        &robocopy "$webBase\bin\" "$jsBase" /e @sharedParams
+        &robocopy "$webPath\bin\" "$jsPath" /e @sharedParams
 
         #Copy .config files except web.config & tasks.config
-        &robocopy "$webBase" "$jsBase\" *.config /s /XF web.config tasks.config /XD ControlPanel @sharedParams 
+        &robocopy "$webPath" "$jsPath\" *.config /s /XF web.config tasks.config /XD ControlPanel @sharedParams 
 
         #Mirror modules & languagesdirectories
         #TODO: is themes required if we copy *.config?
         @('modules', 'languages') |% {
             Write-Host "Syncing $_"
-            &robocopy "$webBase\$_\" "$jsBase\$_\" /e /Mir @sharedParams 
+            &robocopy "$webPath\$_\" "$jsPath\$_\" /e /Mir @sharedParams 
         }
         &cd
 
