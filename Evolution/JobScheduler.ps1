@@ -20,7 +20,7 @@
         [PSCredential]$credential
     )
 
-    Write-Progress "Job Scheduler" "Creating Directory"
+    Write-Progress "Installing Job Scheduler" "Creating Directory"
 
     if(!(Test-Path $jsPath)) {
         New-Item $jsPath -ItemType Directory | out-null
@@ -41,14 +41,28 @@
         -DisplayName "Telligent Job Scheduler - $name" `
         -Description "Telligent Job Scheduler service for $domainName" `
         -StartupType Automatic `
-        -Credential $credential
+        -Credential $credential `
         | out-null
         
-    $wmiService = Get-Wmiobject win32_service -filter "name='$serviceName'" 
+<#    $wmiService = Get-Wmiobject win32_service -filter "name='$serviceName'" 
     $params = $wmiService.psbase.getMethodParameters("Change") 
     $params["StartName"] = $username
     $params["StartPassword"] = $null
     $wmiService.invokeMethod("Change",$params,$null) | out-null
+    #>
+
+
+    Write-Progress "Job Scheduler" "Setting automatic service recovery"
+    # - first restart after 30 secs, subsequent every 2 mins.
+    # - reset failure count after 20 mins
+    &sc.exe failure "$serviceName" actions= restart/30000/restart/120000 reset= 1200
+
+    #If SQL is on the current server, set startup to Automatic (Delayed Startup)
+    if(get-service MSSQLSERVER){
+        #TODO: Safer to check connection string for (local) / Machine name
+           Write-Progress "Job Scheduler" "Changing startup mode to Automatic (Delayed Start) to prevent race conditions with SQL Server"
+           &sc.exe config "$serviceName" start= delayed-auto
+    }
 
     return Get-Service $serviceName
 }
@@ -81,7 +95,7 @@ function Update-JobSchedulerFromWeb {
         #Copy .config files except web.config & tasks.config
         &robocopy "$webPath" "$jsPath\" *.config /s /XF web.config tasks.config /XD ControlPanel @sharedParams 
 
-        #Mirror modules & languagesdirectories
+        #Mirror modules & languages directories
         #TODO: is themes required if we copy *.config?
         @('modules', 'languages') |% {
             Write-Host "Syncing $_"
