@@ -54,7 +54,7 @@ RequiredModules = @('webadministration','sqlps')
 RequiredAssemblies = @()
 
 # Script files (.ps1) that are run in the caller's environment prior to importing this module
-ScriptsToProcess = @()
+ScriptsToProcess = @('AdminTest.ps1')
 
 # Type files (.ps1xml) to be loaded when importing this module
 TypesToProcess = @()
@@ -63,7 +63,7 @@ TypesToProcess = @()
 FormatsToProcess = @()
 
 # Modules to import as nested modules of the module specified in ModuleToProcess
-NestedModules = @('zip.ps1', 'iis.ps1', 'sql.ps1', 'solr.ps1', 'configuration.ps1', 'install.ps1', 'packages.ps1', 'jobscheduler.ps1')
+NestedModules = @('AdminTest.ps1','zip.ps1', 'iis.ps1', 'sql.ps1', 'solr.ps1', 'configuration.ps1', 'install.ps1', 'packages.ps1', 'jobscheduler.ps1')
 
 # Functions to export from this module
 FunctionsToExport = @('Add-OverrideChangeAttribute',

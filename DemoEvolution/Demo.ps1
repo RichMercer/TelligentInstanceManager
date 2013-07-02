@@ -61,9 +61,10 @@ function Install-DemoEvolution {
         -dbPassword ([guid]::NewGuid().ToString())
 
     #Install JS
-    $jsBase = "C:\telligentservices\${name}.jobscheduler"
-    Install-JobScheduler $name $basePackage $webDir $jsBase "NT AUTHORITY\Network Service" `
-        | Start-Service
+    $jsPath = "C:\telligentservices\${name}.jobscheduler"
+    $jsPassword = New-Object Security.SecureString
+    $jsCredentials = New-Object PSCredential "NT AUTHORITY\NETWORK SERVICE", $jsPassword
+    Install-JobScheduler $name $basePackage $webDir $jsPath $jsCredentials -startService `
 
 
     #Add site to hosts files

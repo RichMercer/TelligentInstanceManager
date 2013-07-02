@@ -32,6 +32,7 @@
 
     if($filestorage) {
         $originalFilestorage = join-path $path filestorage
+        Write-Progress "Website: $name" "Moving Filestorage to $filestorage"
         move-item $originalFilestorage $filestorage -Force
     }
     else {

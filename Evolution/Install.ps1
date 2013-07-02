@@ -106,6 +106,8 @@
         [parameter(ParameterSetName='SolrCore', Mandatory=$true)]
         [parameter(ParameterSetName='SqlAuthSolrCore', Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
+        #TODO: Validate solr is accessible
+        [ValidateScript({ Invoke-WebRequest $_ -method HEAD })]
         [uri]$solrUrl,
         [parameter(ParameterSetName='SolrCore')]
         [parameter(ParameterSetName='SqlAuthSolrCore')]
@@ -123,6 +125,8 @@
 		[ValidateScript({(!$_) -or (Resolve-Path $_) })]
         [string]$licenceFile
     )   
+
+
 
 	if(!(Join-Path IIS:\AppPools\ $appPool| Test-Path)){
 		#TODO: Test if app pool exists before creating new one

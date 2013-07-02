@@ -17,7 +17,8 @@
         [string]$jsPath,
 	    [parameter(Mandatory=$true,Position=4)]
         [ValidateNotNullOrEmpty()]
-        [PSCredential]$credential
+        [PSCredential]$credential,
+        [switch]$startService
     )
 
     Write-Progress "Installing Job Scheduler" "Creating Directory"
@@ -64,6 +65,11 @@
            &sc.exe config "$serviceName" start= delayed-auto
     }
 
+    if ($startService) {
+        Write-Progress "Job Scheduler" "Starting service"
+        Start-Service $serviceName
+    }
+
     return Get-Service $serviceName
 }
 
@@ -90,20 +96,21 @@ function Update-JobSchedulerFromWeb {
         #$sharedParams += '/L'
 
         #Copy web /bin/ to JS root
-        &robocopy "$webPath\bin\" "$jsPath" /e @sharedParams
+        Write-Progress "Job Scheduler" "Updating binaries from web"
+        &robocopy "$webPath\bin\" "$jsPath" /e @sharedParams | Out-Null
 
-        #Copy .config files except web.config & tasks.config
-        &robocopy "$webPath" "$jsPath\" *.config /s /XF web.config tasks.config /XD ControlPanel @sharedParams 
+        Write-Progress "Job Scheduler" "Updating config files from web"
+        &robocopy "$webPath" "$jsPath\" *.config /s /XF web.config tasks.config /XD ControlPanel @sharedParams | Out-Null
 
-        #Mirror modules & languages directories
         #TODO: is themes required if we copy *.config?
+        Write-Progress "Job Scheduler" "Updating modules and languages from web"
         @('modules', 'languages') |% {
             Write-Host "Syncing $_"
-            &robocopy "$webPath\$_\" "$jsPath\$_\" /e /Mir @sharedParams 
+            &robocopy "$webPath\$_\" "$jsPath\$_\" /e /Mir @sharedParams | Out-Null
         }
-        &cd
-
     }
     popd
 }
 
+function Enable-Plugin {
+}
