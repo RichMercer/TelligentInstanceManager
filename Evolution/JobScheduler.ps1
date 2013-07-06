@@ -10,7 +10,7 @@
         [string]$package,
     	[parameter(Mandatory=$true,Position=2)]
         [ValidateNotNullOrEmpty()]
-		[ValidateScript({Resolve-Path $_ })]
+		[ValidateScript({Test-Path $_ -PathType Container})]
         [string]$webPath,
     	[parameter(Mandatory=$true,Position=3)]
         [ValidateNotNullOrEmpty()]
@@ -78,11 +78,11 @@ function Update-JobSchedulerFromWeb {
     param(
     	[parameter(Mandatory=$true,Position=0)]
         [ValidateNotNullOrEmpty()]
-		[ValidateScript({Resolve-Path $_ })]
+		[ValidateScript({Test-Path $_ -PathType Container})]
         [string]$webPath,
     	[parameter(Mandatory=$true,Position=1)]
         [ValidateNotNullOrEmpty()]
-		[ValidateScript({Resolve-Path $_ })]
+		[ValidateScript({Test-Path $_ -PathType Container})]
         [string]$jsPath
     )
     $sharedParams = @(

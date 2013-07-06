@@ -119,6 +119,7 @@
         [ValidateNotNullOrEmpty()]
         [string]$solrCoreDir,
 
+		#[ValidateScript({(!$_) -or (Resolve-Path $_) })]
         [string]$filestorage,
 
 		#Misc

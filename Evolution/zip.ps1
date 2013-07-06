@@ -132,7 +132,7 @@ function Test-Zip {
     )
     $ErrorActionPreference = "Stop"
 
-    Resolve-Path $zipFile
+    Test-Path $_ -PathType Leaf $zipFile
     if((Get-Item $zipFile).Extension -ne ".zip") {
 		throw "$zipFile is not a zip file"
     }

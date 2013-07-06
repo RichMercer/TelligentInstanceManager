@@ -4,12 +4,12 @@
 		[ValidateScript({Test-Zip $_})]
         [string]$AddonPackage,
         [parameter(Mandatory=$true)]
-		[ValidateScript({Resolve-Path $_})]
+		[ValidateScript({Test-Path $_ -PathType Container})]
         [string]$WebPath,
-		[ValidateScript({(!$_) -or (Resolve-Path $_) })]
-        [string]$JSDir,
+		[ValidateScript({(!$_) -or (Test-Path $_ -PathType Container) })]
+        [string]$JobSchedulerPath,
         [string[]]$SqlScripts,
-        [string[]]$PluginsToEnable,
+        [string[]]$Plugins,
         [ValidateNotNullOrEmpty()]
         [string]$Name = "Addon",
         [string]$SiteUrlsOverrides,
@@ -17,17 +17,19 @@
         [string]$ControlPanelResources,
         [string]$TasksToMerge
     )
+
     Write-Progress "Installing $Name"
+
+    #Load connection string info
+    $connectionStrings = [xml](get-content (Join-Path $WebPath connectionstrings.config))
+    $siteSqlConnectionString = $connectionStrings.connectionStrings.add |
+        ? name -eq SiteSqlServer |
+        select -ExpandProperty connectionString
+
+    $connectionString = New-Object System.Data.SqlClient.SqlConnectionStringBuilder $siteSqlConnectionString
     
     #Executing SQL Scripts
     if($SqlScripts) {
-        $connectionStrings = [xml](get-content (Join-Path $WebPath connectionstrings.config))
-        $siteSqlConnectionString = $connectionStrings.connectionStrings.add |
-            ? name -eq SiteSqlServer |
-            select -ExpandProperty connectionString
-
-        $connectionString = New-Object System.Data.SqlClient.SqlConnectionStringBuilder $siteSqlConnectionString
-
         $VerbosePreference = 'continue'
         $tempDir = join-path $env:temp ([guid]::NewGuid())
         New-item $tempDir -ItemType Directory | Out-Null
@@ -94,20 +96,30 @@
         Remove-Item $source
     }
 
-    if($JSDir) {
+    if($JobSchedulerPath) {
         
         Write-Progress "Installing $Name" "Copying Tasks directory"
-        Expand-Zip $AddonPackage $WebPath -zipDir Tasks
+        Expand-Zip $AddonPackage $JobSchedulerPath -zipDir Tasks
 
         Write-Progress "Installing $Name" "Updating tasks.config"
         #TODO: Update tasks.config
 
         Write-Progress "Installing $Name" "Syncing JS from Web"
-        Update-JobSchedulerFromWeb $WebPath $JSDir
+        Update-JobSchedulerFromWeb $WebPath $JobSchedulerPath
     }
     
 
-    Write-Progress "Installing $Name" "Enabling Plugin"
+    Write-Progress "Installing $Name" "Enabling Plugins"
+
+    $plugins | % {
+        Write-Progress "Installing $Name" "Enabling Plugins" -CurrentOperation $_ 
+        Invoke-Sqlcmd -serverinstance $connectionString.DataSource `
+            -Database $connectionString.InitialCatalog `
+            -query @"
+            DELETE FROM [dbo].[te_Plugins] WHERE [Type] = '$_';
+            INSERT INTO [dbo].[te_Plugins] VALUES ('$_');
+"@
+    }
     #Enable Plugin
 }
 
@@ -115,10 +127,10 @@
 function Add-XmlToFile {
     param(
         [parameter(Mandatory=$true)]
-		[ValidateScript({Resolve-Path $_})]
+		[ValidateScript({Test-Path $_ -PathType Leaf})]
         [string]$SourcePath,
         [parameter(Mandatory=$true)]
-		[ValidateScript({Resolve-Path $_})]
+		[ValidateScript({Test-Path $_ -PathType Leaf})]
         [string]$DestinationPath
     )
 
@@ -139,22 +151,49 @@ function Add-XmlToFile {
 
 function Install-EvolutionIdeation
 {
+    param(
+        [parameter(Mandatory=$true)]
+		[ValidateScript({Test-Zip $_})]
+        [string]$Package,
+        [parameter(Mandatory=$true)]
+		[ValidateScript({Test-Path $_ -PathType Container})]
+        [string]$WebPath,
+		[ValidateScript({(!$_) -or (Test-Path $_ -PathType Container)})]
+        [string]$JobSchedulerPath
+    )
+
    Install-EvolutionAddon `
-        'C:\Users\Alex.OLYMPUS\Downloads\TelligentEvolutionExtensionsIdeation-1.0.102.33348.zip'`
-        C:\sites\addonplayground\20130702 `
+        -AddonPackage $Package `
+        -WebPath $WebPath `
+        -JobSchedulerPath $JobSchedulerPath `
         -SqlScripts 'TelligentEvolutionExtensionsIdeation-1.0.102.33348.sql' `
         -SiteUrlsOverrides SiteUrls_override.config.Ideas `
         -ControlPanelResources ControlPanelResources.xml.Ideas `
+        -Plugins 'Telligent.Evolution.Extensions.Ideation.Plugins.IdeasApplication, Telligent.Evolution.Extensions.Ideation', `
+            'Telligent.Evolution.Extensions.Ideation.Plugins.IdeaActivityStoryType, Telligent.Evolution.Extensions.Ideation' , `
+            'Telligent.Evolution.Extensions.Ideation.Plugins.IdeasApplicationActivityStoryType, Telligent.Evolution.Extensions.Ideation' `
         -Name Ideation
 
     #TODO: Enable Plugin
 }
 
 function Install-EvolutionChat {
+    param(
+        [parameter(Mandatory=$true)]
+		[ValidateScript({Test-Zip $_})]
+        [string]$Package,
+        [parameter(Mandatory=$true)]
+		[ValidateScript({Test-Path $_ -PathType Container})]
+        [string]$WebPath,
+		[ValidateScript({(!$_) -or (Test-Path $_ -PathType Container)})]
+        [string]$JobSchedulerPath
+    )
 
     Install-EvolutionAddon `
-        'C:\Users\Alex.OLYMPUS\Downloads\TelligentEvolutionChat-1.0.67.32476.zip' `
-        C:\sites\addonplayground\20130702 `
+        -AddonPackage $Package `
+        -WebPath $WebPath `
+        -JobSchedulerPath $JobSchedulerPath `
+        -Plugins 'Telligent.Evolution.Chat.Plugins.ChatHost, Telligent.Evolution.Chat' `
         -Name Chat
 
     #TODO: Enable Plugin
@@ -164,9 +203,22 @@ function Install-EvolutionChat {
 
 function Install-EvolutionVideoTranscoding
 {
+    param(
+        [parameter(Mandatory=$true)]
+		[ValidateScript({Test-Zip $_})]
+        [string]$Package,
+        [parameter(Mandatory=$true)]
+		[ValidateScript({Test-Path $_ -PathType Container})]
+        [string]$WebPath,
+		[ValidateScript({(!$_) -or (Test-Path $_ -PathType Container)})]
+        [string]$JobSchedulerPath
+    )
+
     Install-EvolutionAddon `
-        'C:\Users\Alex.OLYMPUS\Downloads\TelligentVideoTranscoder-1.1.9.28904.zip' `
-        C:\sites\addonplayground\20130702 `
+        -AddonPackage $Package `
+        -WebPath $WebPath `
+        -JobSchedulerPath $JobSchedulerPath `
+        -Plugins 'Telligent.Evolution.VideoTranscoding.VideoTranscoderPlugin, Telligent.Evolution.VideoTranscoding' `
         -Name Transcoding
 
     #TODO: ???Can't currently install due to SQL permissions???
@@ -178,10 +230,23 @@ function Install-EvolutionVideoTranscoding
 
 function Install-EvolutionDocumentPreview
 {
+    param(
+        [parameter(Mandatory=$true)]
+		[ValidateScript({Test-Zip $_})]
+        [string]$Package,
+        [parameter(Mandatory=$true)]
+		[ValidateScript({Test-Path $_ -PathType Container})]
+        [string]$WebPath,
+		[ValidateScript({(!$_) -or (Test-Path $_ -PathType Container)})]
+        [string]$JobSchedulerPath
+    )
+
     Install-EvolutionAddon `
-        'C:\Users\Alex.OLYMPUS\Downloads\TelligentDocumentViewer-1.1.50.29573.zip' `
-        C:\sites\addonplayground\20130702 `
+        -AddonPackage $Package `
+        -WebPath $WebPath `
+        -JobSchedulerPath $JobSchedulerPath `
         -SqlScripts TelligentDocumentViewer-1.1.50.29573.sql `
+        -Plugins 'Telligent.Evolution.FlexPaperDocumentViewer.DocumentViewerConfiguration, Telligent.Evolution.FlexPaperDocumentViewer' `
         -Name DocPreview
 
     #TODO: Add task
@@ -191,32 +256,46 @@ function Install-EvolutionDocumentPreview
 function Install-EvolutionCalendar {
     param(
         [parameter(Mandatory=$true)]
-		[ValidateScript({Resolve-Path $_})]
+		[ValidateScript({Test-Zip $_})]
         [string]$Package,
         [parameter(Mandatory=$true)]
-		[ValidateScript({Resolve-Path $_})]
+		[ValidateScript({Test-Path $_ -PathType Container})]
         [string]$WebPath,
-		[ValidateScript({Resolve-Path $_})]
+        [parameter(Mandatory=$true)]
+		[ValidateScript({(!$_) -or (Test-Path $_ -PathType Container)})]
         [string]$JobSchedulerPath
     )
 
     Install-EvolutionAddon `
-        'C:\Users\Alex.OLYMPUS\Downloads\TelligentEventCalendar-3.0.72.32639.zip' `
+        -AddonPackage $Package `
         -WebPath $WebPath `
-        -JobSchedulerPath $JobSchedulerPath
+        -JobSchedulerPath $JobSchedulerPath `
         -SQLScripts TelligentEventCalendar-3.0.72.32639.sql `
         -SiteUrlsOverrides SiteUrls_override.config.sample `
         -ControlPanelResources ControlPanelResources.xml.sample `
+        -Plugins 'Telligent.Evolution.Extensions.Calendar.ScriptedWidgets.Plugin, Telligent.Evolution.Extensions.Calendar' `
         -Name Calendar
 
     #TODO: Add task
     # <job schedule="0 */2 * * * ? *" type="Telligent.Evolution.VideoTranscoding.TranscodingJob, Telligent.Evolution.VideoTranscoding"/>
 }
 
+
+#Temp testing
 Set-Content C:\sites\addonplayground\20130702\siteurls_override.config "<Overrides />"
 
-Install-EvolutionCalendar
-Install-EvolutionDocumentPreview
-Install-EvolutionVideoTranscoding
-Install-EvolutionChat
-Install-EvolutionIdeation
+$web = "C:\sites\addonplayground2\20130703\"
+$js = "c:\telligentservices\addonplayground2.jobscheduler\"
+
+pushd C:\Users\Alex.OLYMPUS\Downloads
+try
+{
+    Install-EvolutionCalendar -Package TelligentEventCalendar-3.0.72.32639.zip  -WebPath $web -JobSchedulerPath $js
+    Install-EvolutionDocumentPreview -Package TelligentDocumentViewer-1.1.50.29573.zip -WebPath $web -JobSchedulerPath $js
+    Install-EvolutionVideoTranscoding -Package TelligentVideoTranscoder-1.1.9.28904.zip -WebPath $web -JobSchedulerPath $js
+    Install-EvolutionChat -Package TelligentEvolutionChat-1.0.67.32476.zip -WebPath $web -JobSchedulerPath $js
+    Install-EvolutionIdeation -Package TelligentEvolutionExtensionsIdeation-1.0.102.33348.zip -WebPath $web -JobSchedulerPath $js
+}
+finally {
+    popd
+}

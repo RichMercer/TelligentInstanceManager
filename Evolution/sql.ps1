@@ -10,6 +10,7 @@
     param(
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
+        [alias('DataSource')]
 		[alias('dbServer')]
         [string]$server,
         [parameter(Mandatory=$true)]
@@ -19,6 +20,7 @@
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
 		[alias('dbName')]
+        [alias('InitialCatalog')]
         [string]$database,
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
