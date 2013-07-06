@@ -126,13 +126,13 @@ function Test-Zip {
 	#>
 	[CmdletBinding()]
     param(
-        [parameter(Mandatory=$true, Position=0)]
+        [parameter(Mandatory=$true, Position=0, ValueFromPipeline=$true)]
         [ValidateNotNullOrEmpty()]
         [string]$zipFile
     )
     $ErrorActionPreference = "Stop"
 
-    Test-Path $_ -PathType Leaf $zipFile
+    Test-Path $zipFile -PathType Leaf
     if((Get-Item $zipFile).Extension -ne ".zip") {
 		throw "$zipFile is not a zip file"
     }
