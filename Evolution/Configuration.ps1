@@ -68,12 +68,10 @@ function Set-EvolutionSolrUrl() {
     [CmdletBinding()]
     param(
         [parameter(Mandatory=$true, ValueFromPipeline=$true)]
+        [ValidateScript({Invoke-WebRequest ($_.AbsoluteUri.TrimEnd('/') + "/admin/") -Method HEAD -UseBasicParsing})]
         [ValidateNotNullOrEmpty()]
         [uri]$url
     )
-
-    try { Invoke-WebRequest ($url.AbsoluteUri.TrimEnd('/') + "/admin/") -Method HEAD -UseBasicParsing | out-null }
-    catch { Write-Warning ("Solr Url '$url' is inaccessible ") }
 
     Write-Progress "Configuration" "Updating Solr Url"
     
@@ -98,7 +96,7 @@ function Install-EvolutionLicence {
     param(
         [parameter(Mandatory=$true, ValueFromPipeline=$true)]
         [ValidateNotNullOrEmpty()]
-		[ValidateScript({Resolve-Path $_})]
+		[ValidateScript({Test-Path $_ -PathType Leaf})]
         [string]$licenceFile,
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
@@ -111,7 +109,9 @@ function Install-EvolutionLicence {
     $licenceContent = (gc $licenceFile) -join [Environment]::NewLine
     $licenceId = ([xml]$licenceContent).document.licenseId
     
-    Invoke-Sqlcmd -serverInstance $dbServer -database $dbName -query "EXEC [cs_Licenses_Update] @LicenseID = N'$licenceId' , @LicenseValue = N'$licenceContent'"
+    Invoke-Sqlcmd -serverInstance $dbServer `
+        -database $dbName `
+        -query "EXEC [cs_Licenses_Update] @LicenseID = N'$licenceId' , @LicenseValue = N'$licenceContent'"
 }
 
 function Register-TasksInWebProcess {
@@ -220,17 +220,27 @@ function Enable-WindowsAuth {
             -name $_.Key -value $_.Value
     }
 
+    #If the following fails, ensure default .net version in IIS is set to 4.0
+    Get-IISWebsites |% {
+        Set-WebConfigurationProperty -filter /system.webServer/security/authentication/* `
+            -name enabled `
+            -value false `
+            -PSPath IIS:\ `
+            -location $_.Name
+
+        Set-WebConfigurationProperty -filter /system.webServer/security/authentication/windowsAuthentication `
+            -name enabled `
+            -value true `
+            -PSPath IIS:\ `
+            -location $_.Name
+    }
+
+    <#
     Get-IISWebsites |% {
         &c:\Windows\System32\inetsrv\appcmd.exe set config $_.Name /section:windowsAuthentication /enabled:true /commit:apphost  | out-null
         &c:\Windows\System32\inetsrv\appcmd.exe set config $_.Name /section:anonymousAuthentication /enabled:false /commit:apphost | out-null
     }
-    ##For some reason, the following tries to use .net 2.0, and fails because it can't find a configuraiton
-    ## section for system.web.extensions
-
-    #    Set-WebConfigurationProperty -filter /system.webServer/security/authentication/anonymousAuthentication -name enabled `
-    #        -value false -PSPath IIS:\ -location $iisSiteName
-    #    Set-WebConfigurationProperty -filter /system.webServer/security/authentication/windowsAuthentication -name enabled `
-    #        -value true -PSPath IIS:\ -location $iisSiteName
+    #>
 
 }
 

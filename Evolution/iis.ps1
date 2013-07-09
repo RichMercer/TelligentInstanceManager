@@ -28,7 +28,7 @@
     New-IISWebsite -name $name -path $path -domain $domain -port $port -appPool $appPool
 
     Write-Progress "Website: $name" "Extracting Web Files: $path"
-    Expand-Zip $package $path -zipDir "Web"
+    .{ Expand-Zip $package $path -zipDir "Web" }
 
     if($filestorage) {
         $originalFilestorage = join-path $path filestorage
@@ -47,11 +47,11 @@ function Grant-EvolutionWebPermissions {
     param(
         [parameter(Position=0, Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-		[ValidateScript({Resolve-Path $_ })]
+		[ValidateScript({Test-Path $_ -PathType Container})]
         [string]$webDir,
         [parameter(Position=1, Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-		[ValidateScript({Resolve-Path $_ })]
+		[ValidateScript({Test-Path $_ -PathType Container })]
         [string]$filestorage
     )
     Get-IISWebsites $webDir |% {
@@ -64,7 +64,6 @@ function Grant-EvolutionWebPermissions {
 
         Write-Progress "Website: $name" "Granting modify access to $appPoolIdentity for $filestorage"
         &icacls "$filestorage" /grant "${appPoolIdentity}:(OI)(CI)M" /Q | out-null
-
     }
 }
 

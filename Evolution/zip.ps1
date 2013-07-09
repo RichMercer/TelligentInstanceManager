@@ -1,17 +1,14 @@
-﻿add-type -AssemblyName System.IO.Compression
-add-type -AssemblyName System.IO.Compression.FileSystem
-
-function Expand-Zip {
+﻿function Expand-Zip {
 	<#
 	.Synopsis
 		Extracts files from a zip folder
-	.Parameter zipPath
+	.Parameter ZipPath
 	    The path to the Zip folder to extract
-	.Parameter destination
+	.Parameter Destination
 	    The location to extract the files to
-    .Parameter zipDir
+    .Parameter ZipDir
         The directory within the zip folder to extract.  If not specified, extracts the whole zip file
-    .Parameter zipFileName
+    .Parameter ZipFileName
         The name of a specific file within zipDir to extract
 	.Example 
 		Expand-Zip c:\sample.zip c:\files\
@@ -37,37 +34,40 @@ function Expand-Zip {
         [parameter(Mandatory=$true, Position=0)]
         [ValidateNotNullOrEmpty()]
 		[ValidateScript({Test-Zip $_ })]
-        [string]$zipPath,
+        [string]$ZipPath,
         [parameter(Mandatory=$true, Position=1)]
         [ValidateNotNullOrEmpty()]
-        [string]$destination,
-        [string]$zipDir,
-        [string]$zipFileName
+        [string]$Destination,
+        [string]$ZipDir,
+        [string]$ZipFileName
     )   
 
     $prefix = ""
-    if($zipDir){
-        $prefix = $zipDir.Replace('\','/').Trim('/') + '/'
+    if($ZipDir){
+        $prefix = $ZipDir.Replace('\','/').Trim('/') + '/'
     }
-    if (!(test-path $destination)) {
-        New-item $destination -Type Directory | out-null
+    if (!(test-path $Destination -PathType Container)) {
+        New-item $Destination -Type Directory | out-null
     }
-    $absoluteDestination = Convert-Path $destination
 
-    $zipPackage = [IO.Compression.ZipFile]::OpenRead((Convert-Path $zipPath))
+    #Convert path requried to ensure 
+    $absoluteDestination = (Resolve-Path $Destination).ProviderPath
+    $zipAbsolutePath = (Resolve-Path $ZipPath).ProviderPath
+
+    $zipPackage = [IO.Compression.ZipFile]::OpenRead($zipAbsolutePath)
     try {
 
-        if ($zipFileName){
+        if ($ZipFileName){
             $zipPackage.Entries |
-                ? {$_.FullName -eq "${prefix}${zipFileName}"} |
+                ? {$_.FullName -eq "${prefix}${ZipFileName}"} |
                 select -first 1 |
-                %{ Expand-ZipArchiveEntry $_ (join-path $absoluteDestination $zipFileName) }
+                %{ Expand-ZipArchiveEntry $_ (Join-Path $absoluteDestination $ZipFileName) }
         }
         else {
             #Filter out directories
             $entries = $zipPackage.Entries |? Name
-            if ($zipDir) {
-                #Filter out itmes not in filtered directory
+            if ($ZipDir) {
+                #Filter out items not under requested directory
                 $entries = $entries |? { $_.FullName.StartsWith($prefix, "OrdinalIgnoreCase")}
             }
 
@@ -75,13 +75,17 @@ function Expand-Zip {
             $processedFileSize = 0
             $entries |% {
                 $destination = join-path $absoluteDestination $_.FullName.Substring($prefix.Length)
-                #Write-Progress "Extracting Zip" -CurrentOperation $_.FullName -PercentComplete ($processedFileSize / $totalFileSize * 100) 
-
+                <#
+                Write-Progress "Extracting Zip" `
+                    -CurrentOperation $_.FullName `
+                    -PercentComplete ($processedFileSize / $totalFileSize * 100)
+                #>
+                      
                 Expand-ZipArchiveEntry $_ $destination 
 
                 $processedFileSize += $_.Length
             }
-            Write-Progress "Extracting Zip" -completed
+            #Write-Progress "Extracting-Zip" -Completed
         }
     }
     finally {
@@ -94,21 +98,21 @@ function Expand-ZipArchiveEntry {
     param(
         [parameter(Mandatory=$true, Position=0)]
         [ValidateNotNullOrEmpty()]
-        [IO.Compression.ZipArchiveEntry]$entry,
+        [IO.Compression.ZipArchiveEntry]$Entry,
         [parameter(Mandatory=$true, Position=1)]
         [ValidateNotNullOrEmpty()]
-        [string]$destination            
+        [string]$Destination            
     )
 
-    if (!$entry.Name){
+    if (!$Entry.Name){
         return
-        }
+     }
 
-    $itemDir = split-path $destination -Parent
-    if (!(test-path $itemDir)) {
+    $itemDir = split-path $Destination -Parent
+    if (!(test-path $itemDir -PathType Container)) {
         New-item $itemDir -Type Directory | out-null
     }
-    [IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $destination, $true)
+    [IO.Compression.ZipFileExtensions]::ExtractToFile($Entry, $Destination, $true)
 }
 
 function Test-Zip {
@@ -128,12 +132,12 @@ function Test-Zip {
     param(
         [parameter(Mandatory=$true, Position=0, ValueFromPipeline=$true)]
         [ValidateNotNullOrEmpty()]
-        [string]$zipFile
+        [string]$Path
     )
     $ErrorActionPreference = "Stop"
 
-    Test-Path $zipFile -PathType Leaf
-    if((Get-Item $zipFile).Extension -ne ".zip") {
-		throw "$zipFile is not a zip file"
+    Test-Path $Path -PathType Leaf
+    if((Get-Item $Path).Extension -ne ".zip") {
+		throw "$Path is not a zip file"
     }
 }

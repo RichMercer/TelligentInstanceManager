@@ -30,7 +30,6 @@
     Write-Progress "Job Scheduler" "Extracting Base Job Scheduler"
     Expand-Zip $package $jsPath -zipDir "tasks"
 
-
     Write-Progress "Job Scheduler" "Extracting Base Job Scheduler"
     Update-JobSchedulerFromWeb $webPath $jsPath | Write-Host
 
@@ -45,29 +44,16 @@
         -Credential $credential `
         | out-null
         
-<#    $wmiService = Get-Wmiobject win32_service -filter "name='$serviceName'" 
-    $params = $wmiService.psbase.getMethodParameters("Change") 
-    $params["StartName"] = $username
-    $params["StartPassword"] = $null
-    $wmiService.invokeMethod("Change",$params,$null) | out-null
-    #>
-
-
     Write-Progress "Job Scheduler" "Setting automatic service recovery"
     # - first restart after 30 secs, subsequent every 2 mins.
     # - reset failure count after 20 mins
-    &sc.exe failure "$serviceName" actions= restart/30000/restart/120000 reset= 1200
+    &sc.exe failure "$serviceName" actions= restart/30000/restart/120000 reset= 1200 | Out-Null
 
     #If SQL is on the current server, set startup to Automatic (Delayed Startup)
     if(get-service MSSQLSERVER){
         #TODO: Safer to check connection string for (local) / Machine name
            Write-Progress "Job Scheduler" "Changing startup mode to Automatic (Delayed Start) to prevent race conditions with SQL Server"
-           &sc.exe config "$serviceName" start= delayed-auto
-    }
-
-    if ($startService) {
-        Write-Progress "Job Scheduler" "Starting service"
-        Start-Service $serviceName
+           &sc.exe config "$serviceName" start= delayed-auto | Out-Null
     }
 
     return Get-Service $serviceName
@@ -88,7 +74,7 @@ function Update-JobSchedulerFromWeb {
     $sharedParams = @(
         # 1 second Wait between retries, max 5 retries
         '/W:1', '/R:5',
-        #No Progrtess, no header, no directory list, no summary, no extra file listing
+        #No Progress, no header, no directory list, no summary, no extra file listing
         '/NP', '/NJH', '/NDL', '/NJS', '/XX'
     )
 
@@ -102,15 +88,15 @@ function Update-JobSchedulerFromWeb {
         Write-Progress "Job Scheduler" "Updating config files from web"
         &robocopy "$webPath" "$jsPath\" *.config /s /XF web.config tasks.config /XD ControlPanel @sharedParams | Out-Null
 
-        #TODO: is themes required if we copy *.config?
+        #TODO: is themes explicitly required if we copy *.config?
         Write-Progress "Job Scheduler" "Updating modules and languages from web"
         @('modules', 'languages') |% {
-            Write-Host "Syncing $_"
+            Write-Verbose "JS Install: Syncing $_"
             &robocopy "$webPath\$_\" "$jsPath\$_\" /e /Mir @sharedParams | Out-Null
         }
+
+        #TODO: Sync sections of web.config into tellgient.js.service.exe.config
+        #      OR use web.config then merge back in JS specifics?
     }
     popd
-}
-
-function Enable-Plugin {
 }

@@ -60,11 +60,35 @@ function Install-DemoEvolution {
         -dbUsername $name `
         -dbPassword ([guid]::NewGuid().ToString())
 
+
+
+
     #Install JS
     $jsPath = "C:\telligentservices\${name}.jobscheduler"
     $jsPassword = New-Object Security.SecureString
     $jsCredentials = New-Object PSCredential "NT AUTHORITY\NETWORK SERVICE", $jsPassword
-    Install-JobScheduler $name $basePackage $webDir $jsPath $jsCredentials -startService `
+    $jsService = Install-JobScheduler $name $basePackage $webDir $jsPath $jsCredentials
+
+    pushd C:\TelligentAutomation\Addons
+    try
+    {
+        $params = @{
+            WebPath = $webDir
+            JobSchedulerPath = $jsPath
+        }
+
+        Install-EvolutionCalendar -Package TelligentEventCalendar-3.0.72.32639.zip @params
+        Install-EvolutionDocumentPreview -Package TelligentDocumentViewer-1.1.50.29573.zip @params
+        Install-EvolutionVideoTranscoding -Package TelligentVideoTranscoder-1.1.9.28904.zip @params
+        Install-EvolutionChat -Package TelligentEvolutionChat-1.0.67.32476.zip @params
+        Install-EvolutionIdeation -Package TelligentEvolutionExtensionsIdeation-1.0.102.33348.zip @params
+    }
+    finally {
+        popd
+    }
+
+    Write-Progress "Job Scheduler" "Starting Service"
+    Start-Service $jsService
 
 
     #Add site to hosts files

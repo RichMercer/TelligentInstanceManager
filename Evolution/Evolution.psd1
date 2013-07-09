@@ -51,7 +51,7 @@ ProcessorArchitecture = ''
 RequiredModules = @('webadministration','sqlps')
 
 # Assemblies that must be loaded prior to importing this module
-RequiredAssemblies = @()
+RequiredAssemblies = @('System.IO.Compression', 'System.IO.Compression.FileSystem')
 
 # Script files (.ps1) that are run in the caller's environment prior to importing this module
 ScriptsToProcess = @('AdminTest.ps1')
@@ -63,26 +63,37 @@ TypesToProcess = @()
 FormatsToProcess = @()
 
 # Modules to import as nested modules of the module specified in ModuleToProcess
-NestedModules = @('AdminTest.ps1','zip.ps1', 'iis.ps1', 'sql.ps1', 'solr.ps1', 'configuration.ps1', 'install.ps1', 'packages.ps1', 'jobscheduler.ps1')
+NestedModules = @('AdminTest.ps1'
+                    'zip.ps1'
+                    'iis.ps1'
+                    'sql.ps1'
+                    'solr.ps1'
+                    'configuration.ps1'
+                    'install.ps1'
+                    'packages.ps1'
+                    'jobscheduler.ps1'
+                    'utility.ps1'
+                )
 
 # Functions to export from this module
-FunctionsToExport = @('Add-OverrideChangeAttribute',
-                    'Add-SolrCore',
-                    'Disable-CustomErrors',
-                    'Install-Evolution',
-                    'Install-EvolutionHotfix',
-                    'Install-EvolutionLicence',
-                    'New-IISAppPool',
-                    'Register-TasksInWebProcess',
-                    'Enable-WindowsAuth',
+FunctionsToExport = @('Add-OverrideChangeAttribute'
+                    'Add-SolrCore'
+                    'Disable-CustomErrors'
+                    'Install-Evolution'
+                    'Install-EvolutionHotfix'
+                    'Install-EvolutionLicence'
+                    'New-IISAppPool'
+                    'Register-TasksInWebProcess'
+                    'Enable-WindowsAuth'
                     'Enable-Ldap'
-                    'Set-ConnectionStrings',
-                    'Set-EvolutionSolrUrl',
-                    'Test-Zip',
-                    'Get-EvolutionBuild',
-                    'Expand-Zip',
-                    'Install-JobScheduler',
+                    'Set-ConnectionStrings'
+                    'Set-EvolutionSolrUrl'
+                    'Test-Zip'
+                    'Get-EvolutionBuild'
+                    'Expand-Zip'
+                    'Install-JobScheduler'
                     'Update-JobSchedulerFromWeb'
+                    'Write-ProgressFromVerbose'
                 )
 
 # Cmdlets to export from this module

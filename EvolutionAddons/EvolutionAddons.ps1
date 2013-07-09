@@ -46,12 +46,12 @@
             $sqlScript = join-path $tempDir $_ | resolve-path
 
             if(Test-Path $sqlScript) {
-                Invoke-Sqlcmd -serverinstance $connectionString.DataSource `
-                    -Database $connectionString.InitialCatalog `
-                    -InputFile $sqlScript `
-                    -QueryTimeout 6000  4>&1 |
-                    ? { $_ -is 'System.Management.Automation.VerboseRecord'}  |
-                    % { Write-Progress "Installing $Name" $progressTitle -CurrentOperation $_.Message }
+                Write-ProgressFromVerbose "Installing $Name" $progressTitle {
+                    Invoke-Sqlcmd -serverinstance $connectionString.DataSource `
+                        -Database $connectionString.InitialCatalog `
+                        -InputFile $sqlScript `
+                        -QueryTimeout 6000
+                }
             }
             else {
                 Write-Warning "Could not find script $_"
@@ -169,12 +169,10 @@ function Install-EvolutionIdeation
         -SqlScripts 'TelligentEvolutionExtensionsIdeation-1.0.102.33348.sql' `
         -SiteUrlsOverrides SiteUrls_override.config.Ideas `
         -ControlPanelResources ControlPanelResources.xml.Ideas `
-        -Plugins 'Telligent.Evolution.Extensions.Ideation.Plugins.IdeasApplication, Telligent.Evolution.Extensions.Ideation', `
-            'Telligent.Evolution.Extensions.Ideation.Plugins.IdeaActivityStoryType, Telligent.Evolution.Extensions.Ideation' , `
-            'Telligent.Evolution.Extensions.Ideation.Plugins.IdeasApplicationActivityStoryType, Telligent.Evolution.Extensions.Ideation' `
+        -Plugins 'Telligent.Evolution.Extensions.Ideation.Plugins.IdeasApplication, Telligent.Evolution.Extensions.Ideation' `
+            ,'Telligent.Evolution.Extensions.Ideation.Plugins.IdeaActivityStoryType, Telligent.Evolution.Extensions.Ideation' `
+            ,'Telligent.Evolution.Extensions.Ideation.Plugins.IdeasApplicationActivityStoryType, Telligent.Evolution.Extensions.Ideation' `
         -Name Ideation
-
-    #TODO: Enable Plugin
 }
 
 function Install-EvolutionChat {
@@ -196,7 +194,6 @@ function Install-EvolutionChat {
         -Plugins 'Telligent.Evolution.Chat.Plugins.ChatHost, Telligent.Evolution.Chat' `
         -Name Chat
 
-    #TODO: Enable Plugin
     #TODO: Add Widgets
 }
 
@@ -278,24 +275,4 @@ function Install-EvolutionCalendar {
 
     #TODO: Add task
     # <job schedule="0 */2 * * * ? *" type="Telligent.Evolution.VideoTranscoding.TranscodingJob, Telligent.Evolution.VideoTranscoding"/>
-}
-
-
-#Temp testing
-Set-Content C:\sites\addonplayground\20130702\siteurls_override.config "<Overrides />"
-
-$web = "C:\sites\addonplayground2\20130703\"
-$js = "c:\telligentservices\addonplayground2.jobscheduler\"
-
-pushd C:\Users\Alex.OLYMPUS\Downloads
-try
-{
-    Install-EvolutionCalendar -Package TelligentEventCalendar-3.0.72.32639.zip  -WebPath $web -JobSchedulerPath $js
-    Install-EvolutionDocumentPreview -Package TelligentDocumentViewer-1.1.50.29573.zip -WebPath $web -JobSchedulerPath $js
-    Install-EvolutionVideoTranscoding -Package TelligentVideoTranscoder-1.1.9.28904.zip -WebPath $web -JobSchedulerPath $js
-    Install-EvolutionChat -Package TelligentEvolutionChat-1.0.67.32476.zip -WebPath $web -JobSchedulerPath $js
-    Install-EvolutionIdeation -Package TelligentEvolutionExtensionsIdeation-1.0.102.33348.zip -WebPath $web -JobSchedulerPath $js
-}
-finally {
-    popd
 }

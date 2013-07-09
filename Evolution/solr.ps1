@@ -10,11 +10,11 @@
         [string]$package,
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-		[ValidateScript({Resolve-Path $_ })]
+		[ValidateScript({Test-Path $_ -PathType Container})]
         [string]$coreBaseDir,
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-		#[ValidateScript({ Invoke-WebRequest $_ -UseBasicParsing -Method HEAD })]
+        [ValidateScript({ Invoke-WebRequest $_ -UseBasicParsing -Method HEAD })]
         [Uri]$coreAdmin
     )
     $instanceDir = "${name}\$(get-date -f yyy-MM-dd)\"

@@ -63,25 +63,33 @@
         [ValidateNotNullOrEmpty()]
 		[ValidateScript({Test-Zip $_ })]
         [string]$package,
+
 		[ValidateScript({!$_ -or (Test-Zip $_) })]
         [string]$hotfixPackage,
 
 		#Web Settings
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [string]$webDir, #TODO: Validate Dir is Empty
+        [ValidateScript({!($_ -and (Test-Path $_))})]
+        [string]$webDir,
+
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [string]$webDomain = "localhost",
+
         [uint16]$port= 80,
+
         [ValidateNotNullOrEmpty()]
 		[string]$appPool = $name,
+
         [ValidateSet(2.0, 4.0)]
         [double]$netVersion = 4.0, 
 
 		#Database Connection
         [ValidateNotNullOrEmpty()]
-        [string]$dbServer = "(local)", #TODO: Validate SQL Server can be found
+        #TODO: Validate SQL Server can be found
+        [string]$dbServer = "(local)",
+
         [ValidatePattern('^[a-z0-9\-\._ ]+$')]
         [ValidateNotNullOrEmpty()]
         [string]$dbName = $name,
@@ -90,10 +98,12 @@
 		[parameter(ParameterSetName='SqlAuth')]
 		[parameter(ParameterSetName='SqlAuthSolrCore')]
         [switch]$sqlAuth,
+
         [parameter(ParameterSetName='SqlAuth', Mandatory=$true)]
         [parameter(ParameterSetName='SqlAuthSolrCore', Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [string]$dbUsername,
+
         [parameter(ParameterSetName='SqlAuth', Mandatory=$true)]
         [parameter(ParameterSetName='SqlAuthSolrCore', Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
@@ -103,30 +113,31 @@
 		[parameter(ParameterSetName='SolrCore')]
         [parameter(ParameterSetName='SqlAuthSolrCore')]
         [switch]$solrCore,
+
         [parameter(ParameterSetName='SolrCore', Mandatory=$true)]
         [parameter(ParameterSetName='SqlAuthSolrCore', Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        #TODO: Validate solr is accessible
-        [ValidateScript({ Invoke-WebRequest $_ -method HEAD })]
+        [ValidateScript({ Invoke-WebRequest $_ -UseBasicParsing -Method HEAD })]
         [uri]$solrUrl,
+
         [parameter(ParameterSetName='SolrCore')]
         [parameter(ParameterSetName='SqlAuthSolrCore')]
         [ValidatePattern('^[a-z0-9\-\._ ]+$')]
         [ValidateNotNullOrEmpty()]
         [string]$solrCoreName = $name,
+
         [parameter(ParameterSetName='SolrCore', Mandatory=$true)]
         [parameter(ParameterSetName='SqlAuthSolrCore', Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [string]$solrCoreDir,
 
-		#[ValidateScript({(!$_) -or (Resolve-Path $_) })]
+		#Misc
+        [ValidateScript({!($_ -and (Test-Path $_))})]
         [string]$filestorage,
 
-		#Misc
-		[ValidateScript({(!$_) -or (Resolve-Path $_) })]
+		[ValidateScript({(!$_) -or (Test-Path $_ -PathType Leaf) })]
         [string]$licenceFile
     )   
-
 
 
 	if(!(Join-Path IIS:\AppPools\ $appPool| Test-Path)){
@@ -176,7 +187,7 @@
         Write-Progress "Configuration" "Setting Connection Strings"
         Set-ConnectionStrings @sqlConnectionSettings @sqlAuthSettings
 
-		if (test-path $licenceFile) {
+		if ($licenceFile) {
             Write-Progress "Configuration" "Installing Licence"
         	Install-EvolutionLicence $licenceFile @sqlConnectionSettings 
 		}
@@ -227,13 +238,13 @@ function Install-EvolutionHotfix {
     @("update.sql", "updates.sql") |% {
         Expand-Zip -zipPath $package -destination $tempDir -zipFile $_
         $sqlPath = join-path $tempDir $_
-        if (test-path $sqlPath) {
-            $VerbosePreference = 'continue'
-            Invoke-Sqlcmd -serverinstance $dbServer -Database $dbName -InputFile $sqlPath 4>&1 |
-               ? { $_ -is 'System.Management.Automation.VerboseRecord'}  |
-               % { Write-Progress "Applying Hotfix" "Updating Database" -CurrentOperation $_.Message }
+        if (test-path $sqlPath -PathType Leaf) {
+            Write-ProgressFromVerbose "Applying Hotfix" "Updating Database" {
+                Invoke-Sqlcmd -serverinstance $dbServer -Database $dbName -InputFile $sqlPath 
+            }
         }
     }
+
+    #TODO: Support updating JS
     remove-item $tempDir -Recurse -Force |out-null   
 }
-

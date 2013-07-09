@@ -5,10 +5,10 @@ if (!$base) {
 }
 
 # The Directory where full installation packages can be found
-$basePackageDir = Join-Path $base BasePackages
+$basePackageDir = Join-Path $base Full
 
 # The Directory where differential hotfix packages can be found
-$hotfixDir = Join-Path $base Hotfixes
+$hotfixDir = Join-Path $base Diff
 
 $versionRegex = [regex]"[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+"
 function Get-EvolutionBuild {

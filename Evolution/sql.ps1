@@ -41,14 +41,12 @@
     Expand-Zip -zipPath $package -destination $tempDir -zipDir "SqlScripts" -zipFile "cs_CreateFullDatabase.sql"
     $sqlScript = join-path $tempDir cs_CreateFullDatabase.sql | resolve-path
 
-    $VerbosePreference = 'continue'
-    Invoke-Sqlcmd -serverinstance $server -Database $database -InputFile $sqlScript -QueryTimeout 6000  4>&1 |
-       ? { $_ -is 'System.Management.Automation.VerboseRecord'}  |
-       % { Write-Progress "Database: $database" "Creating Schema" -CurrentOperation $_.Message }
+    Write-ProgressFromVerbose "Database: $database" "Creating Schema" {
+        Invoke-Sqlcmd -serverinstance $server -Database $database -InputFile $sqlScript -QueryTimeout 6000
+    }
     Remove-Item $tempDir -Recurse -force | out-null
 
-    Write-Progress "Database: $database" "Creating Community"
-    Invoke-Sqlcmd -serverInstance $server -database $database -query @"
+    $createCommunityQuery = @"
          EXECUTE [dbo].[cs_system_CreateCommunity]
                 @SiteUrl = N'http://${webDomain}/'
                 , @ApplicationName = N'$name'
@@ -57,10 +55,11 @@
                 , @AdminPassword = N'password'
                 , @PasswordFormat = 0
                 , @CreateSamples = 1
-"@ 4>&1 |
-       ? { $_ -is 'System.Management.Automation.VerboseRecord'}  |
-       % { Write-Progress "Database: $database" "Creating Community" -CurrentOperation $_.Message }
+"@
 
+    Write-ProgressFromVerbose "Database: $database" "Creating Community" {
+        Invoke-Sqlcmd -serverInstance $server -database $database -query $createCommunityQuery
+    }
 }
 
 function Invoke-SqlcmdWithProgress
@@ -155,7 +154,6 @@ function Grant-EvolutionDatabaseAccess {
         EXEC sp_addrolemember N'db_datareader', N'$username'
         EXEC sp_addrolemember N'db_datawriter', N'$username'
         EXEC sp_addrolemember N'db_ddladmin', N'$username'
-        EXEC sp_addrolemember N'db_securityadmin', N'$username'
 "@ 
 }
 
