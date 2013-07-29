@@ -50,7 +50,7 @@
     &sc.exe failure "$serviceName" actions= restart/30000/restart/120000 reset= 1200 | Out-Null
 
     #If SQL is on the current server, set startup to Automatic (Delayed Startup)
-    if(get-service MSSQLSERVER){
+    if($true){
         #TODO: Safer to check connection string for (local) / Machine name
            Write-Progress "Job Scheduler" "Changing startup mode to Automatic (Delayed Start) to prevent race conditions with SQL Server"
            &sc.exe config "$serviceName" start= delayed-auto | Out-Null

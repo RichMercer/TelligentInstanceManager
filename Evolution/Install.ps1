@@ -132,13 +132,17 @@
         [string]$solrCoreDir,
 
 		#Misc
+        [parameter(Mandatory=$true)]
+        [ValidatePattern('^[a-z0-9\-\._ ]+$')]
+        [ValidateNotNullOrEmpty()]
+        [string]$adminPassword,
+
         [ValidateScript({!($_ -and (Test-Path $_))})]
         [string]$filestorage,
 
 		[ValidateScript({(!$_) -or (Test-Path $_ -PathType Leaf) })]
         [string]$licenceFile
     )   
-
 
 	if(!(Join-Path IIS:\AppPools\ $appPool| Test-Path)){
 		#TODO: Test if app pool exists before creating new one
@@ -166,7 +170,7 @@
         -port $port `
         -filestorage $filestorage
 
-    Install-EvolutionDatabase -package $package -webDomain $webDomain @sqlConnectionSettings 
+    Install-EvolutionDatabase -package $package -webDomain $webDomain @sqlConnectionSettings -adminPassword $adminPassword
     Grant-EvolutionDatabaseAccess @sqlConnectionSettings @sqlAuthSettings
 
 	if($hotfixPackage) {

@@ -3,6 +3,7 @@
     param(
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
+        [ValidatePattern('^[a-z0-9\-\._ ]+$')]
         [string]$name,
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
@@ -28,7 +29,7 @@
     New-IISWebsite -name $name -path $path -domain $domain -port $port -appPool $appPool
 
     Write-Progress "Website: $name" "Extracting Web Files: $path"
-    .{ Expand-Zip $package $path -zipDir "Web" }
+    Expand-Zip $package $path -zipDir "Web"
 
     if($filestorage) {
         $originalFilestorage = join-path $path filestorage

@@ -26,7 +26,10 @@
         [ValidateNotNullOrEmpty()]
         [string]$webDomain,
         [string]$username,
-        [string]$password
+        [string]$password,
+        [parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+		[string]$adminPassword
     )
 
     #TODO: Check if DB exists first
@@ -52,7 +55,7 @@
                 , @ApplicationName = N'$name'
                 , @AdminEmail = N'notset@localhost.com'
                 , @AdminUserName = N'admin'
-                , @AdminPassword = N'password'
+                , @AdminPassword = N'$adminPassword'
                 , @PasswordFormat = 0
                 , @CreateSamples = 1
 "@
