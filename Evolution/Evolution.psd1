@@ -54,7 +54,7 @@ RequiredModules = @('webadministration','sqlps')
 RequiredAssemblies = @('System.IO.Compression', 'System.IO.Compression.FileSystem')
 
 # Script files (.ps1) that are run in the caller's environment prior to importing this module
-ScriptsToProcess = @('AdminTest.ps1')
+ScriptsToProcess = @('initalise.ps1')
 
 # Type files (.ps1xml) to be loaded when importing this module
 TypesToProcess = @()
@@ -63,7 +63,7 @@ TypesToProcess = @()
 FormatsToProcess = @()
 
 # Modules to import as nested modules of the module specified in ModuleToProcess
-NestedModules = @('AdminTest.ps1'
+NestedModules = @(
                     'zip.ps1'
                     'iis.ps1'
                     'sql.ps1'
@@ -103,7 +103,7 @@ CmdletsToExport = ''
 VariablesToExport = ''
 
 # Aliases to export from this module
-AliasesToExport = '*'
+AliasesToExport = @('geb')
 
 # List of all modules packaged with this module
 ModuleList = @()

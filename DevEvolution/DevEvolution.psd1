@@ -77,7 +77,7 @@ CmdletsToExport = ''
 VariablesToExport = ''
 
 # Aliases to export from this module
-AliasesToExport = '*'
+AliasesToExport = @('isde')
 
 # List of all modules packaged with this module
 ModuleList = @()
