@@ -94,7 +94,7 @@ function Install-DevEvolution {
         [parameter(ValueFromPipelineByPropertyName=$true)]
 		[ValidateScript({!$_ -or (Test-Zip $_) })]
         [string] $HotfixPackage,
-        [switch] $NoSearch
+        [switch] $WindowsAuth
     )
     $ErrorActionPreference = "Stop"
 
@@ -109,7 +109,6 @@ function Install-DevEvolution {
         -netVersion $(if (@(2,5) -contains $version.Major) { 2.0 } else { 4.0 }) `
         -webDomain $domain `
         -licenceFile (join-path $pathData.LicencesPath "${Product}$($Version.Major).xml") `
-        -solrCore:(!$noSearch) `
         -solrUrl ($pathData.SolrUrl -f $solrVersion).TrimEnd("/") `
         -solrCoreDir ($pathData.SolrCoreBase -f $solrVersion) `
         -adminPassword p
@@ -122,8 +121,8 @@ function Install-DevEvolution {
             Register-TasksInWebProcess $basePackage
         }
 
-        if ($Product -eq "enterprise") {
-            Enable-WindowsAuth -emailDomain $domain -profileRefreshInterval 0
+        if ($WindowsAuth) {
+            Enable-WindowsAuth -emailDomain '@tempuri.org' -profileRefreshInterval 0
         }        
     }
     finally {
