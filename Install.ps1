@@ -1,9 +1,12 @@
-﻿[cmdletbinding(SupportsShouldProcess=$true)]
+﻿#Requires -Version 3
+#Requires -Modules sqlps,webadministration
+###Requires -RunAsAdministrator #Requires Powershell Version 4
+[CmdletBinding(SupportsShouldProcess=$true)]
 param(
-    [parameter(Mandatory=$true)]
+    [parameter(Mandatory=$true, HelpMessage="The path where the scripts should be installed to")]
 	[ValidateScript({Test-Path $_ -PathType Container -IsValid})]
     [string]$InstallDirectory,
-    [parameter(Mandatory=$true)]
+    [parameter(Mandatory=$true, HelpMessage="The path where Tomcat is installed.  Used to add Tomcat contexts used for Solr multi core setup.")]
     [ValidateScript({(Test-Path $_ -PathType Container) -and (Join-Path $_ conf\server.xml | Test-Path -PathType Leaf) })]
     [string]$TomcatDirectory,
     [switch]$Force
@@ -21,12 +24,7 @@ function Test-Prerequisites
            Write-Error "Installation requires Administrative credentials"
     }
 
-    #Powershell 3.0
-    if($PSVersionTable.PSVersion -lt 3.0.0.0){
-        Write-Error "Powershell Version 3 required"
-    }
-
-    #.net 4.5
+    #.net 4.5 required for unzipping support
     try{ Add-Type -AssemblyName System.IO.Compression }
     catch { Write-Error '.Net 4.5 not installed' }
 
