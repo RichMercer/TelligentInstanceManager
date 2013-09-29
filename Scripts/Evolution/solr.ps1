@@ -14,7 +14,6 @@
         [string]$coreBaseDir,
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({ Invoke-WebRequest $_ -UseBasicParsing -Method HEAD })]
         [Uri]$coreAdmin
     )
     $instanceDir = "${name}\$(get-date -f yyy-MM-dd)\"
@@ -26,5 +25,32 @@
         
     Write-Progress "Solr Core" "Registering Core"
 	$url = "${coreAdmin}?action=CREATE&name=${name}&instanceDir=${instanceDir}"
-    Invoke-WebRequest $url -UseBasicParsing -Method Post | out-null
+    Invoke-WebRequest $url -UseBasicParsing -Method Post | Out-Null
+}
+
+function Remove-SolrCore {
+    [CmdletBinding()]
+    param (
+        [parameter(Mandatory=$true, Position=0)]
+        [ValidateNotNullOrEmpty()]
+        [string]$name,
+        [parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+		[ValidateScript({Test-Path $_ -PathType Container})]
+        [string]$coreBaseDir,
+        [parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [Uri]$coreAdmin
+    )
+
+    Write-Progress "Solr Core" "Removing Core"
+    try {
+        $url = "${coreAdmin}?action=UNLOAD&core=$name&deleteindex=true"
+        Invoke-WebRequest $url -UseBasicParsing -Method Post | Out-Null
+    } catch {}
+    
+    $coreDir = Join-Path $coreBaseDir $name
+    if(Test-Path $coreDir) {
+        Remove-Item $coreDir -Recurse -Force
+    }
 }

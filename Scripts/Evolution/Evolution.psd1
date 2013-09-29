@@ -94,6 +94,8 @@ FunctionsToExport = @('Add-OverrideChangeAttribute'
                     'Install-JobScheduler'
                     'Update-JobSchedulerFromWeb'
                     'Write-ProgressFromVerbose'
+                    'Remove-SolrCore'
+                    'Remove-Database'
                 )
 
 # Cmdlets to export from this module

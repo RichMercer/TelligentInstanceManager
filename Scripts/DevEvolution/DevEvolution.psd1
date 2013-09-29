@@ -68,6 +68,7 @@ NestedModules = @('dev.ps1')
 # Functions to export from this module
 FunctionsToExport = @(
                     'Install-DevEvolution'
+                    'Remove-DevEvolution'
                 )
 
 # Cmdlets to export from this module

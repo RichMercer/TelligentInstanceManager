@@ -98,6 +98,8 @@ function Install-DevEvolution {
     )
     $ErrorActionPreference = "Stop"
 
+    $name = $name.ToLower()
+
     $solrVersion = if(@(2,3,5,6) -contains $Version.Major){ "1-4" } else {"3-6" }
     $webDir = (Join-Path $pathData.WebBase $Name)
     $domain = "$Name.local"
@@ -136,3 +138,49 @@ function Install-DevEvolution {
 }
 
 Set-Alias isde Install-DevEvolution
+
+function Remove-DevEvolution {
+    param(
+        [parameter(Mandatory=$true)]
+        [ValidatePattern('^[a-z0-9\-\._]+$')]
+        [ValidateNotNullOrEmpty()]
+        [string] $Name
+    )
+    $ErrorActionPreference = "Stop"
+
+    $webDir = (Join-Path $pathData.WebBase $Name)
+    
+    if(!(Test-Path $webDir)) {
+        return
+    }
+
+    $Version = (Get-Command $webDir\bin\Telligent.Evolution.Components.dll).FileVersionInfo.ProductVersion
+    $solrVersion = if(@(2,3,5,6) -contains $Version.Major){ "1-4" } else {"3-6" }
+    $domain = "$Name.local"
+
+    #Delete the site in IIS
+    if(Get-Website -Name $Name -ErrorAction SilentlyContinue) {
+        Remove-Website -Name $Name
+    }
+    if((Join-Path IIS:\AppPools\ $Name| Test-Path)){
+        Remove-WebAppPool -Name $Name
+    }
+
+    #Delete the DB
+    Remove-Database -name $Name
+
+    #Delete the files
+    if(Test-Path $webDir) {
+        Remove-Item -Path $webDir -Recurse -Force
+    }
+    
+    #Remove site from hosts files
+    $hostsPath = join-path $env:SystemRoot system32\drivers\etc\hosts
+    (Get-Content $hostsPath) | Foreach-Object {$_ -replace "127.0.0.1 $domain", ""} | Set-Content $hostsPath
+    
+    #Remove the solr core
+    $solrUrl = ($pathData.SolrUrl -f $solrVersion).TrimEnd("/") + '/admin/cores'
+    Remove-SolrCore -name $Name -coreBaseDir ($pathData.SolrCoreBase -f $solrVersion) -coreAdmin $solrUrl
+
+	Write-Host "Deleted website at http://$domain/"
+}

@@ -60,9 +60,17 @@
                 , @CreateSamples = 1
 "@
 
+    $createApiKey = "INSERT INTO [dbo].[cs_ApiKeys] ([UserID],[Value],[Name],[DateCreated],[Enabled]) VALUES (2100,'ps78fsi9tvyaxxx4fshi4bphddky3','rest',GETDATE(), 1)"
+
     Write-ProgressFromVerbose "Database: $database" "Creating Community" {
         Invoke-Sqlcmd -serverInstance $server -database $database -query $createCommunityQuery
     }
+
+    Write-ProgressFromVerbose "Database: $database" "Creating Api Key" {
+        Invoke-Sqlcmd -serverInstance $server -database $database -query $createApiKey
+    }
+
+    
 }
 
 function Invoke-SqlcmdWithProgress
@@ -180,4 +188,23 @@ function New-Database {
     $db.Name = $name
     #TODO: Size correctly
     $db.Create()
+}
+
+function Remove-Database {
+    [CmdletBinding()]
+    param(
+        [parameter(Mandatory=$true, Position=0, ValueFromPipeline=$true)]
+        [ValidateNotNullOrEmpty()]
+		[alias('dbName')]
+        [string]$name,
+        [ValidateNotNullOrEmpty()]
+		[alias('dbServer')]
+        [string]$server = "."
+    )
+    $srv = New-Object Microsoft.SqlServer.Management.SMO.Server($server)
+
+    if ($null -ne $srv.Databases[$name] ) { $exists = $true } else { $exists = $false }
+    if($exists){
+        $srv.KillDatabase($name)
+    }
 }
