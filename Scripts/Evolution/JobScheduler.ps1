@@ -13,12 +13,13 @@
 		[ValidateScript({Test-Path $_ -PathType Container})]
         [string]$webPath,
     	[parameter(Mandatory=$true,Position=3)]
+		[ValidateScript({Test-Path $_ -PathType Container -IsValid})]
         [ValidateNotNullOrEmpty()]
         [string]$jsPath,
 	    [parameter(Mandatory=$true,Position=4)]
         [ValidateNotNullOrEmpty()]
         [PSCredential]$credential,
-        [switch]$startService
+        [switch]$NoService
     )
 
     Write-Progress "Installing Job Scheduler" "Creating Directory"
@@ -33,6 +34,28 @@
     Write-Progress "Job Scheduler" "Extracting Base Job Scheduler"
     Update-JobSchedulerFromWeb $webPath $jsPath | Write-Host
 
+    if(!$NoService){
+        Install-JobSchedulerService $name $jsPath $credential
+    }
+
+}
+
+function Install-JobSchedulerService {
+	[CmdletBinding()]
+    param(
+    	[parameter(Mandatory=$true,Position=0)]
+        [ValidateNotNullOrEmpty()]
+        [string]$name,
+    	[parameter(Mandatory=$true,Position=3)]
+        [ValidateNotNullOrEmpty()]
+		[ValidateScript({Test-Path $_ -PathType Container -and (Join-Path $_ Telligent.JobScheduler.Service.exe | Test-Path)})]
+        [string]$jsPath,
+	    [parameter(Mandatory=$true,Position=4)]
+        [ValidateNotNullOrEmpty()]
+        [PSCredential]$credential
+    )
+
+
     Write-Progress "Job Scheduler" "Setting up Service"
     $servicePath = join-path $jsPath Telligent.JobScheduler.Service.exe
     $serviceName = "Telligent.JobScheduler-$name"
@@ -42,7 +65,7 @@
         -Description "Telligent Job Scheduler service for $domainName" `
         -StartupType Automatic `
         -Credential $credential `
-        | out-null
+        | Start-Service
         
     Write-Progress "Job Scheduler" "Setting automatic service recovery"
     # - first restart after 30 secs, subsequent every 2 mins.
@@ -50,13 +73,12 @@
     &sc.exe failure "$serviceName" actions= restart/30000/restart/120000 reset= 1200 | Out-Null
 
     #If SQL is on the current server, set startup to Automatic (Delayed Startup)
-    if($true){
+    if(get-service MSSQL*){
         #TODO: Safer to check connection string for (local) / Machine name
            Write-Progress "Job Scheduler" "Changing startup mode to Automatic (Delayed Start) to prevent race conditions with SQL Server"
            &sc.exe config "$serviceName" start= delayed-auto | Out-Null
     }
 
-    return Get-Service $serviceName
 }
 
 function Update-JobSchedulerFromWeb {
