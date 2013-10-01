@@ -40,10 +40,12 @@ function Add-OverrideChangeAttribute {
         [string]$name,
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [string]$value
+        [string]$value,
+        [ValidateScript({Test-Path $_ -PathType Container})]
+        [string]$path = (Get-Location)
     )
     
-    $overridePath = join-path (get-location) communityserver_override.config
+    $overridePath = join-path $path communityserver_override.config
     if (!(test-path $overridePath)) {
         "<?xml version=""1.0"" ?><Overrides />" |out-file $overridePath    
     }
@@ -57,8 +59,40 @@ function Add-OverrideChangeAttribute {
     $overrides.Save($overridePath)
 }
 
+function Set-EvolutionFilestorage {
+    param(
+        [parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({Test-Path $_ -PathType Container})]
+        [string]$webDir,
+        [parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({Test-Path $_ -PathType Container})]
+        [string]$filestorage
+    )
 
-function Set-EvolutionSolrUrl() {
+    $version = Get-CommunityInfo $webDir | select -ExpandProperty PlatformVersion
+
+    if ($version.Major -ge 7) {
+        Add-OverrideChangeAttribute `
+            -xpath "/CommunityServer/CentralizedFileStorage/fileStoreGroup[@name='default']" `
+            -name basePath `
+            -value $filestorage
+    }
+    else {
+        $csConfig = Get-MergedConfigFile -path $webDir -fileName communityserver
+        $csConfig.CommunityServer.CentralizedFileStorage.fileStore.name |% {
+            Add-OverrideChangeAttribute `
+                -path $webDir `
+                -xpath "/CommunityServer/CentralizedFileStorage/fileStore[@name='$_']" `
+                -name basePath `
+                -value $filestorage
+        }
+    }
+
+}
+
+function Set-EvolutionSolrUrl {
 	<#
 	.Synopsis
 		Updates the Search Url used by the Telligent Evolution community in the current directory
@@ -265,16 +299,12 @@ function Enable-Ldap {
     param(
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [string]$server,
-        [parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
         [string]$username,
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [string]$password,
         [string]$authenticationType = "Secure",
-        [int]$port = 389,
-        [string]$baseDn
+        [int]$port = 389
     )
 
     #Install Package
@@ -293,13 +323,12 @@ function Enable-Ldap {
     $webConfig.configuration.configSections.AppendChild($webConfig.ImportNode($ldapSection.DocumentElement, $true)) | out-null
     $ldapConfiguration= $webConfig.CreateElement("LdapConnection")
     @{
-        Server="LDAP://$server";
-        Port=$port;
-        BaseDN=$baseDn;
-        UserDN=$username;
-        Password = $password;
-        Authentication = $authenticationType;
-    } |% {
+        Server="GC://"
+        Port=$port
+        UserDN=$username
+        Password = $password
+        Authentication = $authenticationType
+    }.GetEnumerator() |% {
         $add = $ldapConfiguration.OwnerDocument.CreateElement("add")
         $add.SetAttribute("key", $_.Key)
         $add.SetAttribute("value", $_.Value)

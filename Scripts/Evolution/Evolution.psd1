@@ -73,6 +73,7 @@ NestedModules = @(
                     'packages.ps1'
                     'jobscheduler.ps1'
                     'utility.ps1'
+                    'VersionInfo.ps1'
                 )
 
 # Functions to export from this module
@@ -97,6 +98,9 @@ FunctionsToExport = @('Add-OverrideChangeAttribute'
                     'Write-ProgressFromVerbose'
                     'Remove-SolrCore'
                     'Remove-Database'
+                    'Get-CommunityInfo'
+                    'Get-MergedConfigFile'
+                    'Set-EvolutionFilestorage'
                 )
 
 # Cmdlets to export from this module

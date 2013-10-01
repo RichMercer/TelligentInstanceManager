@@ -182,10 +182,7 @@
 
         Write-Progress "Configuration" "Setting Filestorage Path"
         if($filestorage) {
-            Add-OverrideChangeAttribute `
-                -xpath "/CommunityServer/CentralizedFileStorage/fileStoreGroup[@name='default']" `
-                -name basePath `
-                -value $filestorage
+            Set-EvolutionFileStorage $webDir $filestorage
         }
 
         Write-Progress "Configuration" "Setting Connection Strings"
