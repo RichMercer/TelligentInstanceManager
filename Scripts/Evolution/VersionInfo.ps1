@@ -10,36 +10,37 @@
 function Get-CommunityInfo {
     param(
         [ValidateNotNullOrEmpty()]
-        [parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+        [parameter(Mandatory=$true, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
         [ValidateScript({Test-Path $_ -PathType Container})]
         [alias("physicalPath")]
         [string]$path
     )
+    process {
+        $csConfig = Get-MergedConfigFile $path 'communityserver.config' -ErrorAction SilentlyContinue
 
-    $csConfig = Get-MergedConfigFile $path 'communityserver.config' -ErrorAction SilentlyContinue
+        $product = @($versionDllNames.platform) |
+            % { $_, (join-path bin $_) } |
+            % { join-path $path $_ } |
+            Get-Item -ErrorAction SilentlyContinue |
+            Select -ExpandProperty VersionInfo -First 1 |
+            Select -ExpandProperty ProductName -ErrorAction SilentlyContinue
 
-    $product = @($versionDllNames.platform) |
-        % { $_, (join-path bin $_) } |
-        % { join-path $path $_ } |
-        Get-Item -ErrorAction SilentlyContinue |
-        Select -ExpandProperty VersionInfo -First 1 |
-        Select -ExpandProperty ProductName -ErrorAction SilentlyContinue
+        $product = if($product -match 'community') { 'Community' } elseif ($product -match 'enterprise') { 'Enterprise' } else { '' }
 
-    $product = if($product -match 'community') { 'Community' } elseif ($product -match 'enterprise') { 'Enterprise' } else { '' }
-
-    return new-object psobject -Property ([ordered]@{
-        Name = split-path $path -Leaf
-        Path = $path
-        Product = $product
-        PlatformVersion = Get-EvolutionVersionFromDlls $path $versionDllNames.platform
-        CalendarVersion = Get-EvolutionVersionFromDlls $path $versionDllNames.calendar
-        DocPreviewVersions = Get-EvolutionVersionFromDlls $path $versionDllNames.docPreview
-        TranscodingVersion = Get-EvolutionVersionFromDlls $path $versionDllNames.transcoding
-        IdeationVersion = Get-EvolutionVersionFromDlls $path $versionDllNames.ideation
-        ChatVersion = Get-EvolutionVersionFromDlls $path $versionDllNames.chat
-        CfsPaths = @($csConfig.CommunityServer.CentralizedFileStorage.fileStore) + @($csConfig.CommunityServer.CentralizedFileStorage.fileStoreGroup) | select -ExpandProperty basePath -unique
-        SolrUrl = $csConfig.CommunityServer.Search.Solr.host
-    })
+        return new-object psobject -Property ([ordered]@{
+            Name = split-path $path -Leaf
+            Path = $path
+            Product = $product
+            PlatformVersion = Get-EvolutionVersionFromDlls $path $versionDllNames.platform
+            CalendarVersion = Get-EvolutionVersionFromDlls $path $versionDllNames.calendar
+            DocPreviewVersions = Get-EvolutionVersionFromDlls $path $versionDllNames.docPreview
+            TranscodingVersion = Get-EvolutionVersionFromDlls $path $versionDllNames.transcoding
+            IdeationVersion = Get-EvolutionVersionFromDlls $path $versionDllNames.ideation
+            ChatVersion = Get-EvolutionVersionFromDlls $path $versionDllNames.chat
+            CfsPaths = @($csConfig.CommunityServer.CentralizedFileStorage.fileStore) + @($csConfig.CommunityServer.CentralizedFileStorage.fileStoreGroup) | select -ExpandProperty basePath -unique
+            SolrUrl = $csConfig.CommunityServer.Search.Solr.host
+        })
+    }
 }
 
 function Get-EvolutionVersionFromDlls {
@@ -51,12 +52,14 @@ function Get-EvolutionVersionFromDlls {
         [parameter(Mandatory=$true)]
         [string[]]$dlls
     )
-    return @($dlls) |
+    $version = @($dlls) |
         % { $_, (join-path bin $_) } |
         % { join-path $path $_ } |
         Get-Item -ErrorAction SilentlyContinue |
         Select -ExpandProperty VersionInfo -First 1 |
         Select -ExpandProperty ProductVersion -ErrorAction SilentlyContinue
+
+        return [Version]$version
 }
 
 function Get-MergedConfigFile {

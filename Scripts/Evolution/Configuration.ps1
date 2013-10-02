@@ -299,12 +299,13 @@ function Enable-Ldap {
     param(
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [string]$username,
+        [string]$Username,
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [string]$password,
-        [string]$authenticationType = "Secure",
-        [int]$port = 389
+        [string]$Password,
+        [string]$Server = "GC://",
+        [string]$AuthenticationType = "Secure",
+        [int]$Port = 3268
     )
 
     #Install Package
@@ -323,11 +324,11 @@ function Enable-Ldap {
     $webConfig.configuration.configSections.AppendChild($webConfig.ImportNode($ldapSection.DocumentElement, $true)) | out-null
     $ldapConfiguration= $webConfig.CreateElement("LdapConnection")
     @{
-        Server="GC://"
-        Port=$port
-        UserDN=$username
-        Password = $password
-        Authentication = $authenticationType
+        Server=$Server
+        Port=$Port
+        UserDN=$Username
+        Password = $Password
+        Authentication = $AuthenticationType
     }.GetEnumerator() |% {
         $add = $ldapConfiguration.OwnerDocument.CreateElement("add")
         $add.SetAttribute("key", $_.Key)
