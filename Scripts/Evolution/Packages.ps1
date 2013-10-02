@@ -49,7 +49,7 @@ function Get-EvolutionBuild {
         % {
             $hotfix = $_
             $base = $basePackages |
-                ? { $_.Version.Major -eq $hotfix.Version.Major -and $_.Version.Minor -eq $hotfix.Version.Minor }|
+                ? { $_.Version.Major -eq $hotfix.Version.Major -and $_.Version.Minor -eq $hotfix.Version.Minor -and $hotfix.Version.Revision -gt $_.Version.Revision }|
                 sort Version -Descending |
                 select -First 1
 
