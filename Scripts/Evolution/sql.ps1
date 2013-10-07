@@ -40,14 +40,14 @@
     }
     
     Write-Progress "Database: $database" "Creating Schema"
-    $tempDir = join-path $env:temp ([guid]::NewGuid())
+    $tempDir = join-path ([System.IO.Path]::GetFullPath($env:TEMP)) ([guid]::NewGuid())
     Expand-Zip -zipPath $package -destination $tempDir -zipDir "SqlScripts" -zipFile "cs_CreateFullDatabase.sql"
     $sqlScript = join-path $tempDir cs_CreateFullDatabase.sql | resolve-path
 
     Write-ProgressFromVerbose "Database: $database" "Creating Schema" {
         Invoke-Sqlcmd -serverinstance $server -Database $database -InputFile $sqlScript -QueryTimeout 6000
     }
-    Remove-Item $tempDir -Recurse -force | out-null
+    Remove-Item $tempDir -Recurse -Force | out-null
 
     $createCommunityQuery = @"
          EXECUTE [dbo].[cs_system_CreateCommunity]

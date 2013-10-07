@@ -235,7 +235,7 @@ function Install-EvolutionHotfix {
     Expand-Zip -zipPath $package -destination $communityDir -zipDir "Web"
    
     Write-Progress "Applying Hotfix" "Updating Database"
-    $tempDir = join-path $env:temp ([guid]::NewGuid())
+    $tempDir = join-path ([System.IO.Path]::GetFullPath($env:TEMP)) ([guid]::NewGuid())
     @("update.sql", "updates.sql") |% {
         Expand-Zip -zipPath $package -destination $tempDir -zipFile $_
         $sqlPath = join-path $tempDir $_
@@ -247,5 +247,5 @@ function Install-EvolutionHotfix {
     }
 
     #TODO: Support updating JS
-    remove-item $tempDir -Recurse -Force |out-null   
+    Remove-Item $tempDir -Recurse -Force | Out-Null   
 }
