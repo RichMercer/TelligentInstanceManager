@@ -113,7 +113,8 @@ function Install-DevEvolution {
         -licenceFile (join-path $pathData.LicencesPath "${Product}$($Version.Major).xml") `
         -solrUrl ($pathData.SolrUrl -f $solrVersion).TrimEnd("/") `
         -solrCoreDir ($pathData.SolrCoreBase -f $solrVersion) `
-        -adminPassword p
+        -adminPassword 'p' `
+        -dbServer $env:DBServerName
 
     pushd $webdir 
     try {
