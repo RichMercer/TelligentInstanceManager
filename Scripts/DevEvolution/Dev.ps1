@@ -168,7 +168,7 @@ function Remove-DevEvolution {
     }
 
     #Delete the DB
-    Remove-Database -name $Name
+    Remove-Database -name $Name -dbServer $env:DBServerName
 
     #Delete the files
     if(Test-Path $webDir) {
