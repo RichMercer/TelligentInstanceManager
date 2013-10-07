@@ -111,6 +111,7 @@ function Install-DevEvolution {
         -netVersion $(if (@(2,5) -contains $version.Major) { 2.0 } else { 4.0 }) `
         -webDomain $domain `
         -licenceFile (join-path $pathData.LicencesPath "${Product}$($Version.Major).xml") `
+        -solrCore `
         -solrUrl ($pathData.SolrUrl -f $solrVersion).TrimEnd("/") `
         -solrCoreDir ($pathData.SolrCoreBase -f $solrVersion) `
         -adminPassword 'p' `
