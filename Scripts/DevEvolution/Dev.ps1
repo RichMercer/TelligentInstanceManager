@@ -134,7 +134,7 @@ function Install-DevEvolution {
     }
 
     #Add site to hosts files
-    Add-Content -value "127.0.0.1 $domain" -path (join-path $env:SystemRoot system32\drivers\etc\hosts)
+    Add-Content -value "`n127.0.0.1 $domain" -path (join-path $env:SystemRoot system32\drivers\etc\hosts) -
 	Write-Host "Created website at http://$domain/"
     Start-Process "http://$domain/"
 }
