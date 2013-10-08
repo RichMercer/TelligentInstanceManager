@@ -134,7 +134,7 @@ function Install-DevEvolution {
     }
 
     #Add site to hosts files
-    Add-Content -value "`n127.0.0.1 $domain" -path (join-path $env:SystemRoot system32\drivers\etc\hosts) -
+    Add-Content -value "`r`n127.0.0.1 $domain" -path (join-path $env:SystemRoot system32\drivers\etc\hosts)
 	Write-Host "Created website at http://$domain/"
     Start-Process "http://$domain/"
 }
@@ -158,7 +158,7 @@ function Remove-DevEvolution {
 
     $Version = (Get-Command $webDir\bin\Telligent.Evolution.Components.dll).FileVersionInfo.ProductVersion
     $solrVersion = if(@(2,3,5,6) -contains $Version.Major){ "1-4" } else {"3-6" }
-    $domain = "$Name.local"
+    $domain = $Name.local
 
     #Delete the site in IIS
     if(Get-Website -Name $Name -ErrorAction SilentlyContinue) {
