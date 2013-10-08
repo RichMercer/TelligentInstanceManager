@@ -114,7 +114,7 @@ function Install-DevEvolution {
         -solrCore `
         -solrUrl ($pathData.SolrUrl -f $solrVersion).TrimEnd("/") `
         -solrCoreDir ($pathData.SolrCoreBase -f $solrVersion) `
-        -adminPassword 'pa$$word' `
+        -adminPassword 'password' `
         -dbServer $env:DBServerName
 
     pushd $webdir 
