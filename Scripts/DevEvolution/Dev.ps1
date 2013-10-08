@@ -102,7 +102,7 @@ function Install-DevEvolution {
 
     $solrVersion = if(@(2,3,5,6) -contains $Version.Major){ "1-4" } else {"3-6" }
     $webDir = (Join-Path $pathData.WebBase $Name)
-    $domain = "$Name.local"
+    $domain = $Name
 
     Install-Evolution -name $Name `
         -package $BasePackage `
@@ -114,7 +114,7 @@ function Install-DevEvolution {
         -solrCore `
         -solrUrl ($pathData.SolrUrl -f $solrVersion).TrimEnd("/") `
         -solrCoreDir ($pathData.SolrCoreBase -f $solrVersion) `
-        -adminPassword 'p' `
+        -adminPassword 'pa$$word' `
         -dbServer $env:DBServerName
 
     pushd $webdir 
