@@ -158,7 +158,7 @@ function Remove-DevEvolution {
 
     $Version = (Get-Command $webDir\bin\Telligent.Evolution.Components.dll).FileVersionInfo.ProductVersion
     $solrVersion = if(@(2,3,5,6) -contains $Version.Major){ "1-4" } else {"3-6" }
-    $domain = $Name.local
+    $domain = $Name
 
     #Delete the site in IIS
     if(Get-Website -Name $Name -ErrorAction SilentlyContinue) {
