@@ -1,22 +1,30 @@
-﻿$versionDllNames = data{@{
-    platform = 'Telligent.Evolution.Components.dll', 'CommunityServer.Components.dll'
-    calendar = 'Telligent.Evolution.Extensions.Calendar.dll'
-    docPreview = 'Telligent.Evolution.FlexPaperDocumentViewer.dll'
-    transcoding = 'Telligent.Evolution.VideoTranscoding.dll'
-    ideation = 'Telligent.Evolution.Extensions.Ideation.dll'
-    chat = 'Telligent.Evolution.Chat.dll'
-}}
+﻿$versionDllNames = [ordered]@{
+    Platform = 'Telligent.Evolution.Components.dll', 'CommunityServer.Components.dll'
+    Calendar = 'Telligent.Evolution.Extensions.Calendar.dll'
+    DocPreview = 'Telligent.Evolution.FlexPaperDocumentViewer.dll'
+    Transcoding = 'Telligent.Evolution.VideoTranscoding.dll'
+    Ideation = 'Telligent.Evolution.Extensions.Ideation.dll'
+    Chat = 'Telligent.Evolution.Chat.dll'
+}
 
-function Get-CommunityInfo {
+function Get-Community {
+    <#
+    .SYNOPSIS
+        Gets an summary of a Telligent Evolution community
+    .Descriptions
+        Gets information about a Telligent Evolution community including Filestorage, Solr and database locations as well as platform and addon version numbers.
+    .PARAMETER path
+        The path to the community's Website or Job Scheduler.
+    #>
     param(
         [ValidateNotNullOrEmpty()]
         [parameter(Mandatory=$true, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
-        [ValidateScript({Test-Path $_ -PathType Container})]
-        [alias("physicalPath")]
+        [ValidateScript({ Test-CommunityPath $_ })]
+        [alias('physicalPath')]
         [string]$path
     )
     process {
-        $csConfig = Get-MergedConfigFile $path 'communityserver.config' -ErrorAction SilentlyContinue
+        $csConfig = Merge-EvolutionConfigurationFile $path communityserver -ErrorAction SilentlyContinue
 
         $product = @($versionDllNames.platform) |
             % { $_, (join-path bin $_) } |
@@ -25,36 +33,51 @@ function Get-CommunityInfo {
             Select -ExpandProperty VersionInfo -First 1 |
             Select -ExpandProperty ProductName -ErrorAction SilentlyContinue
 
-        $product = if($product -match 'community') { 'Community' } elseif ($product -match 'enterprise') { 'Enterprise' } else { '' }
+        $product = if($product -match 'community') { 'Community' } elseif ($product -match 'enterprise') { 'Enterprise' } else { 'Unknown' }
 
-        return new-object psobject -Property ([ordered]@{
+        $dbInfo = Get-ConnectionString $path -ErrorAction SilentlyContinue
+
+        $info = [ordered]@{
             Name = split-path $path -Leaf
             Path = $path
-            Product = $product
-            PlatformVersion = Get-EvolutionVersionFromDlls $path $versionDllNames.platform
-            CalendarVersion = Get-EvolutionVersionFromDlls $path $versionDllNames.calendar
-            DocPreviewVersions = Get-EvolutionVersionFromDlls $path $versionDllNames.docPreview
-            TranscodingVersion = Get-EvolutionVersionFromDlls $path $versionDllNames.transcoding
-            IdeationVersion = Get-EvolutionVersionFromDlls $path $versionDllNames.ideation
-            ChatVersion = Get-EvolutionVersionFromDlls $path $versionDllNames.chat
-            CfsPaths = @($csConfig.CommunityServer.CentralizedFileStorage.fileStore) + @($csConfig.CommunityServer.CentralizedFileStorage.fileStoreGroup) | select -ExpandProperty basePath -unique
+            CfsPath = @($csConfig.CommunityServer.CentralizedFileStorage.fileStore) + @($csConfig.CommunityServer.CentralizedFileStorage.fileStoreGroup) | select -ExpandProperty basePath -unique
             SolrUrl = $csConfig.CommunityServer.Search.Solr.host
-        })
+            DatabaseServer = $dbInfo.ServerInstance
+            DatabaseName = $dbInfo.Database
+            Product = $product
+        }
+        $versionDllNames.GetEnumerator() |% {
+            $info["$($_.Key)Version"] = Get-EvolutionVersionFromDlls $path $_.Value
+        }
+
+        new-object psobject -Property $info
     }
 }
 
 function Get-EvolutionVersionFromDlls {
+    <#
+    .SYNOPSIS
+        Gets version information from Telligent Evolution dlls
+    .DESCRIPTION
+        Helper function for getting the version of a Telligent extension.  It looks for the version number of the speciifed dll in both the root directoy and the /bin/ directory (to support both Web and Job Schedulers)        .
+    .PARAMETER path
+        The path to the community's Website or Job Scheduler.
+    .PARAMETER dlls
+        The dll names to look for version information in
+    #>
     param(
+        [parameter(Mandatory=$true)]
+        [ValidateScript({ Test-CommunityPath $_ })]
+        [ValidateNotNullOrEmpty()]
+        [string]$Path,
+        [ValidateScript({Test-Path $_ -PathType Leaf -IsValid})]
         [ValidateNotNullOrEmpty()]
         [parameter(Mandatory=$true)]
-        [string]$path,
-        [ValidateNotNullOrEmpty()]
-        [parameter(Mandatory=$true)]
-        [string[]]$dlls
+        [string[]]$Dlls
     )
-    $version = @($dlls) |
-        % { $_, (join-path bin $_) } |
-        % { join-path $path $_ } |
+    $version = @($Dlls) |
+        % { $_, (Join-Path bin $_) } |
+        % { Join-Path $Path $_ } |
         Get-Item -ErrorAction SilentlyContinue |
         Select -ExpandProperty VersionInfo -First 1 |
         Select -ExpandProperty ProductVersion -ErrorAction SilentlyContinue
@@ -62,22 +85,27 @@ function Get-EvolutionVersionFromDlls {
         return [Version]$version
 }
 
-function Get-MergedConfigFile {
+function Merge-EvolutionConfigurationFile {
+    <#
+    .SYNOPSIS
+        Gets the resultant configuration XML after merging a Telligent override configuration file with the original config file
+    .PARAMETER Ppath
+        The path to the community's Website or Job Scheduler.
+    .PARAMETER FileName
+        The name of the config file to merge
+    #>
     param(
         [ValidateNotNullOrEmpty()]
-        [string]$path,
+        [string]$Path,
         [parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$fileName
+        [ValidateSet('communityserver', 'siteurls')]
+        [string]$FileName
     )
-    if($fileName.EndsWith(".config")){
-        $fileName = $fileName.Substring(0, $fileName.length - 7)
-    }
-    $config = [xml](get-content (join-path $path "${filename}.config"))
+    $config = [xml](Get-Content (Join-Path $Path "${Filename}.config"))
 
-    $overridePath = join-path $path "${filename}_override.config"
-    if (test-path $overridePath  -PathType Leaf){
-        $overrides = [xml](get-content $overridePath)
+    $overridePath = Join-Path $Path "${Filename}_override.config"
+    if (Test-Path $overridePath  -PathType Leaf){
+        $overrides = [xml](Get-Content $overridePath)
 
         $overrides.Overrides.Override |% {
             $node = $config.SelectSingleNode($_.xPath)

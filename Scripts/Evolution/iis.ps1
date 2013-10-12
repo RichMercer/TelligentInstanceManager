@@ -1,166 +1,249 @@
 ﻿function New-EvolutionWebsite {
+    <#
+    .SYNOPSIS
+        Creates a new Evolution website
+    .DESCRIPTION
+        Creates a new Telligent Evolution Website, including extracting the installation package, creating the IIS website and setting up filestorage.
+    .PARAMETER name
+        The name of the site to be created in IIS.
+    .PARAMETER Path
+        The physical location of the website files
+    .PARAMETER Package
+        The installation package to extract the website files from.
+    .PARAMETER HostName
+        The HostName to use in the IIS site binding.
+    .PARAMETER Port
+        The port to use in the IIS site binding.
+    .PARAMETER ApplicationPool
+        The name of the application pool to create the website with.  If the specified application pool doesn't exist, it is created.  If not specified, IIS configuration will determine the application pool to use.
+    .PARAMETER ClrVersion
+        The version of .net to configure the application pool for.  If not specified, defaults to 4.0
+    .PARAMETER FilestoragePath
+        The location the filestorage should be stored at.  If not specified, uses teh default
+    #>
     [CmdletBinding()]
     param(
-        [parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [ValidatePattern('^[a-z0-9\-\._ ]+$')]
-        [string]$name,
-        [parameter(Mandatory=$true)]
+        [string]$Name,
+        [Parameter(Mandatory=$true)]
+        [ValidateScript({ Test-CommunityPath $_ -IsValid})]
         [ValidateNotNullOrEmpty()]
-        [string]$path,
-        [parameter(Mandatory=$true)]
+        [string]$Path,
+        [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
 		[ValidateScript({Test-Zip $_ })]
-        [string]$package,
+        [string]$Package,
         [ValidateNotNullOrEmpty()]
-        [string]$domain,
+        [string]$HostName,
         [ValidateNotNullOrEmpty()]
-        [int]$port = 80,
+        [int]$Port = 80,
+        [ValidatePattern('^[a-z0-9\-\._ ]+$')]
         [ValidateNotNullOrEmpty()]
-        [string]$appPool = $name,
+        [string]$ApplicationPool = $name,
  		[ValidateSet(2.0,4.0)]
-        [double]$netVersion = 4.0,
-        [string]$filestorage
+        [double]$ClrVersion = 4.0,
+        [ValidateScript({Test-Path $_ -PathType Container -IsValid})]
+        [string]$FilestoragePath
     )
 
-    if(!(test-path $path)) {
-        new-item $path -type directory | out-null
+    if(!(Test-Path $path)) {
+        New-Item $path -Type Directory | out-null
     }    
-    New-IISWebsite -name $name -path $path -domain $domain -port $port -appPool $appPool
+    New-IISWebsite -Name $Name -Path $Path -HostName $HostName -Port $Port -ApplicationPool $ApplicationPool
 
-    Write-Progress "Website: $name" "Extracting Web Files: $path"
-    Expand-Zip $package $path -zipDir "Web"
+    Write-Progress "Website: $Name" "Extracting Web Files: $Path"
+    Expand-Zip $Package $Path -ZipDirectory Web
 
-    if($filestorage) {
+    #TODO: Auto Infer CLR Version
+
+    #TODO: Abstract Move-Filestorage into seperate function
+    if($FilestoragePath) {
         $originalFilestorage = join-path $path filestorage
-        Write-Progress "Website: $name" "Moving Filestorage to $filestorage"
-        move-item $originalFilestorage $filestorage -Force
+        Write-Progress "Website: $Name" "Moving Filestorage to $FilestoragePath"
+        if(!(Test-Path $FilestoragePath)) {
+            New-Item $FilestoragePath -ItemType Directory | Out-Null
+        }
+        Move-Item (Join-Path $originalFilestorage *) $FilestoragePath -Force
+        Remove-Item $originalFilestorage
+
+        Set-EvolutionFileStorage $Path $FilestoragePath
     }
     else {
-        $filestorage = join-path $webDir filestorage        
+        $FilestoragePath = join-path $Path filestorage        
     }
 
-    Grant-EvolutionWebPermissions $path $filestorage
+    Grant-EvolutionNtfsPermission $Path $FilestoragePath
 }
 
-function Grant-EvolutionWebPermissions {
+function Grant-EvolutionNtfsPermission {
+    <#
+    .SYNOPSIS
+      Grants the required NTFS permissions for a Telligent Evolution community.
+    .PARAMETER WebsitePath
+        The path to the Telligent Evolution Website. This location has read permissions granted to the Application Pool Identity
+    .PARAMETER FilestoragePath
+        The path to the Telligent Evolution Filestorage. This location has Modify permissions granted to the Application Pool Identity        
+    #>
     [CmdletBinding()]
     param(
-        [parameter(Position=0, Mandatory=$true)]
+        [Parameter(Position=0, Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-		[ValidateScript({Test-Path $_ -PathType Container})]
-        [string]$webDir,
-        [parameter(Position=1, Mandatory=$true)]
+        [ValidateScript({ Test-CommunityPath $_ })]
+        [string]$WebsitePath,
+        [Parameter(Position=1, Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
 		[ValidateScript({Test-Path $_ -PathType Container })]
-        [string]$filestorage
+        [string]$FilestoragePath
     )
-    Get-IISWebsites $webDir |% {
+    Get-IISWebsite $WebsitePath |% {
         $name = $_.name
         $appPoolIdentity = Get-IISAppPoolIdentity $_.applicationPool
-        Write-Progress "Website: $name" "Granting read access to $appPoolIdentity"
+        Write-Progress "Website: $name" "Granting read access to '$appPoolIdentity' on '$WebsitePath'"
 
         #TODO: outputs a status message.  switch to Set-Acl instead
-        &icacls "$webDir" /grant "${appPoolIdentity}:(OI)(CI)RX" /Q | out-null
+        &icacls "$WebsitePath" /grant "${appPoolIdentity}:(OI)(CI)RX" /Q | out-null
 
-        Write-Progress "Website: $name" "Granting modify access to $appPoolIdentity for $filestorage"
-        &icacls "$filestorage" /grant "${appPoolIdentity}:(OI)(CI)M" /Q | out-null
+        Write-Progress "Website: $name" "Granting modify access to $appPoolIdentity on $FilestoragePath"
+        &icacls "$FilestoragePath" /grant "${appPoolIdentity}:(OI)(CI)M" /Q | out-null
     }
 }
 
 function New-IISWebsite {
+    <#
+    .SYNOPSIS
+        Creates a new IIS website
+    .PARAMETER Name
+        The name of the site to be created in IIS.
+    .PARAMETER Path
+        The physical location of the website files
+    .PARAMETER HostName
+        The HostName to use in the IIS site binding.
+    .PARAMETER Port
+        The port to use in the IIS site binding.
+    .PARAMETER ApplicationPool
+        The name of the application pool to create the website with.  If the specified application pool doesn't exist, it is created.  If not specified, IIS configuration will determine the application pool to use.
+    .PARAMETER ClrVersion
+        The version of .net to configure the application pool for.  If not specified, defaults to 4.0
+    #>
     [CmdletBinding()]
     param(
-        [parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [string]$name,
-        [parameter(Mandatory=$true)]
+        [ValidatePattern('^[a-z0-9\-\._ ]+$')]
+        [string]$Name,
+        [Parameter(Mandatory=$true)]
+        [ValidateScript({ Test-CommunityPath $_ -IsValid })]
         [ValidateNotNullOrEmpty()]
-        [string]$path,
-        [parameter(Mandatory=$true)]
+        [string]$Path,
+        [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [string]$domain,
+        [string]$HostName,
         [ValidateNotNullOrEmpty()]
-        [uint16]$port = 80,
+        [uint16]$Port = 80,
         [ValidateNotNullOrEmpty()]
-        [string]$appPool = $name,
+        [ValidatePattern('^[a-z0-9\-\._ ]+$')]
+        [string]$ApplicationPool = $Name,
  		[ValidateSet(2.0,4.0)]
-        [double]$netVersion = 4.0
+        [double]$ClrVersion = 4.0
     )
     
-    if (!(test-path $path)) {
-        new-item $path -type directory |out-null
+    if (!(Test-Path $path)) {
+        New-Item $Path -Type Directory | Out-Null
     }
-    if (!(test-path IIS:\AppPools\$appPool)) {
-        Write-Progress "Website: $name" "Creating IIS App Pool"
-        New-IISAppPool $name -netVersion $netVersion
+    if (!(Test-Path IIS:\AppPools\$ApplicationPool)) {
+        Write-Progress "Website: $Name" "Creating IIS Application Pool"
+        New-IISAppPool $Name -ClrVersion $ClrVersion
     }
     
-    pushd IIS:\Sites\
-    try {
-        Write-Progress "Website: $name" "Creating IIS Website"
-        New-Item $name -bindings @{protocol="http";bindingInformation=":${port}:${domain}"} -physicalPath $path -force |
-            Set-ItemProperty -name applicationPool -value $appPool
-    }
-    finally{
-        popd
-    }
+    Write-Progress "Website: $Name" "Creating IIS Website"
+    New-Item IIS:\Sites\$Name -Bindings @{protocol="http";bindingInformation=":${Port}:${HostName}"} -PhysicalPath $Path -Force |
+        Set-ItemProperty -Name applicationPool -Value $ApplicationPool
 }
 
 function New-IISAppPool{
+    <#
+    .SYNOPSIS
+        Creates a new Application Pool
+    .DESCRIPTION
+        Creates a new IIS Application Pool using the specified .net version.  If credentials are specified, uses these as the Application Pool Identity, otherwise uses ApplicationPoolIdentity.
+    .PARAMETER Name
+        The name of the Application Pool to create.
+    .PARAMETER ClrVersion
+        The version of .Net CLR the Application Pool should run under.
+    .PARAMETER Credential
+        The credentials the Application Pool should run under.  If not specified, then the ApplicationPoolIdentity is used.
+    #>
     [CmdletBinding()]
     param(
-        [parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [string]$name,
+        [ValidatePattern('^[a-z0-9\-\._ ]+$')]
+        [string]$Name,
  		[ValidateSet(2.0,4.0)]
-        [double]$netVersion = 4.0,
-        [string]$username,
-        [string]$password
+        [double]$ClrVersion = 4.0,
+        [PSCredential]$Credential
     )
-    $versionString = "v{0:N1}" -f $netVersion
-    pushd IIS:\AppPools
+    $versionString = "v{0:N1}" -f $ClrVersion
+    Push-Location IIS:\AppPools
     try {
-        new-item $name -force | out-null
-        if ($username){
-            set-itemProperty $name -name processmodel -value @{identityType="SpecificUser"; username=$username; password=$password} 
+        New-Item $Name -Force | Out-Null
+        if ($Credential){
+            Set-ItemProperty $Name -Name processmodel -Value @{
+                identityType="SpecificUser"
+                username=$Credential.UserName
+                password=$Credential.Password
+            } 
         }
         else {
-            set-itemProperty $name -name processmodel -value @{identityType="ApplicationPoolIdentity"} 
+            Set-ItemProperty $Name -Name processmodel -Value @{identityType="ApplicationPoolIdentity"} 
         }
-        set-itemProperty $name -name managedRuntimeVersion -value $versionString
+        Set-ItemProperty $Name -Name managedRuntimeVersion -Value $versionString
     }
     finally {
-        popd
+        Pop-Location
     }
 }
 
 function Get-IISAppPoolIdentity {
+    <#
+    .SYNOPSIS
+        Gets the identity used by the specified IIS Application Pool
+    .PARAMETER Name
+        The name of the IIS Application Pool to get information for
+    #>
     [CmdletBinding()]
     param(
-        [parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true)]
+        [ValidatePattern('^[a-z0-9\-\._ ]+$')]
         [ValidateNotNullOrEmpty()]
-        [string]$name
+        [string]$Name
     )
-    switch (get-itemProperty IIS:\AppPools\$name -name processmodel.identityType)
+    switch (Get-ItemProperty IIS:\AppPools\$Name -Name processmodel.identityType)
     {
-        "ApplicationPoolIdentity" { return "IIS AppPool\${name}"}
-        "NetworkService " { return "NETWORK SERVICE"}
-        "LocalService" { return "LOCAL SERVICE"}
-        "LocalSystem" { return "SYSTEM"}
-        "SpecificUser" { return (get-itemProperty IIS:\AppPools\$name -name processmodel.userName.value)}
+        'ApplicationPoolIdentity' { return "IIS AppPool\${Name}"}
+        'NetworkService' { return 'NETWORK SERVICE'}
+        'LocalService' { return 'LOCAL SERVICE'}
+        'LocalSystem' { return 'SYSTEM'}
+        'SpecificUser' { return (Get-ItemProperty IIS:\AppPools\$Name -Name processmodel.userName.value)}
     }
-    throw "Unable to determine app pool identity: $name"
+    throw "Unable to determine app pool identity: $Name"
 }
 
-
-function Get-IISWebsites {
+function Get-IISWebsite {
+    <#
+    .SYNOPSIS
+        Gets the IIS Websites rooted at the provided location
+    .PARAMETER Path
+        The path used as the physicalPath for an IIS Websites.  If not specified, uses the current location.
+    #>
     [CmdletBinding()]
     param(
-        [parameter(ValueFromPipeline=$true)]
+        [Parameter(ValueFromPipeline=$true)]
         [ValidateNotNullOrEmpty()]
-        [string]$path = (Get-Location).Path
+        [string]$Path = (Get-Location).Path
     )
-    return get-childitem iis:\sites |? {$_.PhysicalPath.TrimEnd('\') -eq $path.TrimEnd('\') }
+    return Get-ChildItem iis:\sites |? {$_.PhysicalPath.TrimEnd('\') -eq $Path.TrimEnd('\') }
 }
 

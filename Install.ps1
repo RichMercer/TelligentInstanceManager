@@ -3,17 +3,15 @@
 ###Requires -RunAsAdministrator #Requires Powershell Version 4
 [CmdletBinding(SupportsShouldProcess=$true)]
 param(
-    [parameter(Mandatory=$true, HelpMessage="The path where the scripts should be installed to")]
-	[ValidateScript({Test-Path $_ -PathType Container -IsValid})]
-    [string]$InstallDirectory,
-    [parameter(Mandatory=$true, HelpMessage="The path where Tomcat is installed.  Used to add Tomcat contexts used for Solr multi core setup.")]
+    [Parameter(Mandatory=$true, HelpMessage="The path where Tomcat is installed.  Used to add Tomcat contexts used for Solr multi core setup.")]
     [ValidateScript({(Test-Path $_ -PathType Container) -and (Join-Path $_ conf\server.xml | Test-Path -PathType Leaf) })]
     [string]$TomcatDirectory,
     [switch]$Force
 )
 
+$installDirectory = $PSScriptRoot
 $scriptPath = Join-Path $PSScriptRoot Scripts
-$scriptsDirectory = Join-Path $InstallDirectory Scripts
+
 
 
 function Test-Prerequisites
@@ -29,68 +27,23 @@ function Test-Prerequisites
     catch { Write-Error '.Net 4.5 not installed' }
 
     #Check Modules
-    $availableModules = Get-Module -ListAvailable | select -ExpandProperty Name
 
-    if($availableModules -notcontains 'WebAdministration') {
-        Write-Error 'WebAdministration powershell module not available'
-    }
-    if($availableModules -notcontains 'sqlps') {
-        Write-Error 'SQL Powershell not installed'
-    }
-
-    if ($availableModules -contains 'Evolution') {
+    if (Get-Module Evolution) {
         $modulePath = (Get-Module evolution -ListAvailable).Path
         Write-Warning "Evolution module already installed at $modulePath"
     }
-    if ($availableModules -contains 'DevEvolution') {
+    if (Get-Module DevEvolution) {
         $modulePath = (Get-Module evolution -ListAvailable).Path
         Write-Warning  "DevEvolution module already installed at $modulePath"
     }
 }
 
-function Install-EvolutionInstallation
-{
-    param(
-        [parameter(Mandatory=$true)]
-	    [ValidateScript({Test-Path $_ -PathType Container -IsValid})]
-        [string]$InstallDirectory,
-        [parameter(Mandatory=$true)]
-	    [ValidateScript({Test-Path $_ -PathType Container})]
-        [string]$SourceDirectory
-    )
-
-    #Remove Scripts directory if it exists
-    if(Test-Path $scriptsDirectory){
-        if(!($Force -or $PSCmdlet.ShouldContinue("Scripts already exist at '$scriptsDirectory'.  Continuing will delete the contents of this directory", 'Overwrite?')))
-        {
-            return
-        }
-        Write-Warning "Replacing Script directory '$scriptsDirectory'"
-        $scriptsDirectory| remove-item -Recurse
-    }
-    #Make Required Folders
-    @('Licences', 'FullPackages', 'Hotfixes', 'Web', 'Scripts', 'Solr') |
-        % { Join-Path $InstallDirectory $_} |
-        ? {!(Test-Path $_)} |
-        % {new-item $_ -ItemType Directory | Out-Null}
-
-    #Copy Scripts
-    $scriptsDestination = Join-Path $InstallDirectory Scripts
-    Join-Path $SourceDirectory Scripts |
-        get-childitem -Directory |
-        %{ copy-item $_.FullName $scriptsDestination -Recurse }
-}
-
-
 function Install-SolrMultiCore {
     param(
-        [parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true)]
 	    [ValidateScript({Test-Path $_ -PathType Container -IsValid})]
         [string]$InstallDirectory,
-        [parameter(Mandatory=$true)]
-	    [ValidateScript({Test-Path $_ -PathType Container})]
-        [string]$SourceDirectory,
-        [parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true)]
 		[ValidateScript({Test-Path $_ -PathType Container })]
         [string]$ContextDir
     )
@@ -108,10 +61,6 @@ function Install-SolrMultiCore {
 "@
     
     $solrBase = Join-Path $InstallDirectory Solr
-
-    Join-Path $SourceDirectory Solr |
-        Get-ChildItem -Filter *.war |
-        % { Copy-Item $_.FullName $solrBase }
 
     @('1-4', '3-6') |% {
         $solrHome = Join-Path $solrBase $_
@@ -146,7 +95,7 @@ function Install-SolrMultiCore {
 function Initalize-Environment
 {
     param(
-        [parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true)]
 	    [ValidateScript({Test-Path $_ -PathType Container -IsValid})]
         [string]$InstallDirectory
     )
@@ -179,16 +128,16 @@ function Write-Telligent
 	{
 		[CmdletBinding()]
 		param(
-			[parameter(Mandatory=$true)]
+			[Parameter(Mandatory=$true)]
 			[ValidateNotNullOrEmpty()]
 			[string]$part1,
-			[parameter(Mandatory=$true)]
+			[Parameter(Mandatory=$true)]
 			[ValidateNotNullOrEmpty()]
 			[string]$part2,
-			[parameter(Mandatory=$true)]
+			[Parameter(Mandatory=$true)]
 			[ValidateNotNullOrEmpty()]
 			[string]$part3,
-			[parameter(Mandatory=$true)]
+			[Parameter(Mandatory=$true)]
 			[ValidateNotNullOrEmpty()]
 			[string]$part4
 		)
@@ -222,37 +171,39 @@ if ($Error.Count -ne $initialErrorCount) {
     throw 'Prerequisites not met (see previous errors for more details)'
 }
 
+#Make Required Folders
+@('Licences', 'FullPackages', 'Hotfixes', 'Web', 'Scripts', 'Solr') |
+    % { Join-Path $installDirectory $_} |
+    ? {!(Test-Path $_)} |
+    % {new-item $_ -ItemType Directory | Out-Null}
 
-Write-Progress "Telligent Mass Install Setup" "Installing files to $InstallDirectory" -PercentComplete 40
-Install-EvolutionInstallation -InstallDirectory $InstallDirectory -SourceDirectory $PSScriptRoot
 
-
-Write-Progress 'Telligent Mass Install Setup' 'Installing Solr Multi Cores'-PercentComplete 60
+Write-Progress 'Telligent Mass Install Setup' 'Installing Solr Multi Cores'-PercentComplete 10
 $tomcatContextDirectory = Join-Path $TomcatDirectory conf\Catalina\localhost
-Install-SolrMultiCore -ContextDir $TomcatContextDirectory -InstallDirectory $InstallDirectory -SourceDirectory $PSScriptRoot
+Install-SolrMultiCore -ContextDir $TomcatContextDirectory -InstallDirectory $installDirectory
 
 Write-Progress 'Telligent Mass Install Setup' 'Setting Environmental Variables' -PercentComplete 70
-Initalize-Environment $InstallDirectory
+Initalize-Environment $installDirectory
 
-Write-Progress 'Telligent Mass Install Setup' "Unblocking files under $InstallDirectory" -PercentComplete 80
-Get-ChildItem $InstallDirectory -Recurse | Unblock-File
+Write-Progress 'Telligent Mass Install Setup' "Unblocking files under $installDirectory" -PercentComplete 80
+Get-ChildItem $installDirectory -Recurse | Unblock-File
 
 Write-Progress 'Telligent Mass Install Setup' -Completed
 
 #Provide hints for finishing installation
-$licencePath = Join-Path $InstallDirectory Licences 
+$licencePath = Join-Path $installDirectory Licences 
 if (!(Get-ChildItem $licencePath -ErrorAction SilentlyContinue)){
     Write-Warning 'No Licenses available for installation'
     Write-Host "Add licences to '$licencePath' with filenames of the format 'Community7.xml', 'Enterprise4.xml' etc."
 }
 
-$fullPackagePath = Join-Path $InstallDirectory FullPackages
+$fullPackagePath = Join-Path $installDirectory FullPackages
 if (!(Get-ChildItem $licencePath -ErrorAction SilentlyContinue)){
     Write-Warning 'No Base Packages are available for Installation'
     Write-Host "Add full installation packages to '$fullPackagePath'."
 }
 
-$hotfixPackagePath = Join-Path $InstallDirectory FullPackages
+$hotfixPackagePath = Join-Path $installDirectory FullPackages
 if (!(Get-ChildItem $hotfixPackagePath -ErrorAction SilentlyContinue)){
     Write-Warning 'No Hotfixes are available for Installation'
     Write-Host "Add hotfix installation packages to '$hotfixPackagePath'."

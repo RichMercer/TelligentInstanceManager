@@ -2,14 +2,14 @@
 	<#
 	.Synopsis
 		Extracts files from a zip folder
-	.Parameter ZipPath
+	.Parameter Path
 	    The path to the Zip folder to extract
 	.Parameter Destination
 	    The location to extract the files to
-    .Parameter ZipDir
+    .Parameter ZipDirectory
         The directory within the zip folder to extract.  If not specified, extracts the whole zip file
     .Parameter ZipFileName
-        The name of a specific file within zipDir to extract
+        The name of a specific file within ZipDirectory to extract
 	.Example 
 		Expand-Zip c:\sample.zip c:\files\
 		
@@ -17,13 +17,13 @@
 		-----------
 		This command extracts the entire contents of c:\sample.zip to c:\files\	
 	.Example
-		Expand-Zip c:\sample.zip c:\sample\web\ -zipDir web
+		Expand-Zip c:\sample.zip c:\sample\web\ -ZipDirectory web
 		
 		Description
 		-----------
 		This command extracts the contents of the web directory	of c:\sample.zip to c:\sample\web
 	.Example
-		Expand-Zip c:\sample.zip c:\test\ -zipDir documentation -zipFileName sample.txt
+		Expand-Zip c:\sample.zip c:\test\ -ZipDirectory documentation -zipFileName sample.txt
 		
 		Description
 		-----------
@@ -34,17 +34,19 @@
         [parameter(Mandatory=$true, Position=0)]
         [ValidateNotNullOrEmpty()]
 		[ValidateScript({Test-Zip $_ })]
-        [string]$ZipPath,
+        [string]$Path,
         [parameter(Mandatory=$true, Position=1)]
         [ValidateNotNullOrEmpty()]
         [string]$Destination,
-        [string]$ZipDir,
+        [ValidateScript({!$_ -or (Test-Path $_ -PathType Container -IsValid)})]
+        [string]$ZipDirectory,
+        [ValidateScript({!$_ -or (Test-Path $_ -PathType Leaf -IsValid)})]
         [string]$ZipFileName
     )   
 
     $prefix = ""
-    if($ZipDir){
-        $prefix = $ZipDir.Replace('\','/').Trim('/') + '/'
+    if($ZipDirectory){
+        $prefix = $ZipDirectory.Replace('\','/').Trim('/') + '/'
     }
     if (!(test-path $Destination -PathType Container)) {
         New-item $Destination -Type Directory | out-null
@@ -52,7 +54,7 @@
 
     #Convert path requried to ensure 
     $absoluteDestination = (Resolve-Path $Destination).ProviderPath
-    $zipAbsolutePath = (Resolve-Path $ZipPath).ProviderPath
+    $zipAbsolutePath = (Resolve-Path $Path).ProviderPath
 
     $zipPackage = [IO.Compression.ZipFile]::OpenRead($zipAbsolutePath)
     try {
@@ -60,18 +62,18 @@
         if ($ZipFileName){
             $zipPackage.Entries |
                 ? {$_.FullName -eq "${prefix}${ZipFileName}"} |
-                select -first 1 |
+                select -First 1 |
                 %{ Expand-ZipArchiveEntry $_ (Join-Path $absoluteDestination $ZipFileName) }
         }
         else {
             #Filter out directories
             $entries = $zipPackage.Entries |? Name
-            if ($ZipDir) {
+            if ($ZipDirectory) {
                 #Filter out items not under requested directory
                 $entries = $entries |? { $_.FullName.StartsWith($prefix, "OrdinalIgnoreCase")}
             }
 
-            $totalFileSize = ($entries |% length |measure-object -sum).Sum
+            $totalFileSize = ($entries |% length | Measure-Object -sum).Sum
             $processedFileSize = 0
             $entries |% {
                 $destination = join-path $absoluteDestination $_.FullName.Substring($prefix.Length)
@@ -109,7 +111,7 @@ function Expand-ZipArchiveEntry {
      }
 
     $itemDir = split-path $Destination -Parent
-    if (!(test-path $itemDir -PathType Container)) {
+    if (!(Test-Path $itemDir -PathType Container)) {
         New-item $itemDir -Type Directory | out-null
     }
     [IO.Compression.ZipFileExtensions]::ExtractToFile($Entry, $Destination, $true)
@@ -119,8 +121,10 @@ function Test-Zip {
 	<#
 	.Synopsis
 		Tests whether a file exists and is a valid zip file.
-	.Parameter zipFile
+
+	.Parameter Path
 	    The path to the file to test
+
 	.Example
 		Test-Zip c:\sample.zip
 		

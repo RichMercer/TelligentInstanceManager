@@ -1,92 +1,257 @@
-﻿function Set-ConnectionStrings {
-    [CmdletBinding()]
+﻿function Test-CommunityPath {
+    [CmdletBinding(DefaultParameterSetName='Either')]
     param(
-        [parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-		[alias('dbName')]
-        [string]$database,
-        [ValidateNotNullOrEmpty()]
-		[alias('dbServer')]
-        [string]$server = ".",
-        [ValidateNotNullOrEmpty()]
-        [string]$username,
-        [ValidateNotNullOrEmpty()]
-        [string]$password
+        [parameter(Mandatory=$true, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true, Position=0)]
+        [AllowEmptyString()]
+        [string]$Path,
+        [switch]$AllowEmpty,
+        [parameter(ParameterSetName='Valid', Mandatory=$true)]
+        [switch]$IsValid,
+        [parameter(ParameterSetName='Web', Mandatory=$true)]
+        [switch]$Web,
+        [parameter(ParameterSetName='JobScheduler', Mandatory=$true)]
+        [switch]$JobScheduler
     )
-
-    if ($username -and $password){
-        $connectionString = "Server=$server;Database=$database;uid=$username;pwd=$password;"
+    if(!($Path)) {
+        if(!$AllowEmpty) {
+            throw 'Argument must not be null'
+        }
+    }
+    elseif ($IsValid) {
+        if (!(Test-Path $Path -PathType Container -IsValid -ErrorAction SilentlyContinue)) {
+            throw "'$Path' is not a valid path"
+        }
     }
     else {
-        $connectionString = "Server=$server;Database=$database;Trusted_Connection=yes;"
+        if (!(Test-Path $Path -PathType Container -ErrorAction SilentlyContinue)) {
+            throw "'$Path' does not exist"
+        }
+        if (!(Join-Path $Path communityserver.config | Test-Path  -ErrorAction SilentlyContinue)) {
+            throw "'$Path' does not contain a valid Telligent Evolution community"
+        }
+        if ($Web -and !(Join-Path $Path web.config | Test-Path  -ErrorAction SilentlyContinue)) {
+            throw "'$Path' does not contain a valid Telligent Evolution website"
+        }
+        elseif ($JobScheduler -and !(Join-Path $Path Telligent.JobScheduler.Service.exe | Test-Path  -ErrorAction SilentlyContinue)) {
+            throw "'$Path' does not contain a valid Telligent Job Scheduler"
+        }
+    }
+    return $true
+    
+}
+
+function Set-ConnectionString {
+    <#
+    .SYNOPSIS
+        Sets the Connection Strings in the .net configurationf ile
+    .PARAMETER Database
+        The database 
+    .PARAMETER Server
+        The SQL Server the connection string will point to
+    .PARAMETER SqlCredentials
+        If using SQL Authenticaiton, specifies the username nad password to use in the connection string.  If not specified, the connection string uses Integrated Security.
+    .PARAMETER ConfigurationFile
+        The configuration file to set the connection strings in.
+    .PARAMETER ConnectionStringName
+        The name of the connection string to set.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({ Test-CommunityPath $_ })]
+        [string]$WebsitePath,
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+		[alias('ServerInstance')]
+        [string]$Server,
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Database,
+        [PSCredential]$SqlCredentials,
+        [string]$ConfigurationFile = 'connectionstrings.config',
+        [string]$ConnectionStringName = 'SiteSqlServer'
+    )
+
+    if ($SqlCredentials){
+        $connectionString = "Server=$Server;Database=$Database;uid=$($SqlCredentials.UserName);pwd=$($SqlCredentials.Password);"
+    }
+    else {
+        $connectionString = "Server=$Server;Database=$Database;Trusted_Connection=yes;"
     }
     
-    $path = Resolve-Path connectionstrings.config
+    $path = Join-Path $WebsitePath connectionstrings.config | Resolve-Path 
     $connectionStrings = [xml](gc $path)  
     $connectionStrings.connectionStrings.add |
-        ? { $_.name -eq "SiteSqlServer"} |
+        ? { $_.name -eq $ConnectionStringName} |
         % { $_.connectionString = $connectionString}
     $connectionStrings.Save($path)     
 }
 
-function Add-OverrideChangeAttribute {
+function Get-ConnectionString {
+    <#
+    .SYNOPSIS
+        Sets the Connection Strings in the .net configurationf ile
+    .PARAMETER Database
+        The database 
+    .PARAMETER Server
+        The SQL Server the connection string will point to
+    .PARAMETER SqlCredentials
+        If using SQL Authenticaiton, specifies the username nad password to use in the connection string.  If not specified, the connection string uses Integrated Security.
+    .PARAMETER ConfigurationFile
+        The configuration file containing the connection string to read.
+    .PARAMETER ConnectionStringName
+        The name of the connection string to set.
+    #>
     [CmdletBinding()]
     param(
-        [parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [string]$xpath,
-        [parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$name,
-        [parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$value,
-        [ValidateScript({Test-Path $_ -PathType Container})]
-        [string]$path = (Get-Location)
+        [ValidateScript({ Test-CommunityPath $_ })]
+        [string]$Directory,
+		[ValidateScript({Test-Path $_ -PathType Leaf})]
+        [string]$ConfigurationFile = 'connectionStrings.Config',
+        [string]$ConnectionStringName = 'SiteSqlServer'
+
     )
+    #Load connection string info
+    $connectionStrings = [xml](get-content (Join-Path $Directory $ConfigurationFile) -ErrorAction SilentlyContinue)
+    $siteSqlConnectionString = $connectionStrings.connectionStrings.add |
+        ? name -eq $ConnectionStringName |
+        select -ExpandProperty connectionString
+
+    if(!$siteSqlConnectionString) {
+        Write-Error "'$ConnectionStringName' connection string not found in $ConfigFile"
+    }
+
+    $connectionString = New-Object System.Data.SqlClient.SqlConnectionStringBuilder $siteSqlConnectionString
+
+    $connectionInfo = @{
+        ServerInstance = $connectionString.DataSource
+        Database = $connectionString.InitialCatalog
+    }
+    if(!$connectionString.IntegratedSecurity) {
+        $connectionInfo["Username"] = $connectionString.UserID
+        $connectionInfo["Password"] = $connectionString.Password
+    }
+
+    $connectionInfo
+}
+
+function New-EvolutionApiKey {
+    <#
+    .SYNOPSIS
+        Creates a new REST API Key 
+    .PARAMETER ApiKey
+        The API Key to Create
+    .PARAMETER Name
+        The name for the API Key.
+    .PARAMETER UserId
+        The User to create the API Key for
+    .PARAMETER WebsitePath
+        The path of the Telligent Evolution Community website.  If not specified, defaults to the current directory.
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({ Test-CommunityPath $_ })]
+        [string]$WebsitePath,
+        [Parameter(Mandatory=$true)]
+        [ValidatePattern('^[a-z0-9]+$')]
+        [string]$ApiKey,
+        [ValidatePattern('^[a-z0-9\-\._ ]+$')]
+        [string]$Name = 'Auto Generated',
+        [ValidatePattern('^[a-z0-9\-\._ ]+$')]
+        [int]$UserId= 2100
+    )
+
+    $createApiKey = "INSERT INTO [dbo].[cs_ApiKeys] ([UserID],[Value],[Name],[DateCreated],[Enabled]) VALUES ($UserId,'$ApiKey','$Name',GETDATE(), 1)"
+    Invoke-SqlCommandAgainstCommunity $WebsitePath -Query $createApiKey
+}
+
+function Add-OverrideChangeAttribute {
+    <#
+    .SYNOPSIS
+        Adds a Change entry to the communityserver_override.config
+    .PARAMETER XPath
+        The XPath for the element containing the attribute to manipulate
+    .PARAMETER Name
+        The Name of the node to modify
+    .PARAMETER Value
+        The new value of the node
+    .PARAMETER WebsitePath
+        The path of the Telligent Evolution Community website.  If not specified, defaults to the current directory.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({ Test-CommunityPath $_ })]
+        [string]$WebsitePath,
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$XPath,
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Name,
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Value
+    )
+    #TODO: Look at original config file to ensure XPath & Node exist
     
-    $overridePath = join-path $path communityserver_override.config
+    $overridePath = join-path $WebsitePath communityserver_override.config
     if (!(test-path $overridePath)) {
         "<?xml version=""1.0"" ?><Overrides />" |out-file $overridePath    
     }
+
     $overrides = [xml](gc $overridePath)
     $override = $overrides.CreateElement("Override")
-    $override.SetAttribute("xpath", $xpath)
+    $override.SetAttribute("xpath", $XPath)
     $override.SetAttribute("mode", "change")
-    $override.SetAttribute("name", $name)
-    $override.SetAttribute("value", $value)
+    $override.SetAttribute("name", $Name)
+    $override.SetAttribute("value", $Value)
     $overrides.DocumentElement.AppendChild($override) |out-null
-    $overrides.Save($overridePath)
+    $overrides.Save(($overridePath | Resolve-Path))
 }
 
 function Set-EvolutionFilestorage {
+    <#
+    .SYNOPSIS
+        Sets the Filestorage location for a Telligent Evolution Community
+    .PARAMETER WebsitePath
+        The path of the Telligent Evolution Community website.
+    .PARAMETER FilestoragePath
+        The Filestorage Location to use. The Filestorage should already have been moved to this location.
+    #>
+    [CmdletBinding()]
     param(
-        [parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({ Test-CommunityPath $_ })]
+        [string]$WebsitePath,
+        [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({Test-Path $_ -PathType Container})]
-        [string]$webDir,
-        [parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [ValidateScript({Test-Path $_ -PathType Container})]
-        [string]$filestorage
+        [string]$FilestoragePath
     )
 
-    $version = Get-CommunityInfo $webDir | select -ExpandProperty PlatformVersion
+    $version = Get-Community $WebsitePath | select -ExpandProperty PlatformVersion
 
     if ($version.Major -ge 7) {
-        Add-OverrideChangeAttribute `
-            -xpath "/CommunityServer/CentralizedFileStorage/fileStoreGroup[@name='default']" `
-            -name basePath `
-            -value $filestorage
+        Add-OverrideChangeAttribute $WebsitePath `
+            -XPath "/CommunityServer/CentralizedFileStorage/fileStoreGroup[@name='default']" `
+            -Name basePath `
+            -Value $FilestoragePath
     }
     else {
-        $csConfig = Get-MergedConfigFile -path $webDir -fileName communityserver
+        $csConfig = Merge-EvolutionConfigurationFile $WebsitePath communityserver
         $csConfig.CommunityServer.CentralizedFileStorage.fileStore.name |% {
-            Add-OverrideChangeAttribute `
-                -path $webDir `
-                -xpath "/CommunityServer/CentralizedFileStorage/fileStore[@name='$_']" `
-                -name basePath `
-                -value $filestorage
+            Add-OverrideChangeAttribute $WebsitePath `
+                -XPath "/CommunityServer/CentralizedFileStorage/fileStore[@name='$_']" `
+                -Name basePath `
+                -Value $FilestoragePath
         }
     }
 
@@ -94,92 +259,96 @@ function Set-EvolutionFilestorage {
 
 function Set-EvolutionSolrUrl {
 	<#
-	.Synopsis
+	.SYNOPSIS
 		Updates the Search Url used by the Telligent Evolution community in the current directory
-	.Parameter url
+	.PARAMETER Url
 	    The url of the solr instance to use
-	#>
+    .PARAMETER WebsitePath
+        The path of the Telligent Evolution Community website.  If not specified, defaults to the current directory.
+    #>
     [CmdletBinding()]
     param(
-        [parameter(Mandatory=$true, ValueFromPipeline=$true)]
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({ Test-CommunityPath $_ })]
+        [string]$WebsitePath,
+        [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
         [ValidateScript({Invoke-WebRequest ($_.AbsoluteUri.TrimEnd('/') + "/admin/") -Method HEAD -UseBasicParsing})]
         [ValidateNotNullOrEmpty()]
-        [uri]$url
+        [uri]$Url
     )
 
     Write-Progress "Configuration" "Updating Solr Url"
-    
     Add-OverrideChangeAttribute `
-        -xpath /CommunityServer/Search/Solr `
-        -name host `
-        -value $url
+        -XPath /CommunityServer/Search/Solr `
+        -Name host `
+        -Value $Url `
+        -WebsitePath $WebsitePath
 }
 
 function Install-EvolutionLicence {
 	<#
-	.Synopsis
+	.SYNOPSIS
 		Installs a licence file into a Telligent Evolution Community
-	.Parameter licenceFile
+	.PARAMETER licenceFile
 	    The XML Licence file
-	.Parameter dbServer
-	    The server the community database is located on
-	.Parameter dbName
-	    The name of the database containing the community 
+    .PARAMETER WebsitePath
+        The path of the Telligent Evolution Community website.  If not specified, defaults to the current directory.
 	#>
     [CmdletBinding()]
     param(
-        [parameter(Mandatory=$true, ValueFromPipeline=$true)]
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({ Test-CommunityPath $_ })]
+        [string]$WebsitePath,
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
         [ValidateNotNullOrEmpty()]
 		[ValidateScript({Test-Path $_ -PathType Leaf})]
-        [string]$licenceFile,
-        [parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$dbServer,
-        [parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$dbName
+        [string]$LicenceFile
     )
 
-    $licenceContent = (gc $licenceFile) -join [Environment]::NewLine
+    $licenceContent = (gc $LicenceFile) -join [Environment]::NewLine
     $licenceId = ([xml]$licenceContent).document.licenseId
     
-    Invoke-Sqlcmd -serverInstance $dbServer `
-        -database $dbName `
-        -query "EXEC [cs_Licenses_Update] @LicenseID = N'$licenceId' , @LicenseValue = N'$licenceContent'"
+	Invoke-SqlCommandAgainstCommunity -WebsitePath $WebsitePath -Query "EXEC [cs_Licenses_Update] @LicenseID = N'$licenceId' , @LicenseValue = N'$licenceContent'"
 }
 
 function Register-TasksInWebProcess {
 	<#
-	.Synopsis
+	.SYNOPSIS
 		Registers the Job Scheduler tasks in the web process of the Telligent Evolution 
         instance in the current directory for a development environment
-    .Details
+    .DETAILS
         Do NOT use this in a production environment
         
         In production environments, the Job Scheduler should be used to offload tasks from the Web Server and to ensure tasks continue to run through Application Pool recycles
-	.Parameter webDir
-	    The root directory of the Telligent Evolution websites
-	.Parameter package
+	.PARAMETER Package
 	    The path to the zip package containing the Telligent Evolution installation files from Telligent Support
+    .PARAMETER WebsitePath
+        The path of the Telligent Evolution Community website.  If not specified, defaults to the current directory.
 	#>
     [CmdletBinding()]
     param (
-        [parameter(Mandatory=$true, Position=1)]
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({ Test-CommunityPath $_ })]
+        [string]$WebsitePath,
+        [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
 		[ValidateScript({Test-Zip $_ })]
-        [string]$package
+        [string]$Package
     )
     Write-Warning "Registering Tasks in the web process is not supported for production environments. Only do this in non production environments"
 
-    $tempDir = join-path $env:temp ([guid]::NewGuid())
-    Expand-Zip -zipPath $package -destination $tempDir -zipDir "Tasks" -zipFile "tasks.config"
-    $webTasksPath = resolve-path tasks.config    
+    $tempDir = Join-Path $env:temp ([guid]::NewGuid())
+    Expand-Zip -Path $Package -destination $tempDir -ZipDirectory "Tasks" -zipFile "tasks.config"
+    $webTasksPath = Join-Path $WebsitePath tasks.config | Resolve-Path
     $webTasks = [xml](gc $webTasksPath)
 	if($webTasks.jobs.cron){
 		#6.0+
-		$jsTasks = [xml](join-path $tempDir tasks.config | resolve-path | gc)
+		$jsTasks = [xml](Join-Path $tempDir tasks.config | Resolve-Path | Get-Content)
 		$jsTasks.jobs.cron.jobs.job |% {
-    	    $webTasks.jobs.cron.jobs.AppendChild($webTasks.ImportNode($_, $true)) | out-null
+    	    $webTasks.jobs.cron.jobs.AppendChild($webTasks.ImportNode($_, $true)) | Out-Null
 	    }
 		$webTasks.jobs.dynamic.mode = "Server"
 	}
@@ -202,14 +371,23 @@ function Register-TasksInWebProcess {
 
 function Disable-CustomErrors {
 	<#
-	.Synopsis
-		Disables Custom Errors for the ASP.Net website in the current directory
-	.Example
+	.SYNOPSIS
+		Disables Custom Errors for the ASP.Net website in the specified directory
+    .PARAMETER WebsitePath
+        The path of the Telligent Evolution Community website.  If not specified, defaults to the current directory.
+	.EXAMPLE
 		Disable-CustomErrors 
 	#>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({ Test-CommunityPath $_ })]
+        [string]$WebsitePath
+    )
     
     Write-Warning "Disabling Custom Errors poses a security risk. Only do this in non production environments"
-    $configPath = resolve-path "web.config"
+    $configPath = Join-Path $WebsitePath web.config | Resolve-Path
     $webConfig = [xml] (get-content $configPath )
     
     $webConfig.configuration.{system.web}.customErrors.mode = "Off"
@@ -218,89 +396,82 @@ function Disable-CustomErrors {
 
 function Enable-WindowsAuth {
 	<#
-	.Synopsis
+	.SYNOPSIS
 		Configures IIS to use Windows Authentication for the ASP.Net website
         in the current directory
-	.Example
-		Enable-WindowsAuth
+    .PARAMETER AdminWindowsGroup
+        The name of the windows group who should be automatically made Administrators in the community.  Defaults to the local Administrators group.
+    .PARAMETER EmailDomain
+        The email domain to append to a user's username to get their email address if it's not found in Active Directory (USERNAME@EmailDomain).
+    .PARAMETER ProfileRefreshInterval
+        The interval (in days) at which a user's profile should be updated.
+    .PARAMETER WebsitePath
+        The path of the Telligent Evolution Community website.  If not specified, defaults to the current directory.
 	#>
     [CmdletBinding()]
     param (
+        [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [string]$adminWindowsGroup = "$env:ComputerName\Administrators",
-        [parameter(Mandatory=$true)]
+        [ValidateScript({ Test-CommunityPath $_ })]
+        [string]$WebsitePath,
         [ValidateNotNullOrEmpty()]
-        [string]$emailDomain,
+        [string]$AdminWindowsGroup = "$env:ComputerName\Administrators",
+        [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [byte]$profileRefreshInterval = 7
+        [string]$EmailDomain,
+        [ValidateNotNullOrEmpty()]
+        [byte]$ProfileRefreshInterval = 7
     )
-    $configPath = resolve-path web.config
+    $configPath = Join-Path $WebsitePath web.config | resolve-path 
     $webConfig = [xml] (get-content $configPath )
     
-    $webConfig.configuration.{system.web}.authentication.mode = "Windows"
+    $webConfig.configuration.{system.web}.authentication.mode = 'Windows'
     $webConfig.Save($configPath)
     
-    $values = @{
-        adminWindowsGroup = $adminWindowsGroup;
-        emailDomain = "@$($emailDomain.TrimStart('@'))";
-        profileRefreshInterval = $profileRefreshInterval
-    }
-    
-    Add-OverrideChangeAttribute -xpath /CommunityServer/Core/extensionModules `
-        -name enabled -value true
+    Add-OverrideChangeAttribute $WebsitePath `
+        -XPath /CommunityServer/Core/extensionModules `
+        -Name enabled `
+        -Value true
 
-    $values.GetEnumerator() |%{
-        Add-OverrideChangeAttribute -xpath "/CommunityServer/Core/extensionModules/add[@name='WindowsAuthentication']" `
-            -name $_.Key -value $_.Value
+
+    @{
+        adminWindowsGroup = $AdminWindowsGroup;
+        emailDomain = "@$($EmailDomain.TrimStart('@'))";
+        profileRefreshInterval = $ProfileRefreshInterval
+    }.GetEnumerator() |%{
+        Add-OverrideChangeAttribute $WebsitePath `
+            -XPath "/CommunityServer/Core/extensionModules/add[@name='WindowsAuthentication']" `
+            -Name $_.Key `
+            -Value $_.Value
     }
 
     #If the following fails, ensure default .net version in IIS is set to 4.0
-    Get-IISWebsites |% {
-        Set-WebConfigurationProperty -filter /system.webServer/security/authentication/* `
-            -name enabled `
-            -value false `
+    Get-IISWebsite |% {
+        Set-WebConfigurationProperty -Filter /system.webServer/security/authentication/* `
+            -Name enabled `
+            -Value false `
             -PSPath IIS:\ `
-            -location $_.Name
+            -Location $_.Name
 
-        Set-WebConfigurationProperty -filter /system.webServer/security/authentication/windowsAuthentication `
-            -name enabled `
-            -value true `
+        Set-WebConfigurationProperty -Filter /system.webServer/security/authentication/windowsAuthentication `
+            -Name enabled `
+            -Value true `
             -PSPath IIS:\ `
-            -location $_.Name
+            -Location $_.Name
     }
-
-    <#
-    Get-IISWebsites |% {
-        &c:\Windows\System32\inetsrv\appcmd.exe set config $_.Name /section:windowsAuthentication /enabled:true /commit:apphost  | out-null
-        &c:\Windows\System32\inetsrv\appcmd.exe set config $_.Name /section:anonymousAuthentication /enabled:false /commit:apphost | out-null
-    }
-    #>
-
 }
 
-function Enable-Ldap {
-	<#
-	.Synopsis
-		Configures the Telligent Enterprise community in the current location to use LDAP
-	.Parameter server
-	    The name of the ldap server
-	.Parameter username
-        The username to connect with
-	.Parameter password
-        The password to connect with
-	.Parameter authenticationType
-        The authenticaiton type to use.
-	.Parameter port
-        The port to connect to the LDAP server on        
-	.Parameter 
-        The baseDn to use
-	#>
+function Enable-EvolutionLdap {
     [CmdletBinding()]
     param(
-        [parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({ Test-CommunityPath $_ })]
+        [string]$WebsitePath,
+        [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [string]$Username,
-        [parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [string]$Password,
         [string]$Server = "GC://",
@@ -309,7 +480,7 @@ function Enable-Ldap {
     )
 
     #Install Package
-    $packagesPath = resolve-path packages.config
+    $packagesPath = join-Path $WebsitePath packages.config | Resolve-Path
     $packages = [xml](gc $packagesPath)
     $date = get-date -format yyyy-MM-dd
     $package = [xml]"<Package Name=""Ldap"" Version=""1.0"" DateInstalled=""$date"" Id=""4BF1091D-376C-42b2-B375-E2FE9480E845"" />"
@@ -317,7 +488,7 @@ function Enable-Ldap {
     $packages.Save($packagesPath)
 
     #Configure Web.config
-    $webConfigPath = resolve-path web.config
+    $webConfigPath = Join-Path $WebsitePath web.config | resolve-path
     $webConfig = [xml] (get-content $webConfigPath )
 
     $ldapSection = [xml]"<section name=""LdapConnection"" type=""System.Configuration.NameValueSectionHandler"" />"

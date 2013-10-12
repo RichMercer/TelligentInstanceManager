@@ -77,30 +77,44 @@ NestedModules = @(
                 )
 
 # Functions to export from this module
-FunctionsToExport = @('Add-OverrideChangeAttribute'
+FunctionsToExport = @(
+                    'Get-EvolutionBuild'
+
                     'Add-SolrCore'
-                    'Disable-CustomErrors'
+                    'Set-EvolutionSolrUrl'
+                    'Remove-SolrCore'
+
                     'Install-Evolution'
+                    'Uninstall-Evolution'
                     'Install-EvolutionHotfix'
                     'Install-EvolutionLicence'
+
                     'New-IISAppPool'
-                    'Register-TasksInWebProcess'
-                    'Enable-WindowsAuth'
-                    'Enable-Ldap'
-                    'Set-ConnectionStrings'
-                    'Set-EvolutionSolrUrl'
                     'Test-Zip'
-                    'Get-EvolutionBuild'
                     'Expand-Zip'
+
                     'Install-JobScheduler'
                     'Install-JobSchedulerService'
                     'Update-JobSchedulerFromWeb'
-                    'Write-ProgressFromVerbose'
-                    'Remove-SolrCore'
+                    'Register-TasksInWebProcess'
+
                     'Remove-Database'
-                    'Get-CommunityInfo'
-                    'Get-MergedConfigFile'
+                    'Set-ConnectionString'
+
+                    'Get-Community'
+
                     'Set-EvolutionFilestorage'
+                    'Write-ProgressFromVerbose'
+
+                    'Enable-WindowsAuth'
+                    'Enable-EvolutionLdap'
+
+                    'Disable-CustomErrors'
+                    'Add-OverrideChangeAttribute'
+                    'Merge-EvolutionOverrideFile'
+
+                    'Test-CommunityPath'
+                    'Test-SqlServer'
                 )
 
 # Cmdlets to export from this module

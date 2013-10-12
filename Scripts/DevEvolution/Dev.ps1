@@ -3,7 +3,16 @@ if (!$base) {
     Write-Error 'EvolutionMassInstall environmental variable not defined'
 }
 
-$pathData = @{
+$data = @{
+    #SQL Server to use.
+    SqlServer = if($env:DBServerName) { $env:DBServerName } else { '(local)' }
+
+    #Default password to use for new communities
+    AdminPassword = 'password'
+
+    #A default API key to create for the administrator account
+    ApiKey = 'abc123'
+
     # The directory where licences can be found.
     # Licences in this directory should be named in the format "{Product}{MajorVersion}.xml"
     # i.e. Community7.xml for a Community 7.x licence
@@ -11,6 +20,9 @@ $pathData = @{
 
     # The directory where web folders are created for each website
 	WebBase = Join-Path $base Web
+
+    # The directory where web folders are created for each website
+	JobSchedulerBase = Join-Path $base JobScheduler
 
     #Solr Url for solr cores.
     #{0} gets replaced with 1-4 or 3-6 depending on the solr version needed
@@ -76,91 +88,96 @@ $pathData = @{
 				
 #>
 function Install-DevEvolution {
+    [CmdletBinding()]
     param(
-        [parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true)]
         [ValidatePattern('^[a-z0-9\-\._]+$')]
         [ValidateNotNullOrEmpty()]
         [string] $Name,
-        [parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
  		[ValidateSet('Community','Enterprise')]
  		[string] $product,
-        [parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
 		[ValidateNotNullOrEmpty()]
         [version] $Version,
-        [parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
 		[ValidateNotNullOrEmpty()]
 		[ValidateScript({Test-Zip $_ })]
         [string] $BasePackage,
-        [parameter(ValueFromPipelineByPropertyName=$true)]
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
 		[ValidateScript({!$_ -or (Test-Zip $_) })]
         [string] $HotfixPackage,
         [switch] $WindowsAuth
     )
-    $ErrorActionPreference = "Stop"
-
     $name = $name.ToLower()
 
     $solrVersion = if(@(2,3,5,6) -contains $Version.Major){ "1-4" } else {"3-6" }
-    $webDir = (Join-Path $pathData.WebBase $Name)
-    $domain = $Name
+    $webDir = Join-Path $data.WebBase $Name
+    $jsDir = Join-Path $data.JobSchedulerBase $Name
+    $domain = if($Name.Contains('.')) { $Name } else { "$Name.local"}
 
-    Install-Evolution -name $Name `
-        -package $BasePackage `
-        -hotfixPackage $HotfixPackage `
-        -webDir $webDir `
-        -netVersion $(if (@(2,5) -contains $version.Major) { 2.0 } else { 4.0 }) `
-        -webDomain $domain `
-        -licenceFile (join-path $pathData.LicencesPath "${Product}$($Version.Major).xml") `
-        -solrCore `
-        -solrUrl ($pathData.SolrUrl -f $solrVersion).TrimEnd("/") `
-        -solrCoreDir ($pathData.SolrCoreBase -f $solrVersion) `
-        -adminPassword 'password' `
-        -dbServer $env:DBServerName
+    $info = Install-Evolution -name $Name `
+        -Package $BasePackage `
+        -Hotfix $HotfixPackage `
+        -WebsitePath $webDir `
+        -JobSchedulerPath $jsDir `
+        -ClrVersion $(if (@(2,5) -contains $version.Major) { 2.0 } else { 4.0 }) `
+        -WebDomain $domain `
+        -Licence (join-path $data.LicencesPath "${Product}$($Version.Major).xml") `
+        -SolrCore `
+        -SolrBaseUrl ($data.SolrUrl -f $solrVersion).TrimEnd("/") `
+        -SolrCoreDir ($data.SolrCoreBase -f $solrVersion) `
+        -AdminPassword $data.AdminPassword `
+        -DatabaseServer $data.SqlServer `
+        -ApiKey $data.ApiKey
 
-    pushd $webdir 
-    try {
-		Disable-CustomErrors
+	Disable-CustomErrors $webDir
 
-		if(($Product -eq 'community' -and $Version -gt 5.6) -or ($Product -eq 'enterprise' -and $Version -gt 2.6)) {
-            Register-TasksInWebProcess $basePackage
-        }
-
-        if ($WindowsAuth) {
-            Enable-WindowsAuth -emailDomain '@tempuri.org' -profileRefreshInterval 0
-        }        
+	if(($Product -eq 'community' -and $Version -gt 5.6) -or ($Product -eq 'enterprise' -and $Version -gt 2.6)) {
+        Register-TasksInWebProcess $webDir $basePackage
     }
-    finally {
-    	popd
-    }
+
+    if ($WindowsAuth) {
+        Enable-WindowsAuth $webDir -emailDomain '@tempuri.org' -profileRefreshInterval 0
+    }        
 
     #Add site to hosts files
     Add-Content -value "`r`n127.0.0.1 $domain" -path (join-path $env:SystemRoot system32\drivers\etc\hosts)
-	Write-Host "Created website at http://$domain/"
     Start-Process "http://$domain/"
+
+    $info | Add-Member Url "http://$domain/" -PassThru
 }
 
 Set-Alias isde Install-DevEvolution
 
 function Remove-DevEvolution {
     param(
-        [parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true)]
         [ValidatePattern('^[a-z0-9\-\._]+$')]
         [ValidateNotNullOrEmpty()]
-        [string] $Name
+        [string]$Name,
+        [switch]$Force
     )
-    $ErrorActionPreference = "Stop"
-
-    $webDir = (Join-Path $pathData.WebBase $Name)
+    $webDir = Join-Path $data.WebBase $Name
     
-    if(!(Test-Path $webDir)) {
+    if(!(Test-Path $webDir -PathType Container) -and -not $Force) {
         return
     }
 
-    $Version = (Get-Command $webDir\bin\Telligent.Evolution.Components.dll).FileVersionInfo.ProductVersion
-    $solrVersion = if(@(2,3,5,6) -contains $Version.Major){ "1-4" } else {"3-6" }
+    $info = Get-Community $webDir
+    $solrVersion = if(@(2,3,5,6) -contains $info.PlatformVersion.Major){ '1-4' } else { '3-6' }
     $domain = $Name
 
+    #Delete the JS
+    Write-Progress 'Uninstalling Evolution Community' 'Removing Job Scheduler'
+    $jsDir = Join-Path $data.JobschedulerBase $Name
+    if (Test-Path $jsDir -PathType Container) {
+        Get-Process |? Path -like "$jsDir*" | Stop-Process
+        Remove-Item $jsDir -Recurse -Force
+    }
+
     #Delete the site in IIS
+    Write-Progress 'Uninstalling Evolution Community' 'Removing Website from IIS'
     if(Get-Website -Name $Name -ErrorAction SilentlyContinue) {
         Remove-Website -Name $Name
     }
@@ -169,20 +186,26 @@ function Remove-DevEvolution {
     }
 
     #Delete the DB
-    Remove-Database -name $Name -dbServer $env:DBServerName
+    Write-Progress 'Uninstalling Evolution Community' 'Removing Database'
+    Remove-Database -Database $Name -Server $data.SqlServer
 
     #Delete the files
+    Write-Progress 'Uninstalling Evolution Community' 'Removing Website Files'
     if(Test-Path $webDir) {
         Remove-Item -Path $webDir -Recurse -Force
     }
     
     #Remove site from hosts files
+    Write-Progress 'Uninstalling Evolution Community' 'Removing Hosts entry'
     $hostsPath = join-path $env:SystemRoot system32\drivers\etc\hosts
     (Get-Content $hostsPath) | Foreach-Object {$_ -replace "127.0.0.1 $domain", ""} | Set-Content $hostsPath
     
     #Remove the solr core
-    $solrUrl = ($pathData.SolrUrl -f $solrVersion).TrimEnd("/") + '/admin/cores'
-    Remove-SolrCore -name $Name -coreBaseDir ($pathData.SolrCoreBase -f $solrVersion) -coreAdmin $solrUrl
+    Write-Progress 'Uninstalling Evolution Community' 'Removing Solr Core'
+    $solrUrl = ($data.SolrUrl -f $solrVersion).TrimEnd("/") + '/admin/cores'
+    Remove-SolrCore -Name $Name -CoreBaseDir ($data.SolrCoreBase -f $solrVersion) -CoreAdmin $solrUrl
 
 	Write-Host "Deleted website at http://$domain/"
 }
+
+Set-Alias rde Remove-DevEvolution

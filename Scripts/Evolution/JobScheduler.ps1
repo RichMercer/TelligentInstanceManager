@@ -1,99 +1,141 @@
 ﻿function Install-JobScheduler {
-	[CmdletBinding()]
+    <#
+    .SYNOPSIS
+        Installs the Telligent Job Scheduler        
+    .PARAMETER package
+        The installation package containing the Job Scheduler installation files.        
+    .PARAMETER webPath
+        The path containing the Telligent Evolution website. Any configuration, addons and hotfixed are copied from here into the Job Scheduler.
+    .PARAMETER jsPath
+        The path to install the Job Scheduler at
+    .PARAMETER InstallService
+        Specify this flag to install the Job Scheduler as a service.  You will have to manually run the Job Scheduler as required.        
+    .PARAMETER ServiceName
+        The name to use when installing the Service
+    .PARAMETER Credential
+        The credentials for the service to run under
+    #>
+	[CmdletBinding(DefaultParameterSetName='NoService')]
     param(
-    	[parameter(Mandatory=$true,Position=0)]
+    	[Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [string]$name,
-    	[parameter(Mandatory=$true,Position=1)]
+        [ValidateScript({ Test-CommunityPath $_ -IsValid})]
+        [string]$JobSchedulerPath,
+    	[Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
 		[ValidateScript({Test-Zip $_ })]
-        [string]$package,
-    	[parameter(Mandatory=$true,Position=2)]
+        [string]$Package,
+    	[Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-		[ValidateScript({Test-Path $_ -PathType Container})]
-        [string]$webPath,
-    	[parameter(Mandatory=$true,Position=3)]
-		[ValidateScript({Test-Path $_ -PathType Container -IsValid})]
+        [ValidateScript({ Test-CommunityPath $_ -Web })]
+        [string]$WebsitePath,
+    	[Parameter(ParameterSetName='InstallService')]
+        [switch]$InstallService,
+    	[Parameter(ParameterSetName='InstallService', Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [string]$jsPath,
-	    [parameter(Mandatory=$true,Position=4)]
+        [string]$ServiceName,
+	    [Parameter(ParameterSetName='InstallService',Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [PSCredential]$credential,
-        [switch]$NoService
+        [PSCredential]$ServiceCredential
     )
 
     Write-Progress "Installing Job Scheduler" "Creating Directory"
 
-    if(!(Test-Path $jsPath)) {
-        New-Item $jsPath -ItemType Directory | out-null
+    if(!(Test-Path $JobSchedulerPath)) {
+        New-Item $JobSchedulerPath -ItemType Directory | out-null
     }
 
     Write-Progress "Job Scheduler" "Extracting Base Job Scheduler"
-    Expand-Zip $package $jsPath -zipDir "tasks"
+    Expand-Zip $Package $JobSchedulerPath -ZipDirectory tasks
 
     Write-Progress "Job Scheduler" "Extracting Base Job Scheduler"
-    Update-JobSchedulerFromWeb $webPath $jsPath | Write-Host
+    Update-JobSchedulerFromWeb $WebsitePath $JobSchedulerPath
 
-    if(!$NoService){
-        Install-JobSchedulerService $name $jsPath $credential
+    if($InstallService){
+        Install-JobSchedulerService $ServiceName $JobSchedulerPath $Credential
     }
-
 }
 
 function Install-JobSchedulerService {
-	[CmdletBinding()]
+    <#
+    .SYNOPSIS
+        Installs the Telligent Job Scheduler as a windows service allation files.        
+    .PARAMETER Name
+        The name to use when installing the Service
+    .PARAMETER Path
+        The path the Job Scheduler has been installed to.
+    .PARAMETER Credential
+        The credentials for the service to run under
+    .PARAMETER StartupType
+        The startup type to use for the service.
+    #>
+    [CmdletBinding()]
     param(
-    	[parameter(Mandatory=$true,Position=0)]
+    	[Parameter(Mandatory=$true,Position=0)]
         [ValidateNotNullOrEmpty()]
-        [string]$name,
-    	[parameter(Mandatory=$true,Position=3)]
+        [string]$Name,
+    	[Parameter(Mandatory=$true,Position=3)]
         [ValidateNotNullOrEmpty()]
-		[ValidateScript({Test-Path $_ -PathType Container -and (Join-Path $_ Telligent.JobScheduler.Service.exe | Test-Path)})]
-        [string]$jsPath,
-	    [parameter(Mandatory=$true,Position=4)]
+        [ValidateScript({ Test-CommunityPath $_ -JobScheduler -AllowEmpty})]
+        [string]$JobSchedulerPath,
+	    [Parameter(Mandatory=$true,Position=4)]
         [ValidateNotNullOrEmpty()]
-        [PSCredential]$credential
+        [PSCredential]$Credential,
+        [ValidateSet('Automatic', 'Manual', 'Disabled')]
+        [string]$StartupType = 'Automatic'
     )
 
-
     Write-Progress "Job Scheduler" "Setting up Service"
-    $servicePath = join-path $jsPath Telligent.JobScheduler.Service.exe
-    $serviceName = "Telligent.JobScheduler-$name"
-    New-Service $serviceName `
+    $servicePath = join-path $JobSchedulerPath Telligent.JobScheduler.Service.exe | Resolve-Path
+    $serviceName = "Telligent.JobScheduler-$Name"
+    $service = New-Service $serviceName `
         -BinaryPathName $servicePath `
-        -DisplayName "Telligent Job Scheduler - $name" `
-        -Description "Telligent Job Scheduler service for $domainName" `
-        -StartupType Automatic `
-        -Credential $credential `
-        | Start-Service
-        
-    Write-Progress "Job Scheduler" "Setting automatic service recovery"
-    # - first restart after 30 secs, subsequent every 2 mins.
-    # - reset failure count after 20 mins
-    &sc.exe failure "$serviceName" actions= restart/30000/restart/120000 reset= 1200 | Out-Null
+        -DisplayName "Telligent Job Scheduler - $Name" `
+        -StartupType $StartupType `
+        -Credential $Credential `
+    
+    if($StartupType -eq 'Automatic') {
+        Start-Service $service
 
-    #If SQL is on the current server, set startup to Automatic (Delayed Startup)
-    if(get-service MSSQL*){
-        #TODO: Safer to check connection string for (local) / Machine name
-           Write-Progress "Job Scheduler" "Changing startup mode to Automatic (Delayed Start) to prevent race conditions with SQL Server"
-           &sc.exe config "$serviceName" start= delayed-auto | Out-Null
+        Write-Progress "Job Scheduler" "Setting automatic service recovery"
+        # - first restart after 30 secs, subsequent every 2 mins.
+        # - reset failure count after 20 mins
+        &sc.exe failure "$serviceName" actions= restart/30000/restart/120000 reset= 1200 | Out-Null
+
+        #If SQL is on the current server, set startup to Automatic (Delayed Startup)
+        $info = Get-Community $JobSchedulerPath
+        if (('.','(local)','localhost') -contains $info.ServerInstance) {
+            Write-Progress "Job Scheduler" "Changing startup mode to Automatic (Delayed Start) to prevent race conditions with SQL Server"
+            &sc.exe config "$serviceName" start= delayed-auto | Out-Null
+        }
     }
-
 }
 
 function Update-JobSchedulerFromWeb {
-	[cmdletBinding(SupportsShouldProcess=$True)]
+    <#
+    .SYNOPSIS
+        Installs the Telligent Job Scheduler as a windows service allation files.        
+    .PARAMETER Name
+        The name to use when installing the Service
+    .PARAMETER jsPath
+        The path the Job Scheduler has been installed to.
+    .PARAMETER Credential
+        The credentials for the service to run under
+    .PARAMETER StartupType
+        The startup type to use for the service.
+    #>
+    [CmdletBinding(SupportsShouldProcess=$True)]
     param(
-    	[parameter(Mandatory=$true,Position=0)]
+    	[Parameter(Mandatory=$true,Position=0)]
         [ValidateNotNullOrEmpty()]
-		[ValidateScript({Test-Path $_ -PathType Container})]
-        [string]$webPath,
-    	[parameter(Mandatory=$true,Position=1)]
+        [ValidateScript({ Test-CommunityPath $_ -Web})]
+        [string]$WebsitePath,
+    	[Parameter(Mandatory=$true,Position=1)]
         [ValidateNotNullOrEmpty()]
-		[ValidateScript({Test-Path $_ -PathType Container})]
-        [string]$jsPath
+        [ValidateScript({ Test-CommunityPath $_ -JobScheduler})]
+        [string]$JobSchedulerPath
     )
-    $sharedParams = @(
+    $roboCopyParams = @(
         # 1 second Wait between retries, max 5 retries
         '/W:1', '/R:5',
         #No Progress, no header, no directory list, no summary, no extra file listing
@@ -105,16 +147,16 @@ function Update-JobSchedulerFromWeb {
 
         #Copy web /bin/ to JS root
         Write-Progress "Job Scheduler" "Updating binaries from web"
-        &robocopy "$webPath\bin\" "$jsPath" /e @sharedParams | Out-Null
+        &robocopy "$WebsitePath\bin\" "$JobSchedulerPath" /e @roboCopyParams | Out-Null
 
         Write-Progress "Job Scheduler" "Updating config files from web"
-        &robocopy "$webPath" "$jsPath\" *.config /s /XF web.config tasks.config /XD ControlPanel @sharedParams | Out-Null
+        &robocopy "$WebsitePath" "$JobSchedulerPath\" *.config /s /XF web.config tasks.config /XD ControlPanel @roboCopyParams | Out-Null
 
         #TODO: is themes explicitly required if we copy *.config?
         Write-Progress "Job Scheduler" "Updating modules and languages from web"
         @('modules', 'languages') |% {
             Write-Verbose "JS Install: Syncing $_"
-            &robocopy "$webPath\$_\" "$jsPath\$_\" /e /Mir @sharedParams | Out-Null
+            &robocopy "$WebsitePath\$_\" "$JobSchedulerPath\$_\" /e /Mir @roboCopyParams | Out-Null
         }
 
         #TODO: Sync sections of web.config into tellgient.js.service.exe.config

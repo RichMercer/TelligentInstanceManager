@@ -1,13 +1,13 @@
 ﻿function Install-EvolutionAddon {
     param(
-        [parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true)]
 		[ValidateScript({Test-Zip $_})]
         [string]$AddonPackage,
-        [parameter(Mandatory=$true)]
-		[ValidateScript({Test-Path $_ -PathType Container})]
-        [string]$WebPath,
-		[ValidateScript({(!$_) -or (Test-Path $_ -PathType Container) })]
-        [string]$JobSchedulerPath,
+        [Parameter(Mandatory=$true)]
+        [ValidateScript({ Test-CommunityPath $_ -Web })]
+        [string]$WebsitePath,
+        [ValidateScript({ Test-CommunityPath $_ -JobScheduler -AllowEmpty})]
+        [string]$JobSchedulerPath
         [string[]]$SqlScripts,
         [string[]]$Plugins,
         [ValidateNotNullOrEmpty()]
@@ -20,13 +20,7 @@
 
     Write-Progress "Installing $Name"
 
-    #Load connection string info
-    $connectionStrings = [xml](get-content (Join-Path $WebPath connectionstrings.config))
-    $siteSqlConnectionString = $connectionStrings.connectionStrings.add |
-        ? name -eq SiteSqlServer |
-        select -ExpandProperty connectionString
-
-    $connectionString = New-Object System.Data.SqlClient.SqlConnectionStringBuilder $siteSqlConnectionString
+    $info = Get-CommunityInfo $WebsitePath
     
     #Executing SQL Scripts
     if($SqlScripts) {
@@ -36,19 +30,19 @@
 
         $sqlScripts |% {
             $progressTitle = "Executing SQL Script '{0}' against database '{1}' on {2}" -f `
-                $_, $connectionString.InitialCatalog, $connectionString.DataSource
+                $_, $info.DatabaseServer, $info.DatabaseName
 
             Write-Progress "Installing $Name" "Executing SQL Script: $progressTitle"
 
-            Expand-Zip -zipPath $AddonPackage -destination $tempDir -zipDir SqlScripts -zipFile $_
-            Expand-Zip -zipPath $AddonPackage -destination $tempDir -zipDir Sql -zipFile $_
+            Expand-Zip -Path $AddonPackage -destination $tempDir -ZipDirectory SqlScripts -zipFile $_
+            Expand-Zip -Path $AddonPackage -destination $tempDir -ZipDirectory Sql -zipFile $_
 
             $sqlScript = join-path $tempDir $_ | resolve-path
 
             if(Test-Path $sqlScript) {
                 Write-ProgressFromVerbose "Installing $Name" $progressTitle {
-                    Invoke-Sqlcmd -serverinstance $connectionString.DataSource `
-                        -Database $connectionString.InitialCatalog `
+                    Invoke-Sqlcmd -ServerInstance $info.DatabaseServer `
+                        -Database $info.DatabaseName `
                         -InputFile $sqlScript `
                         -QueryTimeout 6000
                 }
@@ -62,7 +56,7 @@
     }
 
     Write-Progress "Installing $Name" "Copying web directory"
-    Expand-Zip $AddonPackage $WebPath -zipDir Web
+    Expand-Zip $AddonPackage $WebsitePath -ZipDirectory Web
 
     # Update Override Files
     @{
@@ -75,8 +69,8 @@
             $destinationFileName = $_.Key
             Write-Progress "Installing $Name" "Updating $destinationFileName"
 
-            $source= Join-Path $WebPath $sourceFileName | Resolve-Path
-            $destination = Join-Path $WebPath $destinationFileName
+            $source= Join-Path $WebsitePath $sourceFileName | Resolve-Path
+            $destination = Join-Path $WebsitePath $destinationFileName
 
             if (!(Test-Path $destination)) {
                 "<Overrides/>" | out-file $destination
@@ -89,8 +83,8 @@
 
     #Update resources
     if($ControlPanelResources) {
-        $source= Join-Path (Join-Path $WebPath Languages\en-US) $ControlPanelResources | Resolve-Path
-        $destination= Join-Path $WebPath Languages\en-US\ControlPanelResources.xml | Resolve-Path
+        $source= Join-Path (Join-Path $WebsitePath Languages\en-US) $ControlPanelResources | Resolve-Path
+        $destination= Join-Path $WebsitePath Languages\en-US\ControlPanelResources.xml | Resolve-Path
 
         Add-XmlToFile $source $destination
         Remove-Item $source
@@ -99,13 +93,13 @@
     if($JobSchedulerPath) {
         
         Write-Progress "Installing $Name" "Copying Tasks directory"
-        Expand-Zip $AddonPackage $JobSchedulerPath -zipDir Tasks
+        Expand-Zip $AddonPackage $JobSchedulerPath -ZipDirectory Tasks
 
         Write-Progress "Installing $Name" "Updating tasks.config"
         #TODO: Update tasks.config
 
         Write-Progress "Installing $Name" "Syncing JS from Web"
-        Update-JobSchedulerFromWeb $WebPath $JobSchedulerPath
+        Update-JobSchedulerFromWeb $WebsitePath $JobSchedulerPath
     }
     
 
@@ -120,16 +114,15 @@
             INSERT INTO [dbo].[te_Plugins] VALUES ('$_');
 "@
     }
-    #Enable Plugin
 }
 
 
 function Add-XmlToFile {
     param(
-        [parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true)]
 		[ValidateScript({Test-Path $_ -PathType Leaf})]
         [string]$SourcePath,
-        [parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true)]
 		[ValidateScript({Test-Path $_ -PathType Leaf})]
         [string]$DestinationPath
     )
@@ -152,19 +145,19 @@ function Add-XmlToFile {
 function Install-EvolutionIdeation
 {
     param(
-        [parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true)]
 		[ValidateScript({Test-Zip $_})]
         [string]$Package,
-        [parameter(Mandatory=$true)]
-		[ValidateScript({Test-Path $_ -PathType Container})]
-        [string]$WebPath,
-		[ValidateScript({(!$_) -or (Test-Path $_ -PathType Container)})]
+        [Parameter(Mandatory=$true)]
+        [ValidateScript({ Test-CommunityPath $_ -Web })]
+        [string]$WebsitePath,
+        [ValidateScript({ Test-CommunityPath $_ -JobScheduler -AllowEmpty})]
         [string]$JobSchedulerPath
     )
 
    Install-EvolutionAddon `
         -AddonPackage $Package `
-        -WebPath $WebPath `
+        -WebsitePath $WebsitePath `
         -JobSchedulerPath $JobSchedulerPath `
         -SqlScripts 'TelligentEvolutionExtensionsIdeation-1.0.102.33348.sql' `
         -SiteUrlsOverrides SiteUrls_override.config.Ideas `
@@ -177,19 +170,19 @@ function Install-EvolutionIdeation
 
 function Install-EvolutionChat {
     param(
-        [parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true)]
 		[ValidateScript({Test-Zip $_})]
         [string]$Package,
-        [parameter(Mandatory=$true)]
-		[ValidateScript({Test-Path $_ -PathType Container})]
-        [string]$WebPath,
-		[ValidateScript({(!$_) -or (Test-Path $_ -PathType Container)})]
+        [Parameter(Mandatory=$true)]
+        [ValidateScript({ Test-CommunityPath $_ -Web })]
+        [string]$WebsitePath,
+        [ValidateScript({ Test-CommunityPath $_ -JobScheduler -AllowEmpty})]
         [string]$JobSchedulerPath
     )
 
     Install-EvolutionAddon `
         -AddonPackage $Package `
-        -WebPath $WebPath `
+        -WebsitePath $WebsitePath `
         -JobSchedulerPath $JobSchedulerPath `
         -Plugins 'Telligent.Evolution.Chat.Plugins.ChatHost, Telligent.Evolution.Chat' `
         -Name Chat
@@ -201,19 +194,19 @@ function Install-EvolutionChat {
 function Install-EvolutionVideoTranscoding
 {
     param(
-        [parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true)]
 		[ValidateScript({Test-Zip $_})]
         [string]$Package,
-        [parameter(Mandatory=$true)]
-		[ValidateScript({Test-Path $_ -PathType Container})]
-        [string]$WebPath,
-		[ValidateScript({(!$_) -or (Test-Path $_ -PathType Container)})]
+        [Parameter(Mandatory=$true)]
+        [ValidateScript({ Test-CommunityPath $_ -Web })]
+        [string]$WebsitePath,
+        [ValidateScript({ Test-CommunityPath $_ -JobScheduler -AllowEmpty})]
         [string]$JobSchedulerPath
     )
 
     Install-EvolutionAddon `
         -AddonPackage $Package `
-        -WebPath $WebPath `
+        -WebsitePath $WebsitePath `
         -JobSchedulerPath $JobSchedulerPath `
         -Plugins 'Telligent.Evolution.VideoTranscoding.VideoTranscoderPlugin, Telligent.Evolution.VideoTranscoding' `
         -Name Transcoding
@@ -228,19 +221,19 @@ function Install-EvolutionVideoTranscoding
 function Install-EvolutionDocumentPreview
 {
     param(
-        [parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true)]
 		[ValidateScript({Test-Zip $_})]
         [string]$Package,
-        [parameter(Mandatory=$true)]
-		[ValidateScript({Test-Path $_ -PathType Container})]
-        [string]$WebPath,
-		[ValidateScript({(!$_) -or (Test-Path $_ -PathType Container)})]
+        [Parameter(Mandatory=$true)]
+        [ValidateScript({ Test-CommunityPath $_ -Web })]
+        [string]$WebsitePath,
+        [ValidateScript({ Test-CommunityPath $_ -JobScheduler -AllowEmpty})]
         [string]$JobSchedulerPath
     )
 
     Install-EvolutionAddon `
         -AddonPackage $Package `
-        -WebPath $WebPath `
+        -WebsitePath $WebsitePath `
         -JobSchedulerPath $JobSchedulerPath `
         -SqlScripts TelligentDocumentViewer-1.1.50.29573.sql `
         -Plugins 'Telligent.Evolution.FlexPaperDocumentViewer.DocumentViewerConfiguration, Telligent.Evolution.FlexPaperDocumentViewer' `
@@ -252,20 +245,19 @@ function Install-EvolutionDocumentPreview
 
 function Install-EvolutionCalendar {
     param(
-        [parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true)]
 		[ValidateScript({Test-Zip $_})]
         [string]$Package,
-        [parameter(Mandatory=$true)]
-		[ValidateScript({Test-Path $_ -PathType Container})]
-        [string]$WebPath,
-        [parameter(Mandatory=$true)]
-		[ValidateScript({(!$_) -or (Test-Path $_ -PathType Container)})]
+        [Parameter(Mandatory=$true)]
+        [ValidateScript({ Test-CommunityPath $_ -Web })]
+        [string]$WebsitePath,
+        [ValidateScript({ Test-CommunityPath $_ -JobScheduler -AllowEmpty})]
         [string]$JobSchedulerPath
     )
 
     Install-EvolutionAddon `
         -AddonPackage $Package `
-        -WebPath $WebPath `
+        -WebsitePath $WebsitePath `
         -JobSchedulerPath $JobSchedulerPath `
         -SQLScripts TelligentEventCalendar-3.0.72.32639.sql `
         -SiteUrlsOverrides SiteUrls_override.config.sample `

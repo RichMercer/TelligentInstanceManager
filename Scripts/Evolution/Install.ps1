@@ -12,31 +12,33 @@
 		
 		By default, authentication between the web and databases uses the Applicaiton Pool Identity, but SQL authentiation
 		is used if an explicit username & password are provided.
-	.Parameter package
-	    The path to the zip package containing the Telligent Evolution installation files from Telligent Support
-	.Parameter hotfixPackage
-	    If specified applys the hotfix from the referenced zip file.
-	.Parameter name
+	.Parameter Name
 	    The name of the community to create
-	.Parameter webDir
+	.Parameter Package
+	    The path to the zip package containing the Telligent Evolution installation files from Telligent Support
+	.Parameter Hotfix
+	    If specified applys the hotfix from the referenced zip file.
+	.Parameter WebsitePath
 	    The directory to place the Telligent Evolution website in
-	.Parameter webDomain
+	.Parameter WebDomain
 	    The domain name the community will be accessible at
-	.Parameter appPool
+	.Parameter ApplicationPool
 	    The name of the Application Pool to use the community with.  If not specified creates a new apppool.
-	.Parameter dbServer
+	.Parameter DatabaseServer
 	    The DNS name of your SQL server.  Must be able to connect using Windows Authentication from the current machine.  Only supports Default instances.
-	.Parameter dbName
+	.Parameter DatabaseName
 	    The name of the database to locate your community in.  Defaults to the value provided for name.
-	.Parameter sqlAuth
-	    Specify if you want your community to connect using SQL Auth
-	.Parameter dbUsername
-	    If using SQL Authentication for your community to connect to the database, the username to use.  If this use doesn't exist, it will be created.
-	.Parameter dbPassword
-	    If using SQL Authentication for your community to connect to the database, the password to use.	
-	.Parameter searchUrl
-	    The url your community's solr instance can be found at
-	.Parameter licenceFile
+	.Parameter SqlCredential
+	    Specifies the SQL Authenticaiton credential the community will use to connect to the database.  If not specified, then Windows Authentication is used (prefered).  Note, the installer will always connect using Windows Authentication to create the database.  These credentials are only used post-installation.
+	.Parameter SolrBaseUrl
+	    The url the base Solr instance to create the new core in.
+	.Parameter AdminPassword
+	    The password to use for the admin user created during installation.
+	.Parameter ApiKey
+	    If specified, a REST Api Key is created for the admin user with the given value.  This is useful for automation scenarios where you want to go and automate creation of content after installation.
+	.Parameter FilestoragePath
+	    The location to install Filestorage to.  If not specified, will use the default location ~/filestorage/ in the website.
+	.Parameter Licence
 	    The path to the licence XML file to install in the community
 	.Example
 		Install-Evolution -name "Telligent Evolution" -package "d:\temp\TelligentCommunity-7.0.1824.27400.zip" -webDir "d:\inetpub\TelligentEvolution\" -webdomain "mydomain.com" -searchUrl "http://localhost:8080/solr/"
@@ -44,208 +46,278 @@
 		Description
 		-----------
 		Local install using Windows Auth to connect to DB
-	.Example
-		Install-Evolution -name "Telligent Evolution" -package "d:\temp\TelligentCommunity-7.0.1824.27400.zip" -webDir "d:\inetpub\TelligentEvolution\" -webdomain "mydomain.com" -searchUrl "http://localhost:8080/solr/" -dbUsername "TellgientEvolutionSql" -dbPassword "Mega$ecretP@$$w0rd" -licenceFile "c:\licence.xml"
-		
-		Description
-		-----------
-		Local install using SQL Auth to connect to DB, as well as specifying a licence file
+
 	#>
-    [CmdletBinding(DefaultParameterSetName='WindowsAuth')]
+    [CmdletBinding()]
     param (
-        [parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true)]
         [ValidatePattern('^[a-z0-9\-\._ ]+$')]
         [ValidateNotNullOrEmpty()]
-        [string]$name,
+        [string]$Name,
 
 		#Packages
-        [parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
 		[ValidateScript({Test-Zip $_ })]
-        [string]$package,
+        [string]$Package,
 
 		[ValidateScript({!$_ -or (Test-Zip $_) })]
-        [string]$hotfixPackage,
+        [string]$Hotfix,
 
 		#Web Settings
-        [parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({!($_ -and (Test-Path $_))})]
-        [string]$webDir,
+        [ValidateScript({ Test-CommunityPath $_ -IsValid })]
+        [string]$WebsitePath,
 
-        [parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [string]$webDomain = "localhost",
+        [string]$WebDomain,
 
-        [uint16]$port= 80,
+        [uint16]$Port= 80,
 
         [ValidateNotNullOrEmpty()]
-		[string]$appPool = $name,
+		[string]$ApplicationPool = $name,
 
         [ValidateSet(2.0, 4.0)]
-        [double]$netVersion = 4.0, 
+        [double]$ClrVersion = 4.0, 
 
 		#Database Connection
         [ValidateNotNullOrEmpty()]
-        #TODO: Validate SQL Server can be found
-        [string]$dbServer = "(local)",
+        [ValidateScript({ Test-SqlServer $_ })]
+        [string]$DatabaseServer = "(local)",
 
         [ValidatePattern('^[a-z0-9\-\._ ]+$')]
         [ValidateNotNullOrEmpty()]
-        [string]$dbName = $name,
+        [string]$DatabaseName = $name,
 		
 		#Database Auth
-		[parameter(ParameterSetName='SqlAuth')]
-		[parameter(ParameterSetName='SqlAuthSolrCore')]
-        [switch]$sqlAuth,
-
-        [parameter(ParameterSetName='SqlAuth', Mandatory=$true)]
-        [parameter(ParameterSetName='SqlAuthSolrCore', Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$dbUsername,
-
-        [parameter(ParameterSetName='SqlAuth', Mandatory=$true)]
-        [parameter(ParameterSetName='SqlAuthSolrCore', Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$dbPassword,
+        [PSCredential]$SqlCredential,
 
 		#Solr Params
-		[parameter(ParameterSetName='SolrCore')]
-        [parameter(ParameterSetName='SqlAuthSolrCore')]
-        [switch]$solrCore,
+		[Parameter(ParameterSetName='SolrCore', Mandatory=$true)]
+        [switch]$SolrCore,
 
-        [parameter(ParameterSetName='SolrCore', Mandatory=$true)]
-        [parameter(ParameterSetName='SqlAuthSolrCore', Mandatory=$true)]
+        [Parameter(ParameterSetName='SolrCore', Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({ Invoke-WebRequest $_ -UseBasicParsing -Method HEAD })]
-        [uri]$solrUrl,
+        [uri]$SolrBaseUrl,
 
-        [parameter(ParameterSetName='SolrCore')]
-        [parameter(ParameterSetName='SqlAuthSolrCore')]
+        [Parameter(ParameterSetName='SolrCore', Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$SolrCoreDir,
+
+        [Parameter(ParameterSetName='SolrCore')]
         [ValidatePattern('^[a-z0-9\-\._ ]+$')]
         [ValidateNotNullOrEmpty()]
-        [string]$solrCoreName = $name,
+        [string]$SolrCoreName = $Name,
 
-        [parameter(ParameterSetName='SolrCore', Mandatory=$true)]
-        [parameter(ParameterSetName='SqlAuthSolrCore', Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$solrCoreDir,
 
 		#Misc
-        [parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true)]
         [ValidatePattern('^[a-z0-9\-\._ ]+$')]
         [ValidateNotNullOrEmpty()]
-        [string]$adminPassword,
+        [string]$AdminPassword ,
 
-        [ValidateScript({!($_ -and (Test-Path $_))})]
-        [string]$filestorage,
+        [ValidatePattern('^[a-z0-9\-\._ ]+$')]
+        [ValidateNotNullOrEmpty()]
+        [string]$ApiKey,
 
-		[ValidateScript({(!$_) -or (Test-Path $_ -PathType Leaf) })]
-        [string]$licenceFile
+        [ValidateScript({Test-Path $_ -PathType Container -IsValid})]
+        [string]$FilestoragePath,
+
+        [ValidateScript({ Test-CommunityPath $_ -IsValid })]
+        [string]$JobSchedulerPath,
+
+        [alias('License')]
+		[ValidateScript({!$_ -or (Test-Path $_ -PathType Leaf)})]
+        [string]$Licence
     )   
 
-	if(!(Join-Path IIS:\AppPools\ $appPool| Test-Path)){
+    if($JobSchedulerPath -and -not $FilestoragePath) {
+        throw 'FilestoragePath must be specified when using JobSchedulerPath'
+    }
+
+	if(!(Join-Path IIS:\AppPools\ $appPool | Test-Path)){
 		#TODO: Test if app pool exists before creating new one
-		New-IISAppPool $appPool -netVersion $netVersion
+		New-IISAppPool $appPool -ClrVersion $ClrVersion
 		$appPool = $name
 	}
+
+    New-EvolutionWebsite -name $name `
+		-Path $WebsitePath `
+		-Package $package `
+		-HostName $webDomain `
+		-ApplicationPool $ApplicationPool `
+        -Port $Port `
+        -FilestoragePath $FilestoragePath
+
+
 	$sqlConnectionSettings = @{
-		dbServer = $dbServer
-		dbName = $dbName
+		ServerInstance = $DatabaseServer
+		Database = $DatabaseName
 	}
 	$sqlAuthSettings = @{}
-	if($sqlAuth) {
-		$sqlAuthSettings.username = $dbUsername
-		$sqlAuthSettings.password = $dbPassword
+	if($SqlCredential) {
+		$sqlAuthSettings.username = $SqlCredential.Username
+		$sqlAuthSettings.password = $SqlCredential.Password
 	}
 	else {
 		$sqlAuthSettings.username = Get-IISAppPoolIdentity $name
 	}
 
-    New-EvolutionWebsite -name $name `
-		-path $webDir `
-		-package $package `
-		-domain $webDomain `
-		-appPool $appPool `
-        -port $port `
-        -filestorage $filestorage
-
-    Install-EvolutionDatabase -package $package -webDomain $webDomain @sqlConnectionSettings -adminPassword $adminPassword
+    Install-EvolutionDatabase -Package $Package -WebDomain $webDomain -AdminPassword $AdminPassword @sqlConnectionSettings
     Grant-EvolutionDatabaseAccess @sqlConnectionSettings @sqlAuthSettings
 
-	if($hotfixPackage) {
-        Install-EvolutionHotfix -communityDir $webDir -package $hotfixPackage @sqlConnectionSettings
+	if($HotfixPackage) {
+        Install-EvolutionHotfix -WebsitePath $WebsitePath -Package $HotfixPackage @sqlConnectionSettings
 	}	
 
-	pushd $webdir 
-    try {
+    Write-Progress "Configuration" "Setting Connection Strings"
+    Set-ConnectionString $WebsitePath @sqlConnectionSettings $SqlCredential
 
-        Write-Progress "Configuration" "Setting Filestorage Path"
-        if($filestorage) {
-            Set-EvolutionFileStorage $webDir $filestorage
-        }
+	if ($Licence) {
+        Write-Progress "Configuration" "Installing Licence"
+        Install-EvolutionLicence $WebsitePath $Licence
+	}
+	else {
+		Write-Warning "No Licence installed."
+	}
 
-        Write-Progress "Configuration" "Setting Connection Strings"
-        Set-ConnectionStrings @sqlConnectionSettings @sqlAuthSettings
+	if(!$SolrCore) {
+		Write-Warning "No search url specified.  Many features will not work until search is configured."
+	}
+	else {
+        $solrUrl = $SolrBaseUrl.AbsoluteUri.TrimEnd('/')
+        Write-Progress "Search" "Setting Up Search"
+        Add-SolrCore $SolrCoreName `
+		    -package $Package `
+		    -coreBaseDir $SolrCoreDir `
+		    -coreAdmin "$solrUrl/admin/cores"
 
-		if ($licenceFile) {
-            Write-Progress "Configuration" "Installing Licence"
-        	Install-EvolutionLicence $licenceFile @sqlConnectionSettings 
-		}
-		else {
-			Write-Warning "No Licence installed."
-		}
+	    Set-EvolutionSolrUrl $WebsitePath "$solrUrl/$SolrCoreName/"
+	}
 
-	    if(!$solrCore) {
-		    Write-Warning "No search url specified.  Many features will not work until search is configured."
-	    }
-	    else {
-            Write-Progress "Search" "Setting Up Search"
-            Add-SolrCore $solrCoreName `
-		        -package $package `
-		        -coreBaseDir $solrCoreDir `
-		        -coreAdmin "$solrUrl/admin/cores"
-
-            $searchUrl = $solrUrl.AbsoluteUri.TrimEnd('/') + "/$solrCoreName/"
-	        Set-EvolutionSolrUrl $searchUrl
-	    }
+    if($ApiKey) {
+        New-EvolutionApiKey $WebsitePath $ApiKey -UserId 2100
     }
-    finally {
-    	popd
+
+    if($JobSchedulerPath) {
+        Install-JobScheduler -JobSchedulerPath $JobSchedulerPath -Package $Package -WebsitePath $WebsitePath
     }
+
+    Get-Community $WebsitePath |
+        Add-Member JobSchedulerPath $JobSchedulerPath -PassThru |
+        Add-Member AdminApiKey $ApiKey -PassThru
 }
 
 function Install-EvolutionHotfix {
+    <#
+    .SYNOPSIS
+        Installs a Telligent Evolution hotfix 
+    .Details
+        Applies a hotfix to a Telligent Evolution community.  It updates the web files, pulls the Database conneciton information from the website and updates the database.  If a Job Scheduler path is specified, it also updates the Job Scheduler.
+    .PARAMETER WebsitePath
+        The path to the Telligent Evolution website files to apply the hotfix against.
+    .PARAMETER Package
+        The path to the Telligent Evolution hotfix installation packgae.
+    .PARAMETER WebsitePath
+        The path to the community's Job Scheduler.
+    #>
     [CmdletBinding()]
     param (
-        [parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [string]$communityDir,
-        [parameter(Mandatory=$true)]
+        [ValidateScript({ Test-CommunityPath $_ -Web })]
+        [string]$WebsitePath,
+        [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [string]$package,
+        [string]$Package,
         [ValidateNotNullOrEmpty()]
-        [string]$dbServer = "(local)",
-        [parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$dbName
+        [ValidateScript({ Test-CommunityPath $_ -JobScheduler -AllowEmpty})]
+        [string]$JobSchedulerPath
     )
+   
+    #TODO: Verify hotfix version is higher than current version
+    #TODO: Verify major versions of hotfix & existing community are the same
     
     Write-Progress "Applying Hotfix" "Updating Web"
-    Expand-Zip -zipPath $package -destination $communityDir -zipDir "Web"
+    Expand-Zip -Path $Package -destination $WebsitePath -ZipDirectory "Web"
    
     Write-Progress "Applying Hotfix" "Updating Database"
     $tempDir = join-path ([System.IO.Path]::GetFullPath($env:TEMP)) ([guid]::NewGuid())
     @("update.sql", "updates.sql") |% {
-        Expand-Zip -zipPath $package -destination $tempDir -zipFile $_
+        Expand-Zip -Path $package -destination $tempDir -zipFile $_
         $sqlPath = join-path $tempDir $_
-        if (test-path $sqlPath -PathType Leaf) {
+
+        if (Test-Path $sqlPath -PathType Leaf) {
             Write-ProgressFromVerbose "Applying Hotfix" "Updating Database" {
                 Invoke-Sqlcmd -serverinstance $dbServer -Database $dbName -InputFile $sqlPath 
             }
         }
     }
 
-    #TODO: Support updating JS
-    Remove-Item $tempDir -Recurse -Force | Out-Null   
+    Write-Progress "Applying Hotfix" "Updating Job Scheduler"
+    Update-JobSchedulerFromWeb $WebsitePath $JobSchedulerPath
+
+    Write-Progress "Applying Hotfix" "Cleanup"
+    Remove-Item $tempDir -Recurse -Force | Out-Null
+}
+
+function Uninstall-Evolution {
+	[CmdletBinding(DefaultParameterSetName='NoService')]
+    param(
+    	[Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true, ValueFromPipeline=$true)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({ Test-CommunityPath $_ -Web})]
+        [string]$WebsitePath,
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({ Test-CommunityPath $_ -JobScheduler })]
+        [string]$JobschedulerPath
+    )
+    process {
+        $WebsitePath
+        $info = Get-Community $WebsitePath
+
+        #Delete JS
+        if($JobSchedulerPath) {
+            Write-Progress 'Uninstalling Evolution Community' 'Removing Job Scheduler'
+            Remove-Item $JobSchedulerPath -Recurse -Force
+        }
+
+        #Delete Solr
+        $safeSolrUrl = $info.SolrUrl.TrimEnd('/')
+        Write-Progress 'Uninstalling Evolution Community' "Removing Solr instance '$safeSolrUrl'"
+
+        if (Invoke-WebRequest "$safeSolrUrl/admin/" -ErrorAction SilentlyContinue) {
+            #Can't auto detect solr location, but we can submit a delete all query to reduce disk usage
+            Invoke-WebRequest "$safeSolrUrl/update?Commit=true" `
+                -Method POST `
+                -Body '<delete><query>*:*</query></delete>' `
+                -Headers @{'Content-Type'='application/xml'} | Out-Null
+
+            Write-Warning "All documents deleted from Solr, but instance '$safeSolrUrl' needs to be manually deleted"
+        }
+
+
+        #Delete Filestorage
+        Write-Progress 'Uninstalling Evolution Community' 'Removing Filestorage'
+        $info.CfsPath |? {Test-Path $_} | Remove-Item -Recurse -Force
+
+        #Delete Web
+        Write-Progress 'Uninstalling Evolution Community' 'Removing Website'
+        $iisSites = Get-IISWebsite $WebsitePath 
+        $appPools = $iisSites | select -ExpandProperty applicationpool -Unique
+
+        $iisSites | Remove-Website
+        Get-ChildItem IIS:\AppPools |? Name -in $appPools | Remove-WebAppPool
+
+        Remove-Item $WebsitePath -Recurse -Force
+
+        #Delete SQL
+        Write-Progress 'Uninstalling Evolution Community' 'Removing Database'
+        Remove-Database -Server $info.DatabaseServer -Database $info.DatabaseName 
+
+        #TODO: Remove from hosts file
+    }
 }
