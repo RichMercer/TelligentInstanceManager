@@ -58,20 +58,20 @@
 
     #TODO: Auto Infer CLR Version
 
+    $initialFilestoragePath = Join-Path $Path filestorage
     #TODO: Abstract Move-Filestorage into seperate function
-    if($FilestoragePath) {
-        $originalFilestorage = join-path $path filestorage
+    if($FilestoragePath -and $FilestoragePath -ne $initialFilestoragePath) {
         Write-Progress "Website: $Name" "Moving Filestorage to $FilestoragePath"
         if(!(Test-Path $FilestoragePath)) {
             New-Item $FilestoragePath -ItemType Directory | Out-Null
         }
-        Move-Item (Join-Path $originalFilestorage *) $FilestoragePath -Force
-        Remove-Item $originalFilestorage
+        Move-Item (Join-Path $initialFilestoragePath *) $FilestoragePath -Force
+        Remove-Item $initialFilestoragePath
 
         Set-EvolutionFileStorage $Path $FilestoragePath
     }
     else {
-        $FilestoragePath = join-path $Path filestorage        
+        $FilestoragePath = $initialFilestoragePath       
     }
 
     Grant-EvolutionNtfsPermission $Path $FilestoragePath

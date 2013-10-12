@@ -138,7 +138,6 @@ function Test-Zip {
         [ValidateNotNullOrEmpty()]
         [string]$Path
     )
-    $ErrorActionPreference = "Stop"
 
     Test-Path $Path -PathType Leaf
     if((Get-Item $Path).Extension -ne ".zip") {

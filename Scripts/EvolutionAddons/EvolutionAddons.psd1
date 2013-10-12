@@ -61,7 +61,14 @@ NestedModules = @('EvolutionAddons.ps1')
 FunctionsToExport = '*'
 
 # Cmdlets to export from this module
-CmdletsToExport = ''
+CmdletsToExport = @(
+    'Install-EvolutionAddon'
+    'Install-Evolutionideation'
+    'Install-EvolutionChat'
+    'Install-EvolutionVideoTranscoding'
+    'Install-EvolutionDocumenPreview'
+    'Install-EvolutionCalendar'
+)
 
 # Variables to export from this module
 VariablesToExport = ''

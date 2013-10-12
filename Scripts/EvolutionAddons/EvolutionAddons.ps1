@@ -7,7 +7,7 @@
         [ValidateScript({ Test-CommunityPath $_ -Web })]
         [string]$WebsitePath,
         [ValidateScript({ Test-CommunityPath $_ -JobScheduler -AllowEmpty})]
-        [string]$JobSchedulerPath
+        [string]$JobSchedulerPath,
         [string[]]$SqlScripts,
         [string[]]$Plugins,
         [ValidateNotNullOrEmpty()]
