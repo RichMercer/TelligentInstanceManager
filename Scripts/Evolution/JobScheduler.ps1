@@ -124,7 +124,7 @@ function Update-JobSchedulerFromWeb {
     .PARAMETER StartupType
         The startup type to use for the service.
     #>
-    [CmdletBinding(SupportsShouldProcess=$True)]
+    [CmdletBinding(SupportsShouldProcess=$true)]
     param(
     	[Parameter(Mandatory=$true,Position=0)]
         [ValidateNotNullOrEmpty()]

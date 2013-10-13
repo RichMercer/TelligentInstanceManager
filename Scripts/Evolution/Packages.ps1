@@ -46,9 +46,9 @@ function Get-EvolutionBuild {
     param(
         [parameter(Position=0)]
         [string]$Version,
-        [parameter(ParameterSetName='Community', Mandatory=$True)]
+        [parameter(ParameterSetName='Community', Mandatory=$true)]
         [switch]$Community,
-        [parameter(ParameterSetName='Enterprise', Mandatory=$True)]
+        [parameter(ParameterSetName='Enterprise', Mandatory=$true)]
         [switch]$Enterprise
     )
     $basePackages = Get-VersionedEvolutionPackage $basePackageDir

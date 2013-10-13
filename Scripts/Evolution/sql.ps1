@@ -195,14 +195,14 @@ function Invoke-SqlCommandAgainstCommunity {
         The maximum length of time the query can run for 
 	#>
     param (
-		[Parameter(Mandatory=$True, Position=0)]
+		[Parameter(Mandatory=$true, Position=0)]
         [ValidateScript({ Test-CommunityPath $_ -Web })]
         [string]$WebsitePath,
 
-		[Parameter(ParameterSetName='Query', Mandatory=$True)]
+		[Parameter(ParameterSetName='Query', Mandatory=$true)]
         [string]$Query,
 
-		[Parameter(ParameterSetName='File', Mandatory=$True)]
+		[Parameter(ParameterSetName='File', Mandatory=$true)]
         [ValidateScript({Test-Path $_ -PathType Leaf})]
         [string]$File,
         [int]$QueryTimeout
