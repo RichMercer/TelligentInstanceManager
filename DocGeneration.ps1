@@ -3,7 +3,6 @@
 
 function ConvertTo-HtmlEncodedString {
     param(
-        [parameter(Mandatory=$True)]
         [string]$Html
     )
     [System.Web.HttpUtility]::HtmlEncode($Html)
@@ -25,11 +24,11 @@ function Get-CommandHelpHtml
         $_.syntaxItem |% {
             $syntax = $_.name
             $_.parameter | %{
-                $param = " -$($_.name) <$($_.parameterValue)>"
-                if($_.required -eq 'false') { $param = "[$($param.Trim())]"}
-                $syntax += " ```r`n    $param"
+                $param = "-$($_.name) <$($_.parameterValue)>"
+                if($_.required -eq 'false') { $param = "[$param]"}
+                $syntax += " $param"
              }
-            "<pre class=`"brush: ps`">" + (ConvertTo-HtmlEncodedString "$syntax ```r`n    [<CommonParameters>]") + "</pre>"         
+            "<pre class=`"brush: ps`">" + (ConvertTo-HtmlEncodedString $syntax) + "</pre>"         
          }
     }
     if($help.description) {
@@ -55,7 +54,6 @@ function Get-CommandHelpHtml
 function ConvertTo-ParagraphedHtml
 {
     param(
-        [parameter(Mandatory=$True)]
         [string]$PlainText
     )
 
@@ -63,7 +61,6 @@ function ConvertTo-ParagraphedHtml
         % {"<p>$(ConvertTo-HtmlEncodedString $_)</p>"}
 }
 
-$cred = New-EvolutionCredential -EvolutionRoot http://newrelic2.local/ -UserName admin -ApiKey j5foa6phtiduqksekv75nj7xfbpxyv
 
 function Export-DocsToWiki {
     param(
@@ -76,21 +73,22 @@ function Export-DocsToWiki {
     )
     process {
         $Module |% {
-            $module = $_
+            $currentModule= $_
             $existingPages = Get-Wikitoc -Wikiid $wikiId -Credential $Credential
             $parent = $existingPages |? Title -eq $module
             if (!$parent) {
-                $parent = New-Wikipage -Wikiid $wikiId -Title $module -Credential $Credential
+                $parent = New-Wikipage -Wikiid $wikiId -Title $currentModule -Credential $Credential
             }
             $parentId = $parent.Id
-            ipmo $module
-            get-module $module |
+
+            ipmo $currentModule
+            get-module $currentModule |
                 select -ExpandProperty ExportedCommands |
                 select -ExpandProperty Keys |
                 ? { (get-help $_).Name -eq $_ } |
                 % {
-                    Write-Progress "Exporting Documentation" $module -CurrentOperation $command
                     $command = $_
+                    Write-Progress "Exporting Documentation" $currentModule -CurrentOperation $command
                     [string]$body = (Get-CommandHelpHtml $command)
                     $existingPage = $parent.Children |? Title -eq $command
                     if($existingPage) {
@@ -105,8 +103,6 @@ function Export-DocsToWiki {
     }
 }
 
-$cred = New-EvolutionCredential
-#$wiki = New-Wiki -GroupId 1 -Name "WikiTest$(Get-Random)" -Credential $cred
-#$wikiId = $wiki.Id
-$wikiId = 1
+$cred = New-EvolutionCredential http://psdocs.local admin abc123
+$wikiId = (New-Wiki -GroupId 3 -Name ("DocTest$(Get-Date -f 'yyMMdd_HHmmss')") -Credential $cred).Id
 Export-DocsToWiki -Module @('Evolution', 'DevEvolution', 'EvolutionAddons') -WikiId $wikiId -Credential $cred

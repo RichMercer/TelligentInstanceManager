@@ -316,12 +316,11 @@ function Install-EvolutionLicence {
 function Register-TasksInWebProcess {
 	<#
 	.SYNOPSIS
-		Registers the Job Scheduler tasks in the web process of the Telligent Evolution 
-        instance in the current directory for a development environment
+		Registers the Job Scheduler tasks in the web process of the Telligent Evolution instance in the current directory for a development environment
     .DETAILS
         Do NOT use this in a production environment
         
-        In production environments, the Job Scheduler should be used to offload tasks from the Web Server and to ensure tasks continue to run through Application Pool recycles
+        In production environments, the Job Scheduler must be used to offload tasks from the Web Server and to ensure tasks continue to run through Application Pool recycles, as well as to avoid conflicts in a multi server environment
 	.PARAMETER Package
 	    The path to the zip package containing the Telligent Evolution installation files from Telligent Support
     .PARAMETER WebsitePath
@@ -358,7 +357,7 @@ function Register-TasksInWebProcess {
 		$tasks.jobs.job |% {
     	    $webTasks.scheduler.jobs.AppendChild($webTasks.ImportNode($_, $true)) | out-null
 	    }
-		$version = [Version](Get-Item "bin\CommunityServer.Components.dll").FileVersionInfo.FileVersion
+		$version = (Get-Community $WebsitePath).PlatformVersion
 		if($version.Revision -ge 17537) {
 			$reindexNode = [xml]"<job schedule=""30 * * * * ? *"" type=""CommunityServer.Search.SiteReindexJob, CommunityServer.Search""/>"
     	    $webTasks.scheduler.jobs.AppendChild($webTasks.ImportNode($reindexNode.job, $true)) | out-null

@@ -42,31 +42,30 @@
         [ValidatePattern('^[a-z0-9\-\._ ]+$')]
         [ValidateNotNullOrEmpty()]
         [string]$ApplicationPool = $name,
- 		[ValidateSet(2.0,4.0)]
-        [double]$ClrVersion = 4.0,
         [ValidateScript({Test-Path $_ -PathType Container -IsValid})]
         [string]$FilestoragePath
     )
 
-    if(!(Test-Path $path)) {
-        New-Item $path -Type Directory | out-null
-    }    
-    New-IISWebsite -Name $Name -Path $Path -HostName $HostName -Port $Port -ApplicationPool $ApplicationPool
-
     Write-Progress "Website: $Name" "Extracting Web Files: $Path"
     Expand-Zip $Package $Path -ZipDirectory Web
 
-    #TODO: Auto Infer CLR Version
+    $info = Get-Community $Path
+
+    [double]$clrVersion = if($info.PlatformVersion.Major -le 5) { 2.0 } else { 4.0 }
+
+    New-IISWebsite -Name $Name -Path $Path -HostName $HostName -Port $Port -ApplicationPool $ApplicationPool -ClrVersion $clrVersion
 
     $initialFilestoragePath = Join-Path $Path filestorage
     #TODO: Abstract Move-Filestorage into seperate function
-    if($FilestoragePath -and $FilestoragePath -ne $initialFilestoragePath) {
-        Write-Progress "Website: $Name" "Moving Filestorage to $FilestoragePath"
-        if(!(Test-Path $FilestoragePath)) {
-            New-Item $FilestoragePath -ItemType Directory | Out-Null
+    if($FilestoragePath) {
+        if($FilestoragePath -ne $initialFilestoragePath) {
+            Write-Progress "Website: $Name" "Moving Filestorage to $FilestoragePath"
+            if(!(Test-Path $FilestoragePath)) {
+                New-Item $FilestoragePath -ItemType Directory | Out-Null
+            }
+            Move-Item (Join-Path $initialFilestoragePath *) $FilestoragePath -Force
+            Remove-Item $initialFilestoragePath
         }
-        Move-Item (Join-Path $initialFilestoragePath *) $FilestoragePath -Force
-        Remove-Item $initialFilestoragePath
 
         Set-EvolutionFileStorage $Path $FilestoragePath
     }

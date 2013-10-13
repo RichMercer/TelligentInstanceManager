@@ -79,9 +79,6 @@
         [ValidateNotNullOrEmpty()]
 		[string]$ApplicationPool = $name,
 
-        [ValidateSet(2.0, 4.0)]
-        [double]$ClrVersion = 4.0, 
-
 		#Database Connection
         [ValidateNotNullOrEmpty()]
         [ValidateScript({ Test-SqlServer $_ })]
@@ -123,10 +120,10 @@
         [ValidateNotNullOrEmpty()]
         [string]$ApiKey,
 
-        [ValidateScript({Test-Path $_ -PathType Container -IsValid})]
+        [ValidateScript({!$_ -or (Test-Path $_ -PathType Container -IsValid)})]
         [string]$FilestoragePath,
 
-        [ValidateScript({ Test-CommunityPath $_ -IsValid })]
+        [ValidateScript({ Test-CommunityPath $_ -IsValid -AllowEmpty })]
         [string]$JobSchedulerPath,
 
         [alias('License')]
@@ -137,12 +134,6 @@
     if($JobSchedulerPath -and -not $FilestoragePath) {
         throw 'FilestoragePath must be specified when using JobSchedulerPath'
     }
-
-	if(!(Join-Path IIS:\AppPools\ $appPool | Test-Path)){
-		#TODO: Test if app pool exists before creating new one
-		New-IISAppPool $appPool -ClrVersion $ClrVersion
-		$appPool = $name
-	}
 
     New-EvolutionWebsite -name $name `
 		-Path $WebsitePath `
@@ -202,11 +193,16 @@
         New-EvolutionApiKey $WebsitePath $ApiKey -UserId 2100
     }
 
-    if($JobSchedulerPath) {
+    $info = Get-Community $WebsitePath 
+
+    if($JobSchedulerPath -and $info.PlatformVersion.Major -ge 6) {
         Install-JobScheduler -JobSchedulerPath $JobSchedulerPath -Package $Package -WebsitePath $WebsitePath
     }
+    else {
+        $JobSchedulerPath = ''
+    }
 
-    Get-Community $WebsitePath |
+    $info |
         Add-Member JobSchedulerPath $JobSchedulerPath -PassThru |
         Add-Member AdminApiKey $ApiKey -PassThru
 }
@@ -257,8 +253,10 @@ function Install-EvolutionHotfix {
         }
     }
 
-    Write-Progress "Applying Hotfix" "Updating Job Scheduler"
-    Update-JobSchedulerFromWeb $WebsitePath $JobSchedulerPath
+    if($JobSchedulerPath) {
+        Write-Progress "Applying Hotfix" "Updating Job Scheduler"
+        Update-JobSchedulerFromWeb $WebsitePath $JobSchedulerPath
+    }
 
     Write-Progress "Applying Hotfix" "Cleanup"
     Remove-Item $tempDir -Recurse -Force | Out-Null

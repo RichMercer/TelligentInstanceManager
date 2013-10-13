@@ -126,12 +126,13 @@ function Install-DevEvolution {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$true)]
-        [ValidatePattern('^[a-z0-9\-\._]+$')]
         [ValidateNotNullOrEmpty()]
+        [ValidatePattern('^[a-z0-9\-\._]+$')]
+        [ValidateScript({if(Get-DevEvolution $_){ throw "DevEvolution Instance '$_' already exists" } else { $true }})]
         [string] $Name,
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
  		[ValidateSet('Community','Enterprise')]
- 		[string] $product,
+ 		[string] $Product,
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
 		[ValidateNotNullOrEmpty()]
         [version] $Version,
@@ -158,7 +159,6 @@ function Install-DevEvolution {
         -WebsitePath $webDir `
         -JobSchedulerPath $jsDir `
         -FilestoragePath $filestorageDir `
-        -ClrVersion $(if (@(2,5) -contains $version.Major) { 2.0 } else { 4.0 }) `
         -WebDomain $domain `
         -Licence (join-path $data.LicencesPath "${Product}$($Version.Major).xml") `
         -SolrCore `
@@ -171,19 +171,22 @@ function Install-DevEvolution {
     if ($info) {
 	    Disable-CustomErrors $webDir
 
-	    if(($Product -eq 'community' -and $Version -gt 5.6) -or ($Product -eq 'enterprise' -and $Version -gt 2.6)) {
+	    if($info.PlatformVersion -ge 5.6) {
             Register-TasksInWebProcess $webDir $basePackage
         }
 
         if ($WindowsAuth) {
-            Enable-WindowsAuth $webDir -emailDomain '@tempuri.org' -profileRefreshInterval 0
+            Enable-WindowsAuth $webDir -EmailDomain '@tempuri.org' -ProfileRefreshInterval 0
         }        
 
         #Add site to hosts files
-        Add-Content -value "`r`n127.0.0.1 $domain" -path (join-path $env:SystemRoot system32\drivers\etc\hosts)
-        Start-Process "http://$domain/"
+        Add-Content -value "`r`n127.0.0.1 $domain" -Path (join-path $env:SystemRoot system32\drivers\etc\hosts)
 
         $info | Add-Member Url "http://$domain/" -PassThru
+
+        if([Environment]::UserInteractive) {
+            Start-Process $info.Url
+        }
     }
 }
 
@@ -208,6 +211,7 @@ function Remove-DevEvolution {
                
             Removes the 'FailedInstall' DevEvolution instance if it's corrupted to the point it's not dete
     #>
+    [CmdletBinding(SupportsShouldProcess=$true, ConfirmImpact='High')]
     param(
         [Parameter(Mandatory=$true, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
         [ValidatePattern('^[a-z0-9\-\._]+$')]
@@ -223,47 +227,49 @@ function Remove-DevEvolution {
             return
         }
 
-        $solrVersion = if(@(2,3,5,6) -contains $info.PlatformVersion.Major){ '1-4' } else { '3-6' }
-        $domain = $Name
+        if($Force -or $PSCmdlet.ShouldProcess($Name)) {
+            $solrVersion = if(@(2,3,5,6) -contains $info.PlatformVersion.Major){ '1-4' } else { '3-6' }
+            $domain = $Name
 
-        #Delete the JS
-        Write-Progress 'Uninstalling Evolution Community' $Name -CurrentOperation 'Removing Job Scheduler'
-        $jsDir = Join-Path $data.JobschedulerBase $Name
-        if (Test-Path $jsDir -PathType Container) {
-            Get-Process |? Path -like "$jsDir*" | Stop-Process
-            Remove-Item $jsDir -Recurse -Force
-        }
+            #Delete the JS
+            Write-Progress 'Uninstalling Evolution Community' $Name -CurrentOperation 'Removing Job Scheduler'
+            $jsDir = Join-Path $data.JobschedulerBase $Name
+            if (Test-Path $jsDir -PathType Container) {
+                Get-Process |? Path -like "$jsDir*" | Stop-Process
+                Remove-Item $jsDir -Recurse -Force
+            }
 
-        #Delete the site in IIS
-        Write-Progress 'Uninstalling Evolution Community' $Name -CurrentOperation 'Removing Website from IIS'
-        if(Get-Website -Name $Name -ErrorAction SilentlyContinue) {
-            Remove-Website -Name $Name
-        }
-        if((Join-Path IIS:\AppPools\ $Name| Test-Path)){
-            Remove-WebAppPool -Name $Name
-        }
+            #Delete the site in IIS
+            Write-Progress 'Uninstalling Evolution Community' $Name -CurrentOperation 'Removing Website from IIS'
+            if(Get-Website -Name $Name -ErrorAction SilentlyContinue) {
+                Remove-Website -Name $Name
+            }
+            if((Join-Path IIS:\AppPools\ $Name| Test-Path)){
+                Remove-WebAppPool -Name $Name
+            }
 
-        #Delete the DB
-        Write-Progress 'Uninstalling Evolution Community' $Name -CurrentOperation 'Removing Database'
-        Remove-Database -Database $Name -Server $data.SqlServer
+            #Delete the DB
+            Write-Progress 'Uninstalling Evolution Community' $Name -CurrentOperation 'Removing Database'
+            Remove-Database -Database $Name -Server $data.SqlServer
 
-        #Delete the files
-        Write-Progress 'Uninstalling Evolution Community' $Name -CurrentOperation 'Removing Website Files'
-        if(Test-Path $webDir) {
-            Remove-Item -Path $webDir -Recurse -Force
-        }
+            #Delete the files
+            Write-Progress 'Uninstalling Evolution Community' $Name -CurrentOperation 'Removing Website Files'
+            if(Test-Path $webDir) {
+                Remove-Item -Path $webDir -Recurse -Force
+            }
     
-        #Remove site from hosts files
-        Write-Progress 'Uninstalling Evolution Community' $Name -CurrentOperation 'Removing Hosts entry'
-        $hostsPath = join-path $env:SystemRoot system32\drivers\etc\hosts
-        (Get-Content $hostsPath) | Foreach-Object {$_ -replace "127.0.0.1 $domain", ""} | Set-Content $hostsPath
+            #Remove site from hosts files
+            Write-Progress 'Uninstalling Evolution Community' $Name -CurrentOperation 'Removing Hosts entry'
+            $hostsPath = join-path $env:SystemRoot system32\drivers\etc\hosts
+            (Get-Content $hostsPath) | Foreach-Object {$_ -replace "127.0.0.1 $domain", ""} | Set-Content $hostsPath
     
-        #Remove the solr core
-        Write-Progress 'Uninstalling Evolution Community' $Name -CurrentOperation 'Removing Solr Core'
-        $solrUrl = ($data.SolrUrl -f $solrVersion).TrimEnd("/") + '/admin/cores'
-        Remove-SolrCore -Name $Name -CoreBaseDir ($data.SolrCoreBase -f $solrVersion) -CoreAdmin $solrUrl
+            #Remove the solr core
+            Write-Progress 'Uninstalling Evolution Community' $Name -CurrentOperation 'Removing Solr Core'
+            $solrUrl = ($data.SolrUrl -f $solrVersion).TrimEnd("/") + '/admin/cores'
+            Remove-SolrCore -Name $Name -CoreBaseDir ($data.SolrCoreBase -f $solrVersion) -CoreAdmin $solrUrl
 
-	    Write-Host "Deleted website at http://$domain/"
+	        Write-Host "Deleted website at http://$domain/"
+        }
     }
 }
 

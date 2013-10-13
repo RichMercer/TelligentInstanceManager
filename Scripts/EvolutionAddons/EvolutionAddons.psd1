@@ -63,7 +63,7 @@ FunctionsToExport = '*'
 # Cmdlets to export from this module
 CmdletsToExport = @(
     'Install-EvolutionAddon'
-    'Install-Evolutionideation'
+    'Install-EvolutionIdeation'
     'Install-EvolutionChat'
     'Install-EvolutionVideoTranscoding'
     'Install-EvolutionDocumenPreview'

@@ -10,7 +10,8 @@
         The path to the root of the Solr instance hosting the core
     .PARAMETER CoreAdmin
         The url to the solr instance's Core Admin API.
-    #>    [CmdletBinding()]
+    #>
+    [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true, Position=0)]
         [ValidateNotNullOrEmpty()]

@@ -1,10 +1,10 @@
 ﻿$versionDllNames = [ordered]@{
     Platform = 'Telligent.Evolution.Components.dll', 'CommunityServer.Components.dll'
     Calendar = 'Telligent.Evolution.Extensions.Calendar.dll'
-    DocPreview = 'Telligent.Evolution.FlexPaperDocumentViewer.dll'
-    Transcoding = 'Telligent.Evolution.VideoTranscoding.dll'
-    Ideation = 'Telligent.Evolution.Extensions.Ideation.dll'
     Chat = 'Telligent.Evolution.Chat.dll'
+    DocPreview = 'Telligent.Evolution.FlexPaperDocumentViewer.dll'
+    Ideation = 'Telligent.Evolution.Extensions.Ideation.dll'
+    Transcoding = 'Telligent.Evolution.VideoTranscoding.dll'
 }
 
 function Get-Community {
@@ -16,6 +16,7 @@ function Get-Community {
     .PARAMETER path
         The path to the community's Website or Job Scheduler.
     #>
+    [CmdletBinding()]
     param(
         [ValidateNotNullOrEmpty()]
         [parameter(Mandatory=$true, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
@@ -65,6 +66,7 @@ function Get-EvolutionVersionFromDlls {
     .PARAMETER dlls
         The dll names to look for version information in
     #>
+    [CmdletBinding()]
     param(
         [parameter(Mandatory=$true)]
         [ValidateScript({ Test-CommunityPath $_ })]
