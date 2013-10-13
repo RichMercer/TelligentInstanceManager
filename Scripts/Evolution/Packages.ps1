@@ -13,37 +13,54 @@ $versionRegex = [regex]"[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+"
 
 function Get-EvolutionBuild {
     <#
-    .Synopsis
+    .SYNOPSIS
 	    Gets a list of Teligent Evolution builds in the Mass Install directory.
-    .Description
-	    The Install-Evolution cmdlet automates the process of creating a new Telligent Evolution community.
-		
-	    It takes the installation package, and from it deploys the website to IIS and a creates a new database using
-	    the scripts from the package.  It also sets permissions automatically.
-		
-	    This scripts install the new community as follows (where NAME is the value of the name paramater)
-
-		
-        If a Telligent Enterprise instance is being installed, Windows Authentication will be enabled automatically
-    .Parameter Version
+    .PARAMETER Version
 	    Filters to the most recent build whose version matches the given pattern
-    .Example
+    .PARAMETER Community
+	    If specified, filters the build list to just those of Telligent Community
+    .PARAMETER Enterprise
+	    If specified, filters the build list to just those of Telligent Enterprise
+    .EXAMPLE
         Get-EvolutionBuild
         
         Gets a list of all available builds
-    .Example
+    .EXAMPLE
         Get-EvolutionBuild 7.6
         
         Gets the most recent build with major version 7 and minor version 6.
+    .EXAMPLE
+        Get-EvolutionBuild -Community
+        
+        List all builds of Telligent Community.
+    .EXAMPLE
+        Get-EvolutionBuild -Enterprise
+        
+        List all builds of Telligent Enterprise.
+    .EXAMPLE
+        Get-EvolutionBuild 4 -Enterprise
+        
+        List the most recent build of Telligent Enterprise version 4.
     #>
+    [CmdletBinding(DefaultParameterSetName='All')]
     param(
-        [string]$Version
+        [parameter(Position=0)]
+        [string]$Version,
+        [parameter(ParameterSetName='Community', Mandatory=$True)]
+        [switch]$Community,
+        [parameter(ParameterSetName='Enterprise', Mandatory=$True)]
+        [switch]$Enterprise
     )
     $basePackages = Get-VersionedEvolutionPackage $basePackageDir
     $fullBuilds = $basePackages |
-        select Product,Version, `
-            @{Expression={$_.Path};Label="BasePackage"},`
-            @{Expression={$null};Label="HotfixPackage"}
+        % { 
+            new-object PSObject -Property ([ordered]@{
+                Product = $_.Product
+                Version = $_.Version
+                BasePackage = $base.Path
+                HotfixPackage = $_.Path
+            })
+        }
 
     $hotfixBuilds = Get-VersionedEvolutionPackage $hotfixDir|
         % {
@@ -55,23 +72,31 @@ function Get-EvolutionBuild {
 
             if ($base) 
             {
-                $_ |select Product,Version,`
-                @{Expression={$base.Path};Label="BasePackage"},`
-                @{Expression={$_.Path};Label="HotfixPackage"}
+                new-object PSObject -Property ([ordered]@{
+                    Product = $_.Product
+                    Version = $_.Version
+                    BasePackage = $base.Path
+                    HotfixPackage = $_.Path
+                })
             }
         }  
-		
-	$results = @($fullBuilds) + $hotfixBuilds |
-        sort version
+	
+	$results = @($fullBuilds) + @($hotfixBuilds)
+
+    if($Community) {
+        $results = $results |? Product -eq 'Community'
+    }	
+    elseif($Enterprise) {
+        $results = $results |? Product -eq 'Enterprise'
+    }
+
+    $results = $results | sort Version
 		
 	if($Version){
-        #escape dots for regex match
-        $regexMatch = '^' + $Version.Replace('.', '\.')
-		$results = $results |? version -match $regexMatch
-
-        if($true) {
-            $results = $results | select -Last 1
-        }
+        $versionPattern = "$($Version.TrimEnd('*'))*"
+		$results = $results |
+            ? {$_.Version.ToString() -like $versionPattern } |
+            select -Last 1
 	}
     $results
 
@@ -79,9 +104,11 @@ function Get-EvolutionBuild {
 Set-Alias geb Get-EvolutionBuild
 
 function Get-VersionedEvolutionPackage {
+    [CmdletBinding()]
     param(
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
+        [ValidateScript({Test-Path $_ -PathType Container})]
         [string]$Path
     )
 
@@ -89,10 +116,10 @@ function Get-VersionedEvolutionPackage {
         %{
             #$product doesn't get reset on each iteration, so reset it manually to avoid issues
             $product = $null
-            if ($_.Name -match "community") {
-                $product = "Community"
-            }elseif ($_.Name -match "enterprise") {
-                $product ="Enterprise"
+            if ($_.Name -match 'community') {
+                $product = 'Community'
+            }elseif ($_.Name -match 'enterprise') {
+                $product = 'Enterprise'
             }
             $match = $versionRegex.Match($_.Name)
 
