@@ -131,8 +131,8 @@ function Get-ConnectionString {
         Database = $connectionString.InitialCatalog
     }
     if(!$connectionString.IntegratedSecurity) {
-        $connectionInfo["Username"] = $connectionString.UserID
-        $connectionInfo["Password"] = $connectionString.Password
+        $connectionInfo.Username = $connectionString.UserID
+        $connectionInfo.Password = $connectionString.Password
     }
 
     $connectionInfo
@@ -203,15 +203,15 @@ function Add-OverrideChangeAttribute {
     
     $overridePath = join-path $WebsitePath communityserver_override.config
     if (!(test-path $overridePath)) {
-        "<?xml version=""1.0"" ?><Overrides />" |out-file $overridePath    
+        '<?xml version="1.0" ?><Overrides />' |out-file $overridePath    
     }
 
     $overrides = [xml](gc $overridePath)
-    $override = $overrides.CreateElement("Override")
-    $override.SetAttribute("xpath", $XPath)
-    $override.SetAttribute("mode", "change")
-    $override.SetAttribute("name", $Name)
-    $override.SetAttribute("value", $Value)
+    $override = $overrides.CreateElement('Override')
+    $override.SetAttribute('xpath', $XPath)
+    $override.SetAttribute('mode', 'change')
+    $override.SetAttribute('name', $Name)
+    $override.SetAttribute('value', $Value)
     $overrides.DocumentElement.AppendChild($override) |out-null
     $overrides.Save(($overridePath | Resolve-Path))
 }
@@ -340,7 +340,7 @@ function Register-TasksInWebProcess {
     Write-Warning "Registering Tasks in the web process is not supported for production environments. Only do this in non production environments"
 
     $tempDir = Join-Path $env:temp ([guid]::NewGuid())
-    Expand-Zip -Path $Package -destination $tempDir -ZipDirectory "Tasks" -zipFile "tasks.config"
+    Expand-Zip -Path $Package -destination $tempDir -ZipDirectory Tasks -zipFile tasks.config
     $webTasksPath = Join-Path $WebsitePath tasks.config | Resolve-Path
     $webTasks = [xml](gc $webTasksPath)
 	if($webTasks.jobs.cron){
@@ -349,7 +349,7 @@ function Register-TasksInWebProcess {
 		$jsTasks.jobs.cron.jobs.job |% {
     	    $webTasks.jobs.cron.jobs.AppendChild($webTasks.ImportNode($_, $true)) | Out-Null
 	    }
-		$webTasks.jobs.dynamic.mode = "Server"
+		$webTasks.jobs.dynamic.mode = 'Server'
 	}
 	else {
 		#5.6
@@ -359,7 +359,7 @@ function Register-TasksInWebProcess {
 	    }
 		$version = (Get-Community $WebsitePath).PlatformVersion
 		if($version.Revision -ge 17537) {
-			$reindexNode = [xml]"<job schedule=""30 * * * * ? *"" type=""CommunityServer.Search.SiteReindexJob, CommunityServer.Search""/>"
+			$reindexNode = [xml]'<job schedule="30 * * * * ? *" type="CommunityServer.Search.SiteReindexJob, CommunityServer.Search" />'
     	    $webTasks.scheduler.jobs.AppendChild($webTasks.ImportNode($reindexNode.job, $true)) | out-null
 		}
 	}
@@ -385,11 +385,11 @@ function Disable-CustomErrors {
         [string]$WebsitePath
     )
     
-    Write-Warning "Disabling Custom Errors poses a security risk. Only do this in non production environments"
+    Write-Warning 'Disabling Custom Errors poses a security risk. Only do this in non production environments'
     $configPath = Join-Path $WebsitePath web.config | Resolve-Path
     $webConfig = [xml] (get-content $configPath )
     
-    $webConfig.configuration.{system.web}.customErrors.mode = "Off"
+    $webConfig.configuration.{system.web}.customErrors.mode = 'Off'
     $webConfig.Save($configPath)
 }
 
@@ -473,8 +473,8 @@ function Enable-EvolutionLdap {
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [string]$Password,
-        [string]$Server = "GC://",
-        [string]$AuthenticationType = "Secure",
+        [string]$Server = 'GC://',
+        [string]$AuthenticationType = 'Secure',
         [int]$Port = 3268
     )
 
@@ -490,7 +490,7 @@ function Enable-EvolutionLdap {
     $webConfigPath = Join-Path $WebsitePath web.config | resolve-path
     $webConfig = [xml] (get-content $webConfigPath )
 
-    $ldapSection = [xml]"<section name=""LdapConnection"" type=""System.Configuration.NameValueSectionHandler"" />"
+    $ldapSection = [xml]'<section name="LdapConnection" type="System.Configuration.NameValueSectionHandler" />'
     $webConfig.configuration.configSections.AppendChild($webConfig.ImportNode($ldapSection.DocumentElement, $true)) | out-null
     $ldapConfiguration= $webConfig.CreateElement("LdapConnection")
     @{
@@ -501,8 +501,8 @@ function Enable-EvolutionLdap {
         Authentication = $AuthenticationType
     }.GetEnumerator() |% {
         $add = $ldapConfiguration.OwnerDocument.CreateElement("add")
-        $add.SetAttribute("key", $_.Key)
-        $add.SetAttribute("value", $_.Value)
+        $add.SetAttribute('key', $_.Key)
+        $add.SetAttribute('value', $_.Value)
         $ldapConfiguration.AppendChild($add) | out-null
     }
     $webConfig.configuration.AppendChild($ldapConfiguration) | out-null   

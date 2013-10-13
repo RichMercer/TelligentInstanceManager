@@ -41,7 +41,7 @@
 	.Parameter Licence
 	    The path to the licence XML file to install in the community
 	.Example
-		Install-Evolution -name "Telligent Evolution" -package "d:\temp\TelligentCommunity-7.0.1824.27400.zip" -webDir "d:\inetpub\TelligentEvolution\" -webdomain "mydomain.com" -searchUrl "http://localhost:8080/solr/"
+		Install-Evolution -name 'Telligent Evolution' -package d:\temp\TelligentCommunity-7.0.1824.27400.zip -webDir "d:\inetpub\TelligentEvolution\" -webdomain "mydomain.com" -searchUrl "http://localhost:8080/solr/"
 		
 		Description
 		-----------
@@ -82,7 +82,7 @@
 		#Database Connection
         [ValidateNotNullOrEmpty()]
         [ValidateScript({ Test-SqlServer $_ })]
-        [string]$DatabaseServer = "(local)",
+        [string]$DatabaseServer = '(local)',
 
         [ValidatePattern('^[a-z0-9\-\._ ]+$')]
         [ValidateNotNullOrEmpty()]
@@ -164,23 +164,23 @@
         Install-EvolutionHotfix -WebsitePath $WebsitePath -Package $HotfixPackage @sqlConnectionSettings
 	}	
 
-    Write-Progress "Configuration" "Setting Connection Strings"
+    Write-Progress 'Configuration' 'Setting Connection Strings'
     Set-ConnectionString $WebsitePath @sqlConnectionSettings $SqlCredential
 
 	if ($Licence) {
-        Write-Progress "Configuration" "Installing Licence"
+        Write-Progress 'Configuration' 'Installing Licence'
         Install-EvolutionLicence $WebsitePath $Licence
 	}
 	else {
-		Write-Warning "No Licence installed."
+		Write-Warning 'No Licence installed.'
 	}
 
 	if(!$SolrCore) {
-		Write-Warning "No search url specified.  Many features will not work until search is configured."
+		Write-Warning 'No search url specified.  Many features will not work until search is configured.'
 	}
 	else {
         $solrUrl = $SolrBaseUrl.AbsoluteUri.TrimEnd('/')
-        Write-Progress "Search" "Setting Up Search"
+        Write-Progress 'Search' 'Setting Up Search'
         Add-SolrCore $SolrCoreName `
 		    -package $Package `
 		    -coreBaseDir $SolrCoreDir `
@@ -237,28 +237,28 @@ function Install-EvolutionHotfix {
     #TODO: Verify hotfix version is higher than current version
     #TODO: Verify major versions of hotfix & existing community are the same
     
-    Write-Progress "Applying Hotfix" "Updating Web"
+    Write-Progress 'Applying Hotfix' 'Updating Web'
     Expand-Zip -Path $Package -destination $WebsitePath -ZipDirectory "Web"
    
-    Write-Progress "Applying Hotfix" "Updating Database"
+    Write-Progress 'Applying Hotfix' 'Updating Database'
     $tempDir = join-path ([System.IO.Path]::GetFullPath($env:TEMP)) ([guid]::NewGuid())
-    @("update.sql", "updates.sql") |% {
+    @('update.sql', 'updates.sql') |% {
         Expand-Zip -Path $package -destination $tempDir -zipFile $_
         $sqlPath = join-path $tempDir $_
 
         if (Test-Path $sqlPath -PathType Leaf) {
-            Write-ProgressFromVerbose "Applying Hotfix" "Updating Database" {
+            Write-ProgressFromVerbose 'Applying Hotfix' 'Updating Database' {
                 Invoke-Sqlcmd -serverinstance $dbServer -Database $dbName -InputFile $sqlPath 
             }
         }
     }
 
     if($JobSchedulerPath) {
-        Write-Progress "Applying Hotfix" "Updating Job Scheduler"
+        Write-Progress 'Applying Hotfix' 'Updating Job Scheduler'
         Update-JobSchedulerFromWeb $WebsitePath $JobSchedulerPath
     }
 
-    Write-Progress "Applying Hotfix" "Cleanup"
+    Write-Progress 'Applying Hotfix' 'Cleanup'
     Remove-Item $tempDir -Recurse -Force | Out-Null
 }
 

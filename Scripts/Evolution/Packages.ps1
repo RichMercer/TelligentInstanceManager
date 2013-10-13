@@ -9,7 +9,7 @@ $basePackageDir = Join-Path $base FullPackages
 # The Directory where differential hotfix packages can be found
 $hotfixDir = Join-Path $base Hotfixes
 
-$versionRegex = [regex]"[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+"
+$versionRegex = [regex]'[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+'
 
 function Get-EvolutionBuild {
     <#

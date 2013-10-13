@@ -65,10 +65,8 @@ function Remove-SolrCore {
         [Uri]$CoreAdmin
     )
 
-    try {
-        $url = "${CoreAdmin}?action=UNLOAD&core=$Name&deleteindex=true"
-        Invoke-WebRequest $url -UseBasicParsing -Method Post | Out-Null
-    } catch {}
+    $url = "${CoreAdmin}?action=UNLOAD&core=$Name&deleteindex=true"
+    Invoke-WebRequest $url -UseBasicParsing -Method Post | Out-Null
     
     $coreDir = Join-Path $CoreBaseDir $Name
     if(Test-Path $coreDir) {

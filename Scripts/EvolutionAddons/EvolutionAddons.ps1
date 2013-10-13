@@ -11,7 +11,7 @@
         [string[]]$SqlScripts,
         [string[]]$Plugins,
         [ValidateNotNullOrEmpty()]
-        [string]$Name = "Addon",
+        [string]$Name = 'Addon',
         [string]$SiteUrlsOverrides,
         [string]$CommunityServerOverrides,
         [string]$ControlPanelResources,
@@ -55,7 +55,7 @@
         Remove-Item $tempDir -Recurse -force | out-null
     }
 
-    Write-Progress "Installing $Name" "Copying web directory"
+    Write-Progress "Installing $Name" 'Copying web directory'
     Expand-Zip $AddonPackage $WebsitePath -ZipDirectory Web
 
     # Update Override Files
@@ -73,7 +73,7 @@
             $destination = Join-Path $WebsitePath $destinationFileName
 
             if (!(Test-Path $destination)) {
-                "<Overrides/>" | out-file $destination
+                '<Overrides/>' | out-file $destination
             }
 
             Add-XmlToFile $source $destination
@@ -92,13 +92,13 @@
 
     if($JobSchedulerPath) {
         
-        Write-Progress "Installing $Name" "Copying Tasks directory"
+        Write-Progress "Installing $Name" 'Copying Tasks directory'
         Expand-Zip $AddonPackage $JobSchedulerPath -ZipDirectory Tasks
 
-        Write-Progress "Installing $Name" "Updating tasks.config"
+        Write-Progress "Installing $Name" 'Updating tasks.config'
         #TODO: Update tasks.config
 
-        Write-Progress "Installing $Name" "Syncing JS from Web"
+        Write-Progress "Installing $Name" 'Syncing JS from Web'
         Update-JobSchedulerFromWeb $WebsitePath $JobSchedulerPath
     }
     
@@ -106,7 +106,7 @@
     Write-Progress "Installing $Name" "Enabling Plugins"
 
     $plugins | % {
-        Write-Progress "Installing $Name" "Enabling Plugins" -CurrentOperation $_ 
+        Write-Progress "Installing $Name" 'Enabling Plugins' -CurrentOperation $_ 
         Invoke-Sqlcmd -serverinstance $connectionString.DataSource `
             -Database $connectionString.InitialCatalog `
             -query @"
@@ -131,7 +131,7 @@ function Add-XmlToFile {
     $destination = [xml](gc $DestinationPath)
 
     if($source.DocumentElement.Name -ne $destination.DocumentElement.Name) {
-        throw "Source and Destination documents have different root elements"
+        throw 'Source and Destination documents have different root elements'
     }
     
     $source.DocumentElement.ChildNodes |% {

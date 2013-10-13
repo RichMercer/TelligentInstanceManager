@@ -121,7 +121,7 @@ function Merge-EvolutionConfigurationFile {
                         $attName = $node.Attributes.GetNamedItem($override.name)
                         if ($attrName) {
                             if(!$node.Attributes.GetNamedItem($attName)) {                                
-                                Write-Error ("Attribute {0} does not exist at {1}" -f $attName, $override.xpath)
+                                Write-Error ("Attribute $attName does not exist at $($override.xpath)")
                             }
                             else {
                                 $node.Attributes.Remove($override.name)
@@ -137,9 +137,9 @@ function Merge-EvolutionConfigurationFile {
                     add {
                         $where = $override.where
                         if (!$where) {
-                            $where = "start"
+                            $where = 'start'
                         }
-                        switch($override.where){
+                        switch($where){
                             after {
                                 $node.CreateNavigator().InsertAfter($override.InnerXml)
                             }
@@ -157,7 +157,7 @@ function Merge-EvolutionConfigurationFile {
                     change {
                         $attribute = $node.Attributes.GetNamedItem($override.name)
                         if(!$attribute){
-                            Write-Error ("Attribute '{0}' not defined at {1}" -f $override.name, $override.xPath )
+                            Write-Error ("Attribute '{$($override.name)' not defined at $($override.xPath)")
                         }
                         else {
                             $attribute.Value = $override.value
@@ -165,14 +165,14 @@ function Merge-EvolutionConfigurationFile {
                     }
                     new {
                         if(!$override.name) {
-                            Write-Error ("New attribute name not defined for " + $override.xpath)
+                            Write-Error "New attribute name not defined for $($override.xpath)"
                         }
                         else {
                             $node.CreateNavigator().CreateAttribute($null, $override.name, $null, $override.value)
                         }
                     }
                     default {
-                        Write-Error ("Invalid mode attribute" -f $_)
+                        Write-Error "Invalid mode attribute '$_'"
                     }
             
                 }

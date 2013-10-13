@@ -147,7 +147,7 @@ function Install-DevEvolution {
     )
     $name = $name.ToLower()
 
-    $solrVersion = if(@(2,3,5,6) -contains $Version.Major){ "1-4" } else {"3-6" }
+    $solrVersion = if(@(2,3,5,6) -contains $Version.Major){ '1-4' } else { '3-6'  }
     $webDir = Join-Path $data.WebBase $Name
     $jsDir = Join-Path $data.JobSchedulerBase $Name
     $filestorageDir = Join-Path $webDir filestorage
@@ -162,7 +162,7 @@ function Install-DevEvolution {
         -WebDomain $domain `
         -Licence (join-path $data.LicencesPath "${Product}$($Version.Major).xml") `
         -SolrCore `
-        -SolrBaseUrl ($data.SolrUrl -f $solrVersion).TrimEnd("/") `
+        -SolrBaseUrl ($data.SolrUrl -f $solrVersion).TrimEnd('/') `
         -SolrCoreDir ($data.SolrCoreBase -f $solrVersion) `
         -AdminPassword $data.AdminPassword `
         -DatabaseServer $data.SqlServer `
@@ -261,11 +261,11 @@ function Remove-DevEvolution {
             #Remove site from hosts files
             Write-Progress 'Uninstalling Evolution Community' $Name -CurrentOperation 'Removing Hosts entry'
             $hostsPath = join-path $env:SystemRoot system32\drivers\etc\hosts
-            (Get-Content $hostsPath) | Foreach-Object {$_ -replace "127.0.0.1 $domain", ""} | Set-Content $hostsPath
+            (Get-Content $hostsPath) | Foreach-Object {$_ -replace "127.0.0.1 $domain", ''} | Set-Content $hostsPath
     
             #Remove the solr core
             Write-Progress 'Uninstalling Evolution Community' $Name -CurrentOperation 'Removing Solr Core'
-            $solrUrl = ($data.SolrUrl -f $solrVersion).TrimEnd("/") + '/admin/cores'
+            $solrUrl = ($data.SolrUrl -f $solrVersion).TrimEnd('/') + '/admin/cores'
             Remove-SolrCore -Name $Name -CoreBaseDir ($data.SolrCoreBase -f $solrVersion) -CoreAdmin $solrUrl
 
 	        Write-Host "Deleted website at http://$domain/"

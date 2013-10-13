@@ -184,19 +184,19 @@ function New-IISAppPool{
         [double]$ClrVersion = 4.0,
         [PSCredential]$Credential
     )
-    $versionString = "v{0:N1}" -f $ClrVersion
+    $versionString = 'v{0:N1}' -f $ClrVersion
     Push-Location IIS:\AppPools
     try {
         New-Item $Name -Force | Out-Null
         if ($Credential){
             Set-ItemProperty $Name -Name processmodel -Value @{
-                identityType="SpecificUser"
-                username=$Credential.UserName
-                password=$Credential.Password
+                identityType = 'SpecificUser'
+                username = $Credential.UserName
+                password = $Credential.Password
             } 
         }
         else {
-            Set-ItemProperty $Name -Name processmodel -Value @{identityType="ApplicationPoolIdentity"} 
+            Set-ItemProperty $Name -Name processmodel -Value @{identityType = 'ApplicationPoolIdentity'} 
         }
         Set-ItemProperty $Name -Name managedRuntimeVersion -Value $versionString
     }

@@ -72,22 +72,22 @@ function Install-EvolutionDatabase {
     )
 
     #TODO: Check if DB exists first
-    Write-Progress "Database: $Database" "Checking if database exists"
+    Write-Progress "Database: $Database" 'Checking if database exists'
     if($true) {
-        Write-Progress "Database: $Database" "Creating database"
+        Write-Progress "Database: $Database" 'Creating database'
         New-Database -Name $Database -Server $Server
     }
     
-    Write-Progress "Database: $database" "Creating Schema"
+    Write-Progress "Database: $database" 'Creating Schema'
     $tempDir = Join-Path ([System.IO.Path]::GetFullPath($env:TEMP)) ([guid]::NewGuid())
-    Expand-Zip -Path $package -Destination $tempDir -ZipDirectory SqlScripts -ZipFile "cs_CreateFullDatabase.sql"
+    Expand-Zip -Path $package -Destination $tempDir -ZipDirectory SqlScripts -ZipFile cs_CreateFullDatabase.sql
     $sqlScript = Join-Path $tempDir cs_CreateFullDatabase.sql | Resolve-Path
 
     $connectionInfo = @{
         ServerInstance = $Server
         Database = $database
     }
-    Write-ProgressFromVerbose "Database: $database" "Creating Schema" {
+    Write-ProgressFromVerbose "Database: $database" 'Creating Schema' {
         Invoke-Sqlcmd @connectionInfo -InputFile $sqlScript -QueryTimeout 6000
     }
     Remove-Item $tempDir -Recurse -Force | out-null
@@ -103,7 +103,7 @@ function Install-EvolutionDatabase {
                 , @CreateSamples = 1
 "@
 
-    Write-ProgressFromVerbose "Database: $database" "Creating Community" {
+    Write-ProgressFromVerbose "Database: $database" 'Creating Community' {
         Invoke-Sqlcmd @connectionInfo -query $createCommunityQuery
     }
 }

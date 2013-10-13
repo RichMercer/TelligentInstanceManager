@@ -44,7 +44,7 @@
         [string]$ZipFileName
     )   
 
-    $prefix = ""
+    $prefix = ''
     if($ZipDirectory){
         $prefix = $ZipDirectory.Replace('\','/').Trim('/') + '/'
     }
@@ -78,7 +78,7 @@
             $entries |% {
                 $destination = join-path $absoluteDestination $_.FullName.Substring($prefix.Length)
                 <#
-                Write-Progress "Extracting Zip" `
+                Write-Progress 'Extracting Zip' `
                     -CurrentOperation $_.FullName `
                     -PercentComplete ($processedFileSize / $totalFileSize * 100)
                 #>
@@ -87,7 +87,7 @@
 
                 $processedFileSize += $_.Length
             }
-            #Write-Progress "Extracting-Zip" -Completed
+            #Write-Progress 'Extracting-Zip' -Completed
         }
     }
     finally {
@@ -140,7 +140,7 @@ function Test-Zip {
     )
 
     Test-Path $Path -PathType Leaf
-    if((Get-Item $Path).Extension -ne ".zip") {
+    if((Get-Item $Path).Extension -ne '.zip') {
 		throw "$Path is not a zip file"
     }
 }
