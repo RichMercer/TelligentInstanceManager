@@ -35,3 +35,36 @@
         ? { $_ -is 'System.Management.Automation.VerboseRecord'}  |
         % { Write-Progress $Activity $Status  -CurrentOperation $_.Message}
 }
+
+function Expand-UNCPath {
+    param(
+        [Parameter(Mandatory=$true, Position = 0)]
+        [ValidateNotNullOrEmpty()]
+        [ValidatePattern('^\\\\[^\\]+\\[^\\]+')]
+        [string]$Path
+    )
+    $pathToSplit = $Path.Substring(2);
+    $parts = $pathToSplit -split '\\'
+
+    $result = [ordered]@{
+        Path = $Path
+        ComputerName = $parts[0]
+        Share = $parts[1]
+        LocalPath = ''
+    }
+
+    #If the computer name given is a CName, resolve to the real host
+    $hostInfo = [system.net.dns]::GetHostByName($result.ComputerName)
+    if ($hostInfo) {
+        $result.ComputerName = $hostInfo.HostName
+    }
+
+    $share = gwmi win32_share -ComputerName $result.ComputerName |
+        ? Name -eq $result.Share
+
+    if ($share) {
+        $remaining = $parts[2..$parts.Length] -join '\'
+        $result.LocalPath = "$($share.Path.TrimEnd('\'))\$remaining"
+    }
+    [PSCustomObject]$result
+}

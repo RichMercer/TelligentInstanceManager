@@ -71,42 +71,91 @@ function Install-JobSchedulerService {
     #>
     [CmdletBinding()]
     param(
-    	[Parameter(Mandatory=$true,Position=0)]
+    	[Parameter(Mandatory=$true,Position=1)]
         [ValidateNotNullOrEmpty()]
         [string]$Name,
-    	[Parameter(Mandatory=$true,Position=3)]
+    	[Parameter(Mandatory=$true,Position=2)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({ Test-CommunityPath $_ -JobScheduler -AllowEmpty})]
         [string]$JobSchedulerPath,
-	    [Parameter(Mandatory=$true,Position=4)]
+	    [Parameter(Mandatory=$true,Position=3)]
         [ValidateNotNullOrEmpty()]
         [PSCredential]$Credential,
         [ValidateSet('Automatic', 'Manual', 'Disabled')]
         [string]$StartupType = 'Automatic'
     )
 
-    Write-Progress 'Job Scheduler' 'Setting up Service'
-    $servicePath = join-path $JobSchedulerPath Telligent.JobScheduler.Service.exe | Resolve-Path
+    $localJsPath = $JobSchedulerPath | Convert-Path
+
+    $splat = @{}
+    if ($localJsPath.StartsWith('\\')) {
+        $path = Expand-UNCPath $localJsPath
+        if (!$path.LocalPath ) {
+            Write-Error "Unable to determine local path for '$localJsPath'"
+            return;
+        }
+        $splat.ComputerName = $path.ComputerName
+        $localJsPath = $path.LocalPath
+    }
+
+    $servicePath = "$($localJsPath.TrimEnd('\'))\Telligent.JobScheduler.Service.exe"
     $serviceName = "Telligent.JobScheduler-$Name"
-    $service = New-Service $serviceName `
-        -BinaryPathName $servicePath `
-        -DisplayName "Telligent Job Scheduler - $Name" `
-        -StartupType $StartupType `
-        -Credential $Credential `
     
-    if($StartupType -eq 'Automatic') {
-        Start-Service $service
 
-        Write-Progress 'Job Scheduler' 'Setting automatic service recovery'
-        # - first restart after 30 secs, subsequent every 2 mins.
-        # - reset failure count after 20 mins
-        &sc.exe failure "$serviceName" actions= restart/30000/restart/120000 reset= 1200 | Out-Null
+    if ($splat.ComputerName) {
+        Write-Verbose "Setting up service on '$computerName'"
+    } 
+    else {
+        Write-Verbose 'Setting up service'
+    }
 
-        #If SQL is on the current server, set startup to Automatic (Delayed Startup)
-        $info = Get-Community $JobSchedulerPath
-        if (('.','(local)','localhost') -contains $info.ServerInstance) {
-            Write-Progress 'Job Scheduler' 'Changing startup mode to Automatic (Delayed Start) to prevent race conditions with SQL Server'
-            &sc.exe config "$serviceName" start= delayed-auto | Out-Null
+    $displayName = "Telligent Job Scheduler - $Name"
+    $localSqlServer = ('.','(local)','localhost') -contains (Get-Community $JobSchedulerPath).ServerInstance
+
+    Invoke-Command @splat -ArgumentList @($serviceName, $servicePath, $displayName, $StartupType, $Credential, $localSqlServer) {
+        param (
+        	[Parameter(Mandatory=$true,Position=1)]
+            [ValidateNotNullOrEmpty()]
+            [string]$serviceName,
+        	[Parameter(Mandatory=$true,Position=2)]
+            [ValidateNotNullOrEmpty()]
+            [ValidateScript({ Test-Path $_ -PathType Leaf})]
+            [string]$servicePath,
+        	[Parameter(Mandatory=$true,Position=3)]
+            [string]$displayName,
+            [ValidateNotNullOrEmpty()]
+        	[Parameter(Mandatory=$true,Position=4)]
+            [ValidateNotNullOrEmpty()]
+            [ValidateSet('Automatic', 'Manual', 'Disabled')]
+            [string]$startupType,
+        	[Parameter(Mandatory=$true,Position=5)]
+            [ValidateNotNullOrEmpty()]
+            [PSCredential]$credential,
+        	[Parameter(Mandatory=$true,Position=6)]
+            [ValidateNotNullOrEmpty()]
+            [bool]$localSqlServer
+        )
+
+        $service = New-Service $serviceName `
+            -BinaryPathName $servicePath `
+            -DisplayName $displayName `
+            -StartupType $startupType `
+            -Credential $credential
+    
+        if($service -and $startupType -eq 'Automatic') {
+
+            Write-Verbose 'Setting automatic service recovery'
+            # - first restart after 30 secs, subsequent every 2 mins.
+            # - reset failure count after 20 mins
+            &sc.exe failure "$serviceName" actions= restart/30000/restart/120000 reset= 1200 | Out-Null
+
+            #If SQL is on the current server, set startup to Automatic (Delayed Startup)
+            if ($localSqlServer) {
+                Write-Verbose 'Changing startup mode to Automatic (Delayed Start) to prevent race conditions with SQL Server'
+                &sc.exe config "$serviceName" start= delayed-auto | Out-Null
+            }
+
+            Start-Service $serviceName
         }
     }
 }
@@ -163,4 +212,37 @@ function Update-JobSchedulerFromWeb {
         #      OR use web.config then merge back in JS specifics?
     }
     popd
+}
+
+function Remove-Service {
+    [CmdletBinding(SupportsShouldProcess=$true, ConfirmImpact='High')]
+    param(
+    	[Parameter(Mandatory=$true,Position=0)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({ Test-Path $_ -PathType Leaf})]        
+        [string]$Executable,
+        [switch]$Force
+    )
+
+    $localPath = $Executable | Convert-Path
+
+    $splat = @{}
+    if ($localPath.StartsWith('\\')) {
+        $path = Expand-UNCPath $localPath
+        if (!$path.LocalPath ) {
+            Write-Error "Unable to determine local path for '$localJsPath'"
+            return;
+        }
+        $splat.ComputerName = $path.ComputerName
+        $localPath = $path.LocalPath
+    }
+
+    gwmi win32_service @splat |
+        ? PathName -like "${localPath}*" |
+        ? { $Force -or $PSCmdlet.ShouldProcess($_.Name) } |
+        % {
+            Write-Verbose "Removing Service '$($_.Name)'"
+            $_.StopService() |Out-Null
+            $_.Delete() | Out-Null
+        }
 }

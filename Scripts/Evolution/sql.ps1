@@ -8,6 +8,7 @@
     [CmdletBinding()]
     param(
         [parameter(Mandatory=$true)]
+		[ValidateNotNullOrEmpty()]
         [string]$Server
     )
     $parts = $Server.Split('\');
