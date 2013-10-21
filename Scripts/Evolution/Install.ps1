@@ -160,8 +160,9 @@
     Install-EvolutionDatabase -Package $Package -WebDomain $webDomain -AdminPassword $AdminPassword @sqlConnectionSettings
     Grant-EvolutionDatabaseAccess @sqlConnectionSettings @sqlAuthSettings
 
-	if($HotfixPackage) {
-        Install-EvolutionHotfix -WebsitePath $WebsitePath -Package $HotfixPackage @sqlConnectionSettings
+	if($Hotfix) {
+        Write-Host 'installing hotfix'
+        Install-EvolutionHotfix -WebsitePath $WebsitePath -Package $Hotfix
 	}	
 
     Write-Progress 'Configuration' 'Setting Connection Strings'
