@@ -171,7 +171,7 @@ function Install-DevEvolution {
     if ($info) {
 	    Disable-CustomErrors $webDir
 
-	    if($info.PlatformVersion -ge 5.6) {
+    	if($info.PlatformVersion -ge 5.6 -and $info.PlatformVersion.Major -lt 8){
             Register-TasksInWebProcess $webDir $basePackage
         }
 

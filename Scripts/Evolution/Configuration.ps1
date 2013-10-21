@@ -32,7 +32,7 @@
         if ($Web -and !(Join-Path $Path web.config | Test-Path  -ErrorAction SilentlyContinue)) {
             throw "'$Path' does not contain a valid Telligent Evolution website"
         }
-        elseif ($JobScheduler -and !(Join-Path $Path Telligent.JobScheduler.Service.exe | Test-Path  -ErrorAction SilentlyContinue)) {
+        elseif ($JobScheduler -and !((Join-Path $Path Telligent.JobScheduler.Service.exe | Test-Path) -or (Join-Path $Path Telligent.Jobs.Server.exe | Test-Path))) {
             throw "'$Path' does not contain a valid Telligent Job Scheduler"
         }
     }
@@ -337,35 +337,45 @@ function Register-TasksInWebProcess {
 		[ValidateScript({Test-Zip $_ })]
         [string]$Package
     )
-    Write-Warning "Registering Tasks in the web process is not supported for production environments. Only do this in non production environments"
+    $info = Get-Community $WebsitePath
+	if($info.PlatformVersion -lt 5.6){
+        Write-Error 'Job Scheduler not supported on 5.5 or below'
+    }
+    elseif($info.PlatformVersion.Major -ge 8) { 
+        Write-Error 'Jobs can no longer be run in the web process in 8.0 or higher'
+    }
+    else {
+        Write-Warning "Registering Tasks in the web process is not supported for production environments. Only do this in non production environments"
 
-    $tempDir = Join-Path $env:temp ([guid]::NewGuid())
-    Expand-Zip -Path $Package -destination $tempDir -ZipDirectory Tasks -zipFile tasks.config
-    $webTasksPath = Join-Path $WebsitePath tasks.config | Resolve-Path
-    $webTasks = [xml](gc $webTasksPath)
-	if($webTasks.jobs.cron){
-		#6.0+
-		$jsTasks = [xml](Join-Path $tempDir tasks.config | Resolve-Path | Get-Content)
-		$jsTasks.jobs.cron.jobs.job |% {
-    	    $webTasks.jobs.cron.jobs.AppendChild($webTasks.ImportNode($_, $true)) | Out-Null
-	    }
-		$webTasks.jobs.dynamic.mode = 'Server'
-	}
-	else {
-		#5.6
-		$tasks = [xml]$tasks5x
-		$tasks.jobs.job |% {
-    	    $webTasks.scheduler.jobs.AppendChild($webTasks.ImportNode($_, $true)) | out-null
-	    }
-		$version = (Get-Community $WebsitePath).PlatformVersion
-		if($version.Revision -ge 17537) {
-			$reindexNode = [xml]'<job schedule="30 * * * * ? *" type="CommunityServer.Search.SiteReindexJob, CommunityServer.Search" />'
-    	    $webTasks.scheduler.jobs.AppendChild($webTasks.ImportNode($reindexNode.job, $true)) | out-null
-		}
-	}
+        $tempDir = Join-Path $env:temp ([guid]::NewGuid())
+        Expand-Zip -Path $Package -destination $tempDir -ZipDirectory Tasks -zipFile tasks.config
+        $webTasksPath = Join-Path $WebsitePath tasks.config | Resolve-Path
+        if ($webTasksPath) {
+            $webTasks = [xml](gc $webTasksPath)
+	        if($webTasks.jobs.cron){
+		        #6.0+
+		        $jsTasks = [xml](Join-Path $tempDir tasks.config | Resolve-Path | Get-Content)
+		        $jsTasks.jobs.cron.jobs.job |% {
+    	            $webTasks.jobs.cron.jobs.AppendChild($webTasks.ImportNode($_, $true)) | Out-Null
+	            }
+		        $webTasks.jobs.dynamic.mode = 'Server'
+	        }
+	        else {
+		        #5.6
+		        $tasks = [xml]$tasks5x
+		        $tasks.jobs.job |% {
+    	            $webTasks.scheduler.jobs.AppendChild($webTasks.ImportNode($_, $true)) | out-null
+	            }
+		        $version = (Get-Community $WebsitePath).PlatformVersion
+		        if($version.Revision -ge 17537) {
+			        $reindexNode = [xml]'<job schedule="30 * * * * ? *" type="CommunityServer.Search.SiteReindexJob, CommunityServer.Search" />'
+    	            $webTasks.scheduler.jobs.AppendChild($webTasks.ImportNode($reindexNode.job, $true)) | out-null
+		        }
+	        }
 
-	$webTasks.Save($webTasksPath)
-	
+	        $webTasks.Save($webTasksPath)
+        }
+	}
 }
 
 function Disable-CustomErrors {
