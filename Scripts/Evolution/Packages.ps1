@@ -57,8 +57,7 @@ function Get-EvolutionBuild {
             new-object PSObject -Property ([ordered]@{
                 Product = $_.Product
                 Version = $_.Version
-                BasePackage = $base.Path
-                HotfixPackage = $_.Path
+                BasePackage = $_.Path
             })
         }
 
