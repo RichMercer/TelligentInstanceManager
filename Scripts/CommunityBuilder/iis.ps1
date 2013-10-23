@@ -1,4 +1,4 @@
-﻿function New-EvolutionWebsite {
+﻿function New-CommunityWebsite {
     <#
     .SYNOPSIS
         Creates a new Evolution website
@@ -67,16 +67,16 @@
             Remove-Item $initialFilestoragePath
         }
 
-        Set-EvolutionFileStorage $Path $FilestoragePath
+        Set-CommunityFilestorage $Path $FilestoragePath
     }
     else {
         $FilestoragePath = $initialFilestoragePath       
     }
 
-    Grant-EvolutionNtfsPermission $Path $FilestoragePath
+    Grant-CommunityNtfsPermission $Path $FilestoragePath
 }
 
-function Grant-EvolutionNtfsPermission {
+function Grant-CommunityNtfsPermission {
     <#
     .SYNOPSIS
       Grants the required NTFS permissions for a Telligent Evolution community.

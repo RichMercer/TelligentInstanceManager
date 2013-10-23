@@ -33,26 +33,26 @@ $data = @{
 	SolrCoreBase = Join-Path $base 'Solr\{0}\'
 }
 
-function Get-DevEvolution {
+function Get-DevCommunity {
     <#
         .SYNOPSIS
-            Gets DevEvolution instances
+            Gets DevCommunity instances
         .PARAMETER Name
             The name of the instance to remove
         .PARAMETER Force
             Forces removal of the named instance, even if the named instance cannot be found.
         .EXAMPLE
-            Get-DevEvolution
+            Get-DevCommunity
                
-            Gets all DevEvolution instances
+            Gets all DevCommunity instances
         .EXAMPLE
-            Get-DevEvolution test123
+            Get-DevCommunity test123
 
-            Gets the DevEvolution instance named 'test123'
+            Gets the DevCommunity instance named 'test123'
         .EXAMPLE
-            Get-DevEvolution ps*
+            Get-DevCommunity ps*
                
-            Gets all DevEvolution instances whose names match the pattern 'ps*'
+            Gets all DevCommunity instances whose names match the pattern 'ps*'
     #>
     param(
         [Parameter(ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
@@ -68,12 +68,12 @@ function Get-DevEvolution {
     $results
 }
 
-function Install-DevEvolution {
+function Install-DevCommunity {
     <#
     .Synopsis
 	    Sets up a new Telligent Evolution community for development purposes.
     .Description
-	    The Install-Evolution cmdlet automates the process of creating a new Telligent Evolution community.
+	    The Install-Community cmdlet automates the process of creating a new Telligent Evolution community.
 		
 	    It takes the installation package, and from it deploys the website to IIS and a creates a new database using
 	    the scripts from the package.  It also sets permissions automatically.
@@ -117,9 +117,9 @@ function Install-DevEvolution {
 	    Specify this switch to not set up a new search instance
 
     .Example
-        Get-EvolutionBuild 7.6 | Install-DevEvolution TestSite
+        Get-CommunityBuild 7.6 | Install-DevCommunity TestSite
         
-        Output can be piped from Get-EvolutionBuild to automatically fill in the product, version, basePackage and hotfixPackage paramaters
+        Output can be piped from Get-CommunityBuild to automatically fill in the product, version, basePackage and hotfixPackage paramaters
     
 				
     #>
@@ -128,7 +128,7 @@ function Install-DevEvolution {
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [ValidatePattern('^[a-z0-9\-\._]+$')]
-        [ValidateScript({if(Get-DevEvolution $_){ throw "DevEvolution Instance '$_' already exists" } else { $true }})]
+        [ValidateScript({if(Get-DevCommunity $_){ throw "DevCommunity Instance '$_' already exists" } else { $true }})]
         [string] $Name,
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
  		[ValidateSet('Community','Enterprise')]
@@ -153,7 +153,7 @@ function Install-DevEvolution {
     $filestorageDir = Join-Path $webDir filestorage
     $domain = if($Name.Contains('.')) { $Name } else { "$Name.local"}
 
-    $info = Install-Evolution -name $Name `
+    $info = Install-Community -name $Name `
         -Package $BasePackage `
         -Hotfix $HotfixPackage `
         -WebsitePath $webDir `
@@ -190,26 +190,26 @@ function Install-DevEvolution {
     }
 }
 
-function Remove-DevEvolution {
+function Remove-DevCommunity {
     <#
         .SYNOPSIS
-            Removes a DevEvolution Instance
+            Removes a DevCommunity Instance
         .PARAMETER Name
             The name of the instance to remove
         .PARAMETER Force
             Forces removal of the named instance, even if the named instance cannot be found.
         .EXAMPLE
-            Remove-DevEvolution test1, test2
+            Remove-DevCommunity test1, test2
                
-            Removes the 'test1' and 'test2' DevEvolution Instances
+            Removes the 'test1' and 'test2' DevCommunity Instances
         .EXAMPLE
-            Get-DevEvolution | Remove-DevEvolution
+            Get-DevCommunity | Remove-DevCommunity
                
-            Removes all DevEvolution instances
+            Removes all DevCommunity instances
         .EXAMPLE
-            Remove-DevEvolution FailedInstall -Force
+            Remove-DevCommunity FailedInstall -Force
                
-            Removes the 'FailedInstall' DevEvolution instance if it's corrupted to the point it's not dete
+            Removes the 'FailedInstall' DevCommunity instance if it's corrupted to the point it's not dete
     #>
     [CmdletBinding(SupportsShouldProcess=$true, ConfirmImpact='High')]
     param(
@@ -273,6 +273,15 @@ function Remove-DevEvolution {
     }
 }
 
-Set-Alias isde Install-DevEvolution
-Set-Alias rde Remove-DevEvolution
-Set-Alias gde Get-DevEvolution
+Set-Alias isdc Install-DevCommunity
+Set-Alias rdc Remove-DevCommunity
+Set-Alias gdc Get-DevCommunity
+
+
+#Backwards compatibility with previous names
+Set-Alias Install-DevEvolution Install-DevCommunity
+Set-Alias Remove-DevEvolution Remove-DevCommunity
+Set-Alias Get-DevEvolution Get-DevCommunity
+Set-Alias isde Install-DevCommunity
+Set-Alias rde Remove-DevCommunity
+Set-Alias gde Get-DevCommunity

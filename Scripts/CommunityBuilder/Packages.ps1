@@ -11,7 +11,7 @@ $hotfixDir = Join-Path $base Hotfixes
 
 $versionRegex = [regex]'[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+'
 
-function Get-EvolutionBuild {
+function Get-CommunityBuild {
     <#
     .SYNOPSIS
 	    Gets a list of Teligent Evolution builds in the Mass Install directory.
@@ -22,23 +22,23 @@ function Get-EvolutionBuild {
     .PARAMETER Enterprise
 	    If specified, filters the build list to just those of Telligent Enterprise
     .EXAMPLE
-        Get-EvolutionBuild
+        Get-CommunityBuild
         
         Gets a list of all available builds
     .EXAMPLE
-        Get-EvolutionBuild 7.6
+        Get-CommunityBuild 7.6
         
         Gets the most recent build with major version 7 and minor version 6.
     .EXAMPLE
-        Get-EvolutionBuild -Community
+        Get-CommunityBuild -Community
         
         List all builds of Telligent Community.
     .EXAMPLE
-        Get-EvolutionBuild -Enterprise
+        Get-CommunityBuild -Enterprise
         
         List all builds of Telligent Enterprise.
     .EXAMPLE
-        Get-EvolutionBuild 4 -Enterprise
+        Get-CommunityBuild 4 -Enterprise
         
         List the most recent build of Telligent Enterprise version 4.
     #>
@@ -100,7 +100,6 @@ function Get-EvolutionBuild {
     $results
 
 }
-Set-Alias geb Get-EvolutionBuild
 
 function Get-VersionedEvolutionPackage {
     [CmdletBinding()]
@@ -132,3 +131,9 @@ function Get-VersionedEvolutionPackage {
         }
 
 }
+
+Set-Alias gcb Get-CommunityBuild
+
+#Backwards compatibility with
+Set-Alias geb Get-CommunityBuild
+Set-Alias Get-EvolutionBuild Get-CommunityBuild

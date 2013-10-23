@@ -25,7 +25,7 @@ function Get-Community {
         [string]$path
     )
     process {
-        $csConfig = Merge-EvolutionConfigurationFile $path communityserver -ErrorAction SilentlyContinue
+        $csConfig = Merge-CommunityConfigurationFile $path communityserver -ErrorAction SilentlyContinue
 
         $product = @($versionDllNames.platform) |
             % { $_, (join-path bin $_) } |
@@ -48,14 +48,14 @@ function Get-Community {
             Product = $product
         }
         $versionDllNames.GetEnumerator() |% {
-            $info["$($_.Key)Version"] = Get-EvolutionVersionFromDlls $path $_.Value
+            $info["$($_.Key)Version"] = Get-CommunityVersionFromDlls $path $_.Value
         }
 
         new-object psobject -Property $info
     }
 }
 
-function Get-EvolutionVersionFromDlls {
+function Get-CommunityVersionFromDlls {
     <#
     .SYNOPSIS
         Gets version information from Telligent Evolution dlls
@@ -87,7 +87,7 @@ function Get-EvolutionVersionFromDlls {
         return [Version]$version
 }
 
-function Merge-EvolutionConfigurationFile {
+function Merge-CommunityConfigurationFile {
     <#
     .SYNOPSIS
         Gets the resultant configuration XML after merging a Telligent override configuration file with the original config file

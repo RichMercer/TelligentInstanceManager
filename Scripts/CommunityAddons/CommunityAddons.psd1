@@ -40,7 +40,7 @@ CLRVersion = '4.0'
 ProcessorArchitecture = ''
 
 # Modules that must be imported into the global environment prior to importing this module
-RequiredModules = @('Evolution')
+RequiredModules = @('CommunityBuilder')
 
 # Assemblies that must be loaded prior to importing this module
 RequiredAssemblies = @()
@@ -55,19 +55,19 @@ TypesToProcess = @()
 FormatsToProcess = @()
 
 # Modules to import as nested modules of the module specified in ModuleToProcess
-NestedModules = @('EvolutionAddons.ps1')
+NestedModules = @('CommunityAddons.ps1')
 
 # Functions to export from this module
 FunctionsToExport = '*'
 
 # Cmdlets to export from this module
 CmdletsToExport = @(
-    'Install-EvolutionAddon'
-    'Install-EvolutionIdeation'
-    'Install-EvolutionChat'
-    'Install-EvolutionVideoTranscoding'
-    'Install-EvolutionDocumenPreview'
-    'Install-EvolutionCalendar'
+    'Install-CommunityAddon'
+    'Install-CommunityIdeation'
+    'Install-CommunityChat'
+    'Install-CommunityVideoTranscoding'
+    'Install-CommunityDocumenPreview'
+    'Install-CommunityCalendar'
 )
 
 # Variables to export from this module

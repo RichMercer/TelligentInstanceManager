@@ -1,9 +1,9 @@
-﻿function Install-Evolution {
+﻿function Install-Community {
 	<#
 	.Synopsis
 		Sets up a new Evolution Community.
 	.Description
-		The Install-Evolution cmdlet automates the process of creating a new Telligent Evolution community.
+		The Install-Community cmdlet automates the process of creating a new Telligent Evolution community.
 		
 		It takes the installation package, and from it deploys the website to IIS and a creates a new database using
 		the scripts from the package.  It also sets permissions automatically.
@@ -41,7 +41,7 @@
 	.Parameter Licence
 	    The path to the licence XML file to install in the community
 	.Example
-		Install-Evolution -name 'Telligent Evolution' -package d:\temp\TelligentCommunity-7.0.1824.27400.zip -webDir "d:\inetpub\TelligentEvolution\" -webdomain "mydomain.com" -searchUrl "http://localhost:8080/solr/"
+		Install-Community -name 'Telligent Evolution' -package d:\temp\TelligentCommunity-7.0.1824.27400.zip -webDir "d:\inetpub\TelligentEvolution\" -webdomain "mydomain.com" -searchUrl "http://localhost:8080/solr/"
 		
 		Description
 		-----------
@@ -135,7 +135,7 @@
         throw 'FilestoragePath must be specified when using JobSchedulerPath'
     }
 
-    New-EvolutionWebsite -name $name `
+    New-CommunityWebsite -name $name `
 		-Path $WebsitePath `
 		-Package $package `
 		-HostName $webDomain `
@@ -157,12 +157,12 @@
 		$sqlAuthSettings.username = Get-IISAppPoolIdentity $name
 	}
 
-    Install-EvolutionDatabase -Package $Package -WebDomain $webDomain -AdminPassword $AdminPassword @sqlConnectionSettings
-    Grant-EvolutionDatabaseAccess @sqlConnectionSettings @sqlAuthSettings
+    Install-CommunityDatabase -Package $Package -WebDomain $webDomain -AdminPassword $AdminPassword @sqlConnectionSettings
+    Grant-CommunityDatabaseAccess @sqlConnectionSettings @sqlAuthSettings
 
 	if($Hotfix) {
         Write-Host 'installing hotfix'
-        Install-EvolutionHotfix -WebsitePath $WebsitePath -Package $Hotfix
+        Install-CommunityHotfix -WebsitePath $WebsitePath -Package $Hotfix
 	}	
 
     Write-Progress 'Configuration' 'Setting Connection Strings'
@@ -170,7 +170,7 @@
 
 	if ($Licence) {
         Write-Progress 'Configuration' 'Installing Licence'
-        Install-EvolutionLicence $WebsitePath $Licence
+        Install-CommunityLicence $WebsitePath $Licence
 	}
 	else {
 		Write-Warning 'No Licence installed.'
@@ -187,11 +187,11 @@
 		    -coreBaseDir $SolrCoreDir `
 		    -coreAdmin "$solrUrl/admin/cores"
 
-	    Set-EvolutionSolrUrl $WebsitePath "$solrUrl/$SolrCoreName/"
+	    Set-CommunitySolrUrl $WebsitePath "$solrUrl/$SolrCoreName/"
 	}
 
     if($ApiKey) {
-        New-EvolutionApiKey $WebsitePath $ApiKey -UserId 2100
+        New-CommunityApiKey $WebsitePath $ApiKey -UserId 2100
     }
 
     $info = Get-Community $WebsitePath 
@@ -208,7 +208,7 @@
         Add-Member AdminApiKey $ApiKey -PassThru
 }
 
-function Install-EvolutionHotfix {
+function Install-CommunityHotfix {
     <#
     .SYNOPSIS
         Installs a Telligent Evolution hotfix 
@@ -263,7 +263,7 @@ function Install-EvolutionHotfix {
     Remove-Item $tempDir -Recurse -Force | Out-Null
 }
 
-function Uninstall-Evolution {
+function Uninstall-Community {
 	[CmdletBinding(DefaultParameterSetName='NoService')]
     param(
     	[Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true, ValueFromPipeline=$true)]

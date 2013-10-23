@@ -138,7 +138,7 @@ function Get-ConnectionString {
     $connectionInfo
 }
 
-function New-EvolutionApiKey {
+function New-CommunityApiKey {
     <#
     .SYNOPSIS
         Creates a new REST API Key 
@@ -216,7 +216,7 @@ function Add-OverrideChangeAttribute {
     $overrides.Save(($overridePath | Resolve-Path))
 }
 
-function Set-EvolutionFilestorage {
+function Set-CommunityFilestorage {
     <#
     .SYNOPSIS
         Sets the Filestorage location for a Telligent Evolution Community
@@ -246,7 +246,7 @@ function Set-EvolutionFilestorage {
             -Value $FilestoragePath
     }
     else {
-        $csConfig = Merge-EvolutionConfigurationFile $WebsitePath communityserver
+        $csConfig = Merge-CommunityConfigurationFile $WebsitePath communityserver
         $csConfig.CommunityServer.CentralizedFileStorage.fileStore.name |% {
             Add-OverrideChangeAttribute $WebsitePath `
                 -XPath "/CommunityServer/CentralizedFileStorage/fileStore[@name='$_']" `
@@ -257,7 +257,7 @@ function Set-EvolutionFilestorage {
 
 }
 
-function Set-EvolutionSolrUrl {
+function Set-CommunitySolrUrl {
 	<#
 	.SYNOPSIS
 		Updates the Search Url used by the Telligent Evolution community in the current directory
@@ -286,7 +286,7 @@ function Set-EvolutionSolrUrl {
         -WebsitePath $WebsitePath
 }
 
-function Install-EvolutionLicence {
+function Install-CommunityLicence {
 	<#
 	.SYNOPSIS
 		Installs a licence file into a Telligent Evolution Community
@@ -470,7 +470,7 @@ function Enable-WindowsAuth {
     }
 }
 
-function Enable-EvolutionLdap {
+function Enable-CommunityLdap {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$true)]

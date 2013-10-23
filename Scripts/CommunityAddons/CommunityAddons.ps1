@@ -1,4 +1,4 @@
-﻿function Install-EvolutionAddon {
+﻿function Install-CommunityAddon {
     param(
         [Parameter(Mandatory=$true)]
 		[ValidateScript({Test-Zip $_})]
@@ -142,7 +142,7 @@ function Add-XmlToFile {
 }
 
 
-function Install-EvolutionIdeation
+function Install-CommunityIdeation
 {
     param(
         [Parameter(Mandatory=$true)]
@@ -155,7 +155,7 @@ function Install-EvolutionIdeation
         [string]$JobSchedulerPath
     )
 
-   Install-EvolutionAddon `
+   Install-CommunityAddon `
         -AddonPackage $Package `
         -WebsitePath $WebsitePath `
         -JobSchedulerPath $JobSchedulerPath `
@@ -168,7 +168,7 @@ function Install-EvolutionIdeation
         -Name Ideation
 }
 
-function Install-EvolutionChat {
+function Install-CommunityChat {
     param(
         [Parameter(Mandatory=$true)]
 		[ValidateScript({Test-Zip $_})]
@@ -180,7 +180,7 @@ function Install-EvolutionChat {
         [string]$JobSchedulerPath
     )
 
-    Install-EvolutionAddon `
+    Install-CommunityAddon `
         -AddonPackage $Package `
         -WebsitePath $WebsitePath `
         -JobSchedulerPath $JobSchedulerPath `
@@ -191,7 +191,7 @@ function Install-EvolutionChat {
 }
 
 
-function Install-EvolutionVideoTranscoding
+function Install-CommunityVideoTranscoding
 {
     param(
         [Parameter(Mandatory=$true)]
@@ -204,7 +204,7 @@ function Install-EvolutionVideoTranscoding
         [string]$JobSchedulerPath
     )
 
-    Install-EvolutionAddon `
+    Install-CommunityAddon `
         -AddonPackage $Package `
         -WebsitePath $WebsitePath `
         -JobSchedulerPath $JobSchedulerPath `
@@ -218,7 +218,7 @@ function Install-EvolutionVideoTranscoding
     #     />
 }
 
-function Install-EvolutionDocumentPreview
+function Install-CommunityDocumentPreview
 {
     param(
         [Parameter(Mandatory=$true)]
@@ -231,7 +231,7 @@ function Install-EvolutionDocumentPreview
         [string]$JobSchedulerPath
     )
 
-    Install-EvolutionAddon `
+    Install-CommunityAddon `
         -AddonPackage $Package `
         -WebsitePath $WebsitePath `
         -JobSchedulerPath $JobSchedulerPath `
@@ -243,7 +243,7 @@ function Install-EvolutionDocumentPreview
     # <job schedule="0 */2 * * * ? *" type="Telligent.Evolution.VideoTranscoding.TranscodingJob, Telligent.Evolution.VideoTranscoding"/>
 }
 
-function Install-EvolutionCalendar {
+function Install-CommunityCalendar {
     param(
         [Parameter(Mandatory=$true)]
 		[ValidateScript({Test-Zip $_})]
@@ -255,7 +255,7 @@ function Install-EvolutionCalendar {
         [string]$JobSchedulerPath
     )
 
-    Install-EvolutionAddon `
+    Install-CommunityAddon `
         -AddonPackage $Package `
         -WebsitePath $WebsitePath `
         -JobSchedulerPath $JobSchedulerPath `

@@ -30,7 +30,7 @@
     }    
 }
 
-function Install-EvolutionDatabase {
+function Install-CommunityDatabase {
 	<#
 	.SYNOPSIS
 		Grants a user access to an Evolution database.  If the user or login doesn't exist, in SQL server, they
@@ -109,7 +109,7 @@ function Install-EvolutionDatabase {
     }
 }
 
-function Grant-EvolutionDatabaseAccess {
+function Grant-CommunityDatabaseAccess {
 	<#
 	.SYNOPSIS
 		Grants a user access to an Evolution database.  If the user or login doesn't exist, in SQL server, they
@@ -124,14 +124,14 @@ function Grant-EvolutionDatabaseAccess {
 	.PARAMETER  Password
 		The password for the SQL user
 	.EXAMPLE
-		Grant-EvolutionDatabaseAccess (local)\SqlExpress SampleCommunity 'NT AUTHORITY\NETWORK SERVICE'
+		Grant-CommunityDatabaseAccess (local)\SqlExpress SampleCommunity 'NT AUTHORITY\NETWORK SERVICE'
 
 		Description
 		-----------
 		This command grant access to the SampleCommunity database on the SqlExpress instance of the local SQL server
 		for the Network Service Windows account
 	.EXAMPLE
-		Grant-EvolutionDatabaseAccess ServerName SampleCommunity CommunityUser -password SqlPa$$w0rd
+		Grant-CommunityDatabaseAccess ServerName SampleCommunity CommunityUser -password SqlPa$$w0rd
 		
 		Description
 		-----------

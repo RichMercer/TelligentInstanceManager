@@ -78,16 +78,16 @@ NestedModules = @(
 
 # Functions to export from this module
 FunctionsToExport = @(
-                    'Get-EvolutionBuild'
+                    'Get-CommunityBuild'
 
                     'Add-SolrCore'
-                    'Set-EvolutionSolrUrl'
+                    'Set-CommunitySolrUrl'
                     'Remove-SolrCore'
 
-                    'Install-Evolution'
-                    'Uninstall-Evolution'
-                    'Install-EvolutionHotfix'
-                    'Install-EvolutionLicence'
+                    'Install-Community'
+                    'Uninstall-Community'
+                    'Install-CommunityHotfix'
+                    'Install-CommunityLicence'
 
                     'New-IISAppPool'
                     'Test-Zip'
@@ -103,15 +103,15 @@ FunctionsToExport = @(
 
                     'Get-Community'
 
-                    'Set-EvolutionFilestorage'
+                    'Set-CommunityFilestorage'
                     'Write-ProgressFromVerbose'
 
                     'Enable-WindowsAuth'
-                    'Enable-EvolutionLdap'
+                    'Enable-CommunityLdap'
 
                     'Disable-CustomErrors'
                     'Add-OverrideChangeAttribute'
-                    'Merge-EvolutionOverrideFile'
+                    'Merge-CommunityOverrideFile'
 
                     'Test-CommunityPath'
                     'Test-SqlServer'
@@ -124,7 +124,7 @@ CmdletsToExport = ''
 VariablesToExport = ''
 
 # Aliases to export from this module
-AliasesToExport = @('geb')
+AliasesToExport = @('gcb','geb', 'get-evolutionbuild')
 
 # List of all modules packaged with this module
 ModuleList = @()
