@@ -141,33 +141,27 @@ function Grant-CommunityDatabaseAccess {
 	#>
 	[CmdletBinding()]
     param(
-        [parameter(Mandatory=$true, Position = 0)]
+    	[Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [alias('ServerInstance')]
-        [alias('DataSource')]
-        [alias('dbServer')]
-        [string]$Server,
-        [parameter(Mandatory=$true, Position = 1)]
-        [ValidateNotNullOrEmpty()]
-		[alias('dbName')]
-        [alias('InitialCatalog')]
-        [string]$Database,
+        [ValidateScript({ Test-CommunityPath $_ })]
+        [string]$CommunityPath,
         [parameter(Mandatory=$true, Position = 2)]
         [ValidateNotNullOrEmpty()]
         [string]$Username,
-        [ValidateNotNullOrEmpty()]
         [string]$Password
     )
+    $info = Get-Community $CommunityPath
+
     #TODO: Sanatise inputs
-    Write-Progress "Database: $Database" "Granting access to $Username"
-    Invoke-Sqlcmd -serverInstance $Server -database $Database -query @"
+    Write-Verbose "Granting database access to $Username"
+    $query = @"
         IF NOT EXISTS (SELECT 1 FROM master.sys.server_principals WHERE name = N'$Username')
         BEGIN
-        	if('$Password' = N'') BEGIN
-        		CREATE LOGIN [$Username] FROM WINDOWS WITH DEFAULT_DATABASE=[$Database];
+        	if(N'$Password' = N'') BEGIN
+        		CREATE LOGIN [$Username] FROM WINDOWS WITH DEFAULT_DATABASE=[$($info.DatabaseName)];
             END
         	ELSE BEGIN           
-        		CREATE LOGIN [$Username] WITH PASSWORD=N'$Password', DEFAULT_DATABASE=[$Database];
+        		CREATE LOGIN [$Username] WITH PASSWORD=N'$Password', DEFAULT_DATABASE=[$($info.DatabaseName)];
             END
         END
         
@@ -180,9 +174,10 @@ function Grant-CommunityDatabaseAccess {
         EXEC sp_addrolemember N'db_datawriter', N'$Username'
         EXEC sp_addrolemember N'db_ddladmin', N'$Username'
 "@ 
+    Invoke-SqlcmdAgainstCommunity -WebsitePath $CommunityPath -Query $query
 }
 
-function Invoke-SqlCommandAgainstCommunity {
+function Invoke-SqlCmdAgainstCommunity {
 	<#
 	.SYNOPSIS
 		Executes a SQL Script agains the specified community's database.

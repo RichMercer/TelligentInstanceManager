@@ -167,7 +167,7 @@ function New-CommunityApiKey {
     )
 
     $createApiKey = "INSERT INTO [dbo].[cs_ApiKeys] ([UserID],[Value],[Name],[DateCreated],[Enabled]) VALUES ($UserId,'$ApiKey','$Name',GETDATE(), 1)"
-    Invoke-SqlCommandAgainstCommunity $WebsitePath -Query $createApiKey
+    Invoke-SqlCmdAgainstCommunity $WebsitePath -Query $createApiKey
 }
 
 function Add-OverrideChangeAttribute {
@@ -310,7 +310,7 @@ function Install-CommunityLicence {
     $licenceContent = (gc $LicenceFile) -join [Environment]::NewLine
     $licenceId = ([xml]$licenceContent).document.licenseId
     
-	Invoke-SqlCommandAgainstCommunity -WebsitePath $WebsitePath -Query "EXEC [cs_Licenses_Update] @LicenseID = N'$licenceId' , @LicenseValue = N'$licenceContent'"
+	Invoke-SqlCmdAgainstCommunity -WebsitePath $WebsitePath -Query "EXEC [cs_Licenses_Update] @LicenseID = N'$licenceId' , @LicenseValue = N'$licenceContent'"
 }
 
 function Register-TasksInWebProcess {

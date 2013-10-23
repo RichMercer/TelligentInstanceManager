@@ -135,7 +135,8 @@
         throw 'FilestoragePath must be specified when using JobSchedulerPath'
     }
 
-    New-CommunityWebsite -name $name `
+    New-CommunityWebsite `
+        -Name $name `
 		-Path $WebsitePath `
 		-Package $package `
 		-HostName $webDomain `
@@ -157,16 +158,16 @@
 		$sqlAuthSettings.username = Get-IISAppPoolIdentity $name
 	}
 
+    Write-Progress 'Configuration' 'Setting Connection Strings'
+    Set-ConnectionString $WebsitePath @sqlConnectionSettings $SqlCredential
+
     Install-CommunityDatabase -Package $Package -WebDomain $webDomain -AdminPassword $AdminPassword @sqlConnectionSettings
-    Grant-CommunityDatabaseAccess @sqlConnectionSettings @sqlAuthSettings
+    Grant-CommunityDatabaseAccess -CommunityPath $WebsitePath @sqlAuthSettings
 
 	if($Hotfix) {
-        Write-Host 'installing hotfix'
         Install-CommunityHotfix -WebsitePath $WebsitePath -Package $Hotfix
 	}	
 
-    Write-Progress 'Configuration' 'Setting Connection Strings'
-    Set-ConnectionString $WebsitePath @sqlConnectionSettings $SqlCredential
 
 	if ($Licence) {
         Write-Progress 'Configuration' 'Installing Licence'
@@ -245,11 +246,11 @@ function Install-CommunityHotfix {
     $tempDir = join-path ([System.IO.Path]::GetFullPath($env:TEMP)) ([guid]::NewGuid())
     @('update.sql', 'updates.sql') |% {
         Expand-Zip -Path $package -destination $tempDir -zipFile $_
-        $sqlPath = join-path $tempDir $_
+        $sqlFile = join-path $tempDir $_
 
-        if (Test-Path $sqlPath -PathType Leaf) {
+        if (Test-Path $sqlFile -PathType Leaf) {
             Write-ProgressFromVerbose 'Applying Hotfix' 'Updating Database' {
-                Invoke-Sqlcmd -serverinstance $dbServer -Database $dbName -InputFile $sqlPath 
+                Invoke-SqlCmdAgainstCommunity -WebsitePath $WebsitePath -File $sqlFile 
             }
         }
     }

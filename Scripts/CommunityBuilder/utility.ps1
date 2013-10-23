@@ -9,6 +9,7 @@
     .PARAMETER Script
         The Script to execute, and redirect verbose output as the Write-Progress as the CurrentOperation parameter
     #>
+    [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true, Position = 0)]
         [ValidateNotNullOrEmpty()]
@@ -33,7 +34,10 @@
 
     Execute-ScriptBlock -Verbose 4>&1 |
         ? { $_ -is 'System.Management.Automation.VerboseRecord'}  |
-        % { Write-Progress $Activity $Status  -CurrentOperation $_.Message}
+        % {
+            Write-Progress $Activity $Status  -CurrentOperation $_.Message
+            $_ | Write-Verbose
+        }
 }
 
 function Expand-UNCPath {

@@ -41,9 +41,9 @@
 
             if(Test-Path $sqlScript) {
                 Write-ProgressFromVerbose "Installing $Name" $progressTitle {
-                    Invoke-Sqlcmd -ServerInstance $info.DatabaseServer `
-                        -Database $info.DatabaseName `
-                        -InputFile $sqlScript `
+                    Invoke-SqlcmdAgainstCommunity `
+                        -WebsitePath $WebsitePath `
+                        -File $sqlScript `
                         -QueryTimeout 6000
                 }
             }
@@ -107,9 +107,10 @@
 
     $plugins | % {
         Write-Progress "Installing $Name" 'Enabling Plugins' -CurrentOperation $_ 
-        Invoke-Sqlcmd -serverinstance $connectionString.DataSource `
-            -Database $connectionString.InitialCatalog `
-            -query @"
+
+		Invoke-SqlcmdAgainstCommunity `
+			-WebsitePath $WebsitePath `
+            -Query @"
             DELETE FROM [dbo].[te_Plugins] WHERE [Type] = '$_';
             INSERT INTO [dbo].[te_Plugins] VALUES ('$_');
 "@

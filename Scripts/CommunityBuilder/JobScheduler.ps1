@@ -59,7 +59,7 @@
         Expand-Zip -Path $package -Destination $tempDir -ZipDirectory SqlScripts -ZipFile Jobs_InstallUpdate.sql
         $sqlScript = Join-Path $tempDir Jobs_InstallUpdate.sql | Resolve-Path
 
-    	Invoke-SqlCommandAgainstCommunity -WebsitePath $WebsitePath -File $sqlScript
+    	Invoke-SqlCmdAgainstCommunity -WebsitePath $WebsitePath -File $sqlScript
     }
 
     if($InstallService){
