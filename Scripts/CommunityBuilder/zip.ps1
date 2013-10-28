@@ -42,11 +42,11 @@
         [string]$ZipDirectory,
         [ValidateScript({!$_ -or (Test-Path $_ -PathType Leaf -IsValid)})]
         [string]$ZipFileName
-    )   
+    )
 
     $prefix = ''
     if($ZipDirectory){
-        $prefix = $ZipDirectory.Replace('\','/').Trim('/') + '/'
+        $prefix = ($ZipDirectory).Replace('\','/').Trim('/') + '/'
     }
     if (!(test-path $Destination -PathType Container)) {
         New-item $Destination -Type Directory | out-null
@@ -58,12 +58,11 @@
 
     $zipPackage = [IO.Compression.ZipFile]::OpenRead($zipAbsolutePath)
     try {
-
+        $entries = $zipPackage.Entries
         if ($ZipFileName){
-            $zipPackage.Entries |
+            $entries = $entries |
                 ? {$_.FullName -eq "${prefix}${ZipFileName}"} |
-                select -First 1 |
-                %{ Expand-ZipArchiveEntry $_ (Join-Path $absoluteDestination $ZipFileName) }
+                select -First 1
         }
         else {
             #Filter out directories
@@ -72,50 +71,34 @@
                 #Filter out items not under requested directory
                 $entries = $entries |? { $_.FullName.StartsWith($prefix, "OrdinalIgnoreCase")}
             }
-
-            $totalFileSize = ($entries |% length | Measure-Object -sum).Sum
-            $processedFileSize = 0
-            $entries |% {
-                $destination = join-path $absoluteDestination $_.FullName.Substring($prefix.Length)
-                <#
-                Write-Progress 'Extracting Zip' `
-                    -CurrentOperation $_.FullName `
-                    -PercentComplete ($processedFileSize / $totalFileSize * 100)
-                #>
-                      
-                Expand-ZipArchiveEntry $_ $destination 
-
-                $processedFileSize += $_.Length
-            }
-            #Write-Progress 'Extracting-Zip' -Completed
         }
+
+        #$totalFileSize = ($entries |% length | Measure-Object -sum).Sum
+        #$processedFileSize = 0
+        $entries |% {
+            $destination = join-path $absoluteDestination $_.FullName.Substring($prefix.Length)
+            <#
+            Write-Progress 'Extracting Zip' `
+                -CurrentOperation $_.FullName `
+                -PercentComplete ($processedFileSize / $totalFileSize * 100)
+            #>
+                      
+            $itemDir = split-path $Destination -Parent
+            if (!(Test-Path $itemDir -PathType Container)) {
+                New-item $itemDir -Type Directory | out-null
+            }
+            [IO.Compression.ZipFileExtensions]::ExtractToFile($_, $Destination, $true)
+
+            $processedFileSize += $_.Length
+        }
+        #Write-Progress 'Extracting-Zip' -Completed
+        
     }
     finally {
         $zipPackage.Dispose()
     }
 }
 
-function Expand-ZipArchiveEntry {
-    [CmdletBinding()]
-    param(
-        [parameter(Mandatory=$true, Position=0)]
-        [ValidateNotNullOrEmpty()]
-        [IO.Compression.ZipArchiveEntry]$Entry,
-        [parameter(Mandatory=$true, Position=1)]
-        [ValidateNotNullOrEmpty()]
-        [string]$Destination            
-    )
-
-    if (!$Entry.Name){
-        return
-     }
-
-    $itemDir = split-path $Destination -Parent
-    if (!(Test-Path $itemDir -PathType Container)) {
-        New-item $itemDir -Type Directory | out-null
-    }
-    [IO.Compression.ZipFileExtensions]::ExtractToFile($Entry, $Destination, $true)
-}
 
 function Test-Zip {
 	<#
@@ -144,3 +127,4 @@ function Test-Zip {
 		throw "$Path is not a zip file"
     }
 }
+
