@@ -228,8 +228,8 @@ function Remove-DevCommunity {
         }
 
         if($Force -or $PSCmdlet.ShouldProcess($Name)) {
-            $solrVersion = if(@(2,3,5,6) -contains $info.PlatformVersion.Major){ '1-4' } else { '3-6' }
-            $domain = $Name
+            $solrVersion = if($info.PlatformVersion.Major -ge 8) { '4-0' } elseif(@(2,3,5,6) -contains $info.PlatformVersion.Major){ '1-4' } else { '3-6'  }
+            $domain = if($Name.Contains('.')) { $Name } else { "$Name.local"}
 
             #Delete the JS
             Write-Progress 'Uninstalling Evolution Community' $Name -CurrentOperation 'Removing Job Scheduler'
@@ -266,6 +266,7 @@ function Remove-DevCommunity {
             #Remove the solr core
             Write-Progress 'Uninstalling Evolution Community' $Name -CurrentOperation 'Removing Solr Core'
             $solrUrl = ($data.SolrUrl -f $solrVersion).TrimEnd('/') + '/admin/cores'
+            "Remove-SolrCore -Name $Name -CoreBaseDir ($data.SolrCoreBase -f $solrVersion) -CoreAdmin $solrUrl"
             Remove-SolrCore -Name $Name -CoreBaseDir ($data.SolrCoreBase -f $solrVersion) -CoreAdmin $solrUrl
 
 	        Write-Host "Deleted website at http://$domain/"
