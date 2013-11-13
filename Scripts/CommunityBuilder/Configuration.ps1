@@ -456,7 +456,7 @@ function Enable-WindowsAuth {
     }
 
     #If the following fails, ensure default .net version in IIS is set to 4.0
-    Get-IISWebsite |% {
+    Get-IISWebsite $WebsitePath |% {
         Set-WebConfigurationProperty -Filter /system.webServer/security/authentication/* `
             -Name enabled `
             -Value false `
