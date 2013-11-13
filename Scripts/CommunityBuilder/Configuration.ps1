@@ -273,7 +273,8 @@ function Set-CommunitySolrUrl {
         [ValidateScript({ Test-CommunityPath $_ })]
         [string]$WebsitePath,
         [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
-        [ValidateScript({Invoke-WebRequest ($_.AbsoluteUri.TrimEnd('/') + "/admin/") -Method HEAD -UseBasicParsing})]
+        ##No longer works for solr 4.0
+        #[ValidateScript({Invoke-WebRequest ($_.AbsoluteUri.TrimEnd('/') + "/admin/") -Method HEAD -UseBasicParsing})]
         [ValidateNotNullOrEmpty()]
         [uri]$Url
     )

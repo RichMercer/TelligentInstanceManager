@@ -177,16 +177,22 @@
 		Write-Warning 'No Licence installed.'
 	}
 
+    $info = Get-Community $WebsitePath 
 	if(!$SolrCore) {
 		Write-Warning 'No search url specified.  Many features will not work until search is configured.'
 	}
 	else {
         $solrUrl = $SolrBaseUrl.AbsoluteUri.TrimEnd('/')
         Write-Progress 'Search' 'Setting Up Search'
+        $solrCoreParams = @{}
+        if($info.PlatformVersion.Major -ge 8) {
+            $solrCoreParams.ModernCore = $true
+        }
         Add-SolrCore $SolrCoreName `
 		    -package $Package `
 		    -coreBaseDir $SolrCoreDir `
-		    -coreAdmin "$solrUrl/admin/cores"
+		    -coreAdmin "$solrUrl/admin/cores" `
+            @solrCoreParams
 
 	    Set-CommunitySolrUrl $WebsitePath "$solrUrl/$SolrCoreName/"
 	}
@@ -195,8 +201,6 @@
         New-CommunityApiKey $WebsitePath $ApiKey -UserId 2100
     }
 
-    $info = Get-Community $WebsitePath 
-
     if($JobSchedulerPath -and $info.PlatformVersion.Major -ge 6) {
         Install-JobScheduler -JobSchedulerPath $JobSchedulerPath -Package $Package -WebsitePath $WebsitePath
     }
@@ -204,7 +208,8 @@
         $JobSchedulerPath = ''
     }
 
-    $info |
+    # Ensure Community Info has the latest configuration changes
+    Get-Community $WebsitePath |
         Add-Member JobSchedulerPath $JobSchedulerPath -PassThru |
         Add-Member AdminApiKey $ApiKey -PassThru
 }

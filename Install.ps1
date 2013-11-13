@@ -3,15 +3,14 @@
 ###Requires -RunAsAdministrator #Requires Powershell Version 4
 [CmdletBinding(SupportsShouldProcess=$true)]
 param(
-    [Parameter(Mandatory=$true, HelpMessage="The path where Tomcat is installed.  Used to add Tomcat contexts used for Solr multi core setup.")]
-    [ValidateScript({(Test-Path $_ -PathType Container) -and (Join-Path $_ conf\server.xml | Test-Path -PathType Leaf) })]
+    [Parameter(Mandatory=$false, HelpMessage="The path where Tomcat is installed.  Used to add Tomcat contexts used for Solr multi core setup.")]
+    [ValidateScript({(Test-TomcatPath $_) })]
     [string]$TomcatDirectory,
     [switch]$Force
 )
 
 $installDirectory = $PSScriptRoot
 $scriptPath = Join-Path $PSScriptRoot Scripts
-
 
 
 function Test-Prerequisites
@@ -38,14 +37,39 @@ function Test-Prerequisites
     }
 }
 
+function Get-TomcatLocation {
+    $knownTomcatLocations = @(
+#        "${env:ProgramFiles}\Apache Software Foundation\Tomcat 7.0"
+        "${env:ProgramFiles(x86)}\Apache Software Foundation\Tomcat 7.0"
+        "${env:ProgramFiles}\Apache Software Foundation\Tomcat 6.0"
+        "${env:ProgramFiles(x86)}\Apache Software Foundation\Tomcat 6.0"
+    ) |? { Test-TomcatPath $_ }
+
+    
+    if($knownTomcatLocations.Count -eq 1) {
+        return $knownTomcatLocations
+    }
+}
+
+function Test-TomcatPath {
+    param(
+    	[Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true, ValueFromPipeline=$true)]
+        [string]$TomcatPath
+    )
+    process {
+        (Test-Path $TomcatPath -PathType Container) `
+            -and (Join-Path $TomcatPath conf\server.xml | Test-Path -PathType Leaf)
+    }
+}
+
 function Install-SolrMultiCore {
     param(
         [Parameter(Mandatory=$true)]
 	    [ValidateScript({Test-Path $_ -PathType Container -IsValid})]
         [string]$InstallDirectory,
         [Parameter(Mandatory=$true)]
-		[ValidateScript({Test-Path $_ -PathType Container })]
-        [string]$ContextDir
+		[ValidateScript({Test-TomcatPath $_ })]
+        [string]$TomcatDir
     )
 
     $tomcatContext = @"
@@ -61,14 +85,14 @@ function Install-SolrMultiCore {
 "@
     
     $solrBase = Join-Path $InstallDirectory Solr
+    $tomcatContextDirectory = Join-Path $TomcatDirectory conf\Catalina\localhost
 
-    @('1-4', '3-6') |% {
+    @('1-4', '3-6', '4-0') |% {
         $solrHome = Join-Path $solrBase $_
-        $contextPath = Join-Path $contextDir "${_}.xml" 
+        $contextPath = Join-Path $tomcatContextDirectory "${_}.xml" 
 
         if (Test-Path $solrHome) {
             Write-Warning "Not seting up Multi Core Solr $_ Instance - manually ensure this is set up. SolrHome already exists at '$solrHome'"
-
         }        
         elseif (Test-Path $contextPath) {
             Write-Warning "Not seting up Multi Core Solr $_ Instance - manually ensure this is set up. Context already exists at '$contextPath'"
@@ -172,20 +196,22 @@ if ($Error.Count -ne $initialErrorCount) {
 }
 
 #Make Required Folders
-@('Licences', 'FullPackages', 'Hotfixes', 'Web', 'Scripts', 'Solr') |
+@('Licences', 'FullPackages', 'Hotfixes', 'Web') |
     % { Join-Path $installDirectory $_} |
     ? {!(Test-Path $_)} |
     % {new-item $_ -ItemType Directory | Out-Null}
 
-
 Write-Progress 'Telligent Mass Install Setup' 'Installing Solr Multi Cores'-PercentComplete 10
-$tomcatContextDirectory = Join-Path $TomcatDirectory conf\Catalina\localhost
-Install-SolrMultiCore -ContextDir $TomcatContextDirectory -InstallDirectory $installDirectory
+$solrParams = @{}
+if ($TomcatDirectory) {
+    $solrParams.TomcatDirectory = $TomcatDirectory
+}
+Install-SolrMultiCore -InstallDirectory $installDirectory @solrParams
 
 Write-Progress 'Telligent Mass Install Setup' 'Setting Environmental Variables' -PercentComplete 70
 Initalize-Environment $installDirectory
 
-Write-Progress 'Telligent Mass Install Setup' "Unblocking files under $installDirectory" -PercentComplete 80
+Write-Progress 'Telligent Mass Install Setup' "Ensuring files are unblocked" -PercentComplete 80
 Get-ChildItem $installDirectory -Recurse | Unblock-File
 
 Write-Progress 'Telligent Mass Install Setup' -Completed
@@ -214,7 +240,8 @@ Write-Host
 Write-Host 'Telligent Mass Installer installation  complete' -ForegroundColor Green
 Write-Host @"
 For more details on how to use the Mass Installer, use the Get-Help cmdlet to learn more about the following comamnds
-* Get-EvolutionBuild (geb)
-* Install-DevEvolution (isde)
+* Get-CommunityBuild (gcb)
+* Install-DevCommunity (isdc)
+* Remove-DevCommunity (rdc)
 
 "@

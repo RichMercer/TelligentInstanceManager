@@ -54,7 +54,6 @@
     $info = Get-Community $WebsitePath
     if ($info.PlatformVersion.Major -ge 8 ) {
         Write-Progress 'Job Scheduler' 'Executing Job Scheduler SQL'
-        Write-Host 8.0 JS
         $tempDir = Join-Path ([System.IO.Path]::GetFullPath($env:TEMP)) ([guid]::NewGuid())
         Expand-Zip -Path $package -Destination $tempDir -ZipDirectory SqlScripts -ZipFile Jobs_InstallUpdate.sql
         $sqlScript = Join-Path $tempDir Jobs_InstallUpdate.sql | Resolve-Path

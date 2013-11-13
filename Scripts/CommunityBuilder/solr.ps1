@@ -11,7 +11,7 @@
     .PARAMETER CoreAdmin
         The url to the solr instance's Core Admin API.
     #>
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName='Legacy')]
     param (
         [Parameter(Mandatory=$true, Position=0)]
         [ValidateNotNullOrEmpty()]
@@ -26,19 +26,31 @@
         [string]$CoreBaseDir,
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [Uri]$CoreAdmin
-    )
+        [Uri]$CoreAdmin,
+        [Parameter(ParameterSetName='Legacy')]
+        [Switch]$LegacyCore,
+        [Parameter(ParameterSetName='Modern')]
+        [Switch]$ModernCore
+    )   
     $instanceDir = "${name}\$(get-date -f yyy-MM-dd)\"
     $coreDir = join-path $coreBaseDir $instanceDir
     new-item $coreDir -type directory | out-null
         
     Write-Progress "Solr Core" "Creating Core"
-    Expand-Zip $package $coreDir -ZipDirectory "search\solr"
-        
+    
+    $coreZipDir = if ($PSCmdlet.ParameterSetName -eq 'Legacy') { 'search\solr\' } else { 'search\solr\content\' } 
+    Expand-Zip $package $coreDir -ZipDirectory $coreZipDir
+    
+    if ($PSCmdlet.ParameterSetName -eq 'Modern') {
+        #Remove existing core.properties to allow us to create the core
+        Join-Path $coreDir core.properties | Remove-Item
+    }
+
     Write-Progress "Solr Core" "Registering Core"
 	$url = "${coreAdmin}?action=CREATE&name=${name}&instanceDir=${instanceDir}"
     Invoke-WebRequest $url -UseBasicParsing -Method Post | Out-Null
 }
+
 
 function Remove-SolrCore {
     <#
