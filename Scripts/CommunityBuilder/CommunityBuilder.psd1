@@ -90,6 +90,7 @@ FunctionsToExport = @(
                     'Install-CommunityLicence'
 
                     'New-IISAppPool'
+                    'Get-IISAppPoolIdentity'
                     'Test-Zip'
                     'Expand-Zip'
 

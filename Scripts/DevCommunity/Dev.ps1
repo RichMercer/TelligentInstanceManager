@@ -171,6 +171,9 @@ function Install-DevCommunity {
     if ($info) {
 	    Disable-CustomErrors $webDir
 
+        $dbUsername = Get-IISAppPoolIdentity $Name
+        Invoke-SqlCmdAgainstCommunity -WebsitePath $webDir -Query "EXEC sp_addrolemember N'db_owner', N'$dbUsername'"
+
     	if($info.PlatformVersion -ge 5.6 -and $info.PlatformVersion.Major -lt 8){
             Register-TasksInWebProcess $webDir $basePackage
         }
@@ -269,7 +272,7 @@ function Remove-DevCommunity {
             "Remove-SolrCore -Name $Name -CoreBaseDir ($data.SolrCoreBase -f $solrVersion) -CoreAdmin $solrUrl"
             Remove-SolrCore -Name $Name -CoreBaseDir ($data.SolrCoreBase -f $solrVersion) -CoreAdmin $solrUrl
 
-	        Write-Host "Deleted website at http://$domain/"
+            Write-Host "Deleted website at http://$domain/"
         }
     }
 }
