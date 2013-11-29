@@ -102,6 +102,8 @@ FunctionsToExport = @(
                     'Remove-Database'
                     'Set-ConnectionString'
                     'Grant-CommunityDatabaseAccess'
+                    'New-CommunityDatabase'
+                    'Update-CommunityDatabase'
                     'Invoke-SqlCmdAgainstCommunity'
 
                     'Get-Community'

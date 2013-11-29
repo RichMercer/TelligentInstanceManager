@@ -9,28 +9,51 @@
     param(
         [parameter(Mandatory=$true)]
 		[ValidateNotNullOrEmpty()]
-        [string]$Server
+        [string]$Server,
+        [parameter(Mandatory=$false)]
+		[ValidateNotNullOrEmpty()]
+        [string]$Database,
+        [parameter(Mandatory=$false)]
+		[ValidateNotNullOrEmpty()]
+        [string]$Table
     )
     $parts = $Server.Split('\');
     $hostName = Encode-SqlName $parts[0];
     $instance = if ($parts.Count -eq 1) {'DEFAULT'} else { Encode-SqlName $parts[1] }
 
     #Test-Path will only fail after a timeout.  Reduce the timeout for the local scope to 
-    try {
-        Set-Variable -Scope Local -Name SqlServerConnectionTimeout 5
-        $srv = Test-Path SQLSERVER:\Sql\$hostName\$instance
-    }
-    catch {}
+    Set-Variable -Scope Local -Name SqlServerConnectionTimeout 5
+    $path = "SQLSERVER:\Sql\$hostName\$instance"
 
-    if ($srv) {
-        $true
-    }
-    else {
+    if (!(Test-Path $path -EA SilentlyContinue)) {
         throw "Unable to connect to SQL Instance '$Server'"
-    }    
+        return
+    }
+    elseif ($Database) {
+        $path = Join-Path $path "Databases\$Database"
+
+        if (!(Test-Path $path -EA SilentlyContinue)) {
+            throw "Database '$Database' does not exist on server '$Server'"
+            return
+        }
+        elseif($Table)
+        {
+            $parts = $Table.Split('.');
+            if ($parts.Count -eq 1) {
+                $Table = "dbo.$Table"
+            }
+            $path = Join-Path $path "Tables\$Table"
+
+            if (!(Test-Path $path -EA SilentlyContinue)) {
+                throw "Table '$Table' does not exist in database '$Database' does not exist on server '$Server'"
+                return
+            }
+        }
+    }
+    $true
 }
 
-function Install-CommunityDatabase {
+function New-CommunityDatabase {
 	<#
 	.SYNOPSIS
 		Grants a user access to an Evolution database.  If the user or login doesn't exist, in SQL server, they
@@ -72,11 +95,16 @@ function Install-CommunityDatabase {
 		[string]$AdminPassword
     )
 
+    $connectionInfo = @{
+        ServerInstance = $Server
+        Database = $database
+    }
+
     #TODO: Check if DB exists first
     Write-Progress "Database: $Database" 'Checking if database exists'
-    if($true) {
+    if(!(Test-SqlServer -Server $Server -Database $Database -EA SilentlyContinue)) {
         Write-Progress "Database: $Database" 'Creating database'
-        New-Database -Name $Database -Server $Server
+        New-Database @connectionInfo
     }
     
     Write-Progress "Database: $database" 'Creating Schema'
@@ -84,10 +112,6 @@ function Install-CommunityDatabase {
     Expand-Zip -Path $package -Destination $tempDir -ZipDirectory SqlScripts -ZipFile cs_CreateFullDatabase.sql
     $sqlScript = Join-Path $tempDir cs_CreateFullDatabase.sql | Resolve-Path
 
-    $connectionInfo = @{
-        ServerInstance = $Server
-        Database = $database
-    }
     Write-ProgressFromVerbose "Database: $database" 'Creating Schema' {
         Invoke-Sqlcmd @connectionInfo -InputFile $sqlScript -QueryTimeout 6000
     }
@@ -107,6 +131,58 @@ function Install-CommunityDatabase {
     Write-ProgressFromVerbose "Database: $database" 'Creating Community' {
         Invoke-Sqlcmd @connectionInfo -query $createCommunityQuery
     }
+}
+
+function Update-CommunityDatabase {
+	<#
+	.SYNOPSIS
+        Updates an existing Telligent Evolution database to upgrade it to the version in the package
+	.PARAMETER Server
+		The SQL server to install the community to 
+	.PARAMETER  Database
+		The name of the database to install the community to
+	.PARAMETER  Package
+		The installation package to create the community database from
+	#>
+	[CmdletBinding()]
+    param(
+        [parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({ Test-SqlServer $_ })]
+        [alias('ServerInstance')]
+        [alias('DataSource')]
+		[alias('dbServer')]
+        [string]$Server,
+        [parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+		[alias('dbName')]
+        [alias('InitialCatalog')]
+        [string]$Database,
+        [parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+		[ValidateScript({Test-Zip $_ })]
+        [string]$Package
+    )
+
+	$connectionInfo = @{
+		Server = $Server
+		Database = $Database
+	}
+
+    Write-Progress "Database: $Database" 'Checking if database can be upgraded'
+    if(!(Test-SqlServer @connectionInfo -Table dbo.cs_schemaversion -EA SilentlyContinue)) {
+        throw "Database '$Database' on Server '$Server' is not a valid Telligent Evolution database to be upgraded"
+    }
+    
+    Write-Progress "Database: $database" 'Creating Schema'
+    $tempDir = Join-Path ([System.IO.Path]::GetFullPath($env:TEMP)) ([guid]::NewGuid())
+    Expand-Zip -Path $package -Destination $tempDir -ZipDirectory SqlScripts -ZipFile cs_UpdateSchemaAndProcedures.sql
+    $sqlScript = Join-Path $tempDir cs_UpdateSchemaAndProcedures.sql | Resolve-Path
+
+    Write-ProgressFromVerbose "Database: $Database" 'Upgrading Schema' {
+        Invoke-Sqlcmd @connectionInfo -InputFile $sqlScript -QueryTimeout 6000
+    }
+    Remove-Item $tempDir -Recurse -Force | out-null
 }
 
 function Grant-CommunityDatabaseAccess {
@@ -235,10 +311,10 @@ function New-Database {
     param(
         [parameter(Mandatory=$true, Position=0, ValueFromPipeline=$true)]
         [ValidateNotNullOrEmpty()]
-		[alias('dbName')]
+		[alias('Database')]
         [string]$Name,
         [ValidateNotNullOrEmpty()]
-		[alias('dbServer')]
+		[alias('ServerInstance')]
         [string]$Server = "."
     )
     # need to encode the . used for the local server

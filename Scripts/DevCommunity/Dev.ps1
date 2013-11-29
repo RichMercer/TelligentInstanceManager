@@ -60,7 +60,7 @@ function Get-DevCommunity {
     )
     $results = get-childitem $data.WebBase |
             select -ExpandProperty FullName |
-            Get-Community
+            Get-Community -EA SilentlyContinue
 
     if ($Name) {
         $results = $results |? Name -like $Name
@@ -269,8 +269,7 @@ function Remove-DevCommunity {
             #Remove the solr core
             Write-Progress 'Uninstalling Evolution Community' $Name -CurrentOperation 'Removing Solr Core'
             $solrUrl = ($data.SolrUrl -f $solrVersion).TrimEnd('/') + '/admin/cores'
-            "Remove-SolrCore -Name $Name -CoreBaseDir ($data.SolrCoreBase -f $solrVersion) -CoreAdmin $solrUrl"
-            Remove-SolrCore -Name $Name -CoreBaseDir ($data.SolrCoreBase -f $solrVersion) -CoreAdmin $solrUrl
+            Remove-SolrCore -Name $Name -CoreBaseDir ($data.SolrCoreBase -f $solrVersion) -CoreAdmin $solrUrl -EA SilentlyContinue
 
             Write-Host "Deleted website at http://$domain/"
         }

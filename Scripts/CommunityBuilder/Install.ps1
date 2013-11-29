@@ -135,6 +135,16 @@
         throw 'FilestoragePath must be specified when using JobSchedulerPath'
     }
 
+	$sqlConnectionSettings = @{
+		Server = $DatabaseServer
+		Database = $DatabaseName
+	}
+
+    if(Test-SqlServer @sqlConnectionSettings -EA SilentlyContinue) {
+        throw "Database '$DatabaseName' already exists on server '$DatabaseServer'"
+    }
+
+
     New-CommunityWebsite `
         -Name $name `
 		-Path $WebsitePath `
@@ -145,10 +155,6 @@
         -FilestoragePath $FilestoragePath
 
 
-	$sqlConnectionSettings = @{
-		ServerInstance = $DatabaseServer
-		Database = $DatabaseName
-	}
 	$sqlAuthSettings = @{}
 	if($SqlCredential) {
 		$sqlAuthSettings.username = $SqlCredential.Username
@@ -160,8 +166,9 @@
 
     Write-Progress 'Configuration' 'Setting Connection Strings'
     Set-ConnectionString $WebsitePath @sqlConnectionSettings $SqlCredential
+    
+        New-CommunityDatabase -Package $Package -WebDomain $webDomain -AdminPassword $AdminPassword @sqlConnectionSettings        
 
-    Install-CommunityDatabase -Package $Package -WebDomain $webDomain -AdminPassword $AdminPassword @sqlConnectionSettings
     Grant-CommunityDatabaseAccess -CommunityPath $WebsitePath @sqlAuthSettings
 
 	if($Hotfix) {
@@ -198,7 +205,7 @@
 	}
 
     if($ApiKey) {
-        New-CommunityApiKey $WebsitePath $ApiKey -UserId 2100
+        New-CommunityApiKey $WebsitePath $ApiKey -UserId 2100 -Name "Well Known API Key $(Get-Date -f g)"
     }
 
     if($JobSchedulerPath -and $info.PlatformVersion.Major -ge 6) {

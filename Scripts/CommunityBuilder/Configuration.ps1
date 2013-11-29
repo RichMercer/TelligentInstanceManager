@@ -123,9 +123,10 @@ function Get-ConnectionString {
     if(!$siteSqlConnectionString) {
         Write-Error "'$ConnectionStringName' connection string not found in $ConfigFile"
     }
-
-    $connectionString = New-Object System.Data.SqlClient.SqlConnectionStringBuilder $siteSqlConnectionString
-
+	try {
+		$connectionString = New-Object System.Data.SqlClient.SqlConnectionStringBuilder $siteSqlConnectionString -EA SilentlyContinue
+	}
+	catch{}
     $connectionInfo = @{
         ServerInstance = $connectionString.DataSource
         Database = $connectionString.InitialCatalog
@@ -160,7 +161,7 @@ function New-CommunityApiKey {
         [Parameter(Mandatory=$true)]
         [ValidatePattern('^[a-z0-9]+$')]
         [string]$ApiKey,
-        [ValidatePattern('^[a-z0-9\-\._ ]+$')]
+        [ValidateNotNullOrEmpty()]
         [string]$Name = 'Auto Generated',
         [ValidatePattern('^[a-z0-9\-\._ ]+$')]
         [int]$UserId= 2100
