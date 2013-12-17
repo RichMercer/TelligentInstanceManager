@@ -39,7 +39,7 @@ function Test-Prerequisites
 
 function Get-TomcatLocation {
     $knownTomcatLocations = @(
-#        "${env:ProgramFiles}\Apache Software Foundation\Tomcat 7.0"
+        "${env:ProgramFiles}\Apache Software Foundation\Tomcat 7.0"
         "${env:ProgramFiles(x86)}\Apache Software Foundation\Tomcat 7.0"
         "${env:ProgramFiles}\Apache Software Foundation\Tomcat 6.0"
         "${env:ProgramFiles(x86)}\Apache Software Foundation\Tomcat 6.0"
