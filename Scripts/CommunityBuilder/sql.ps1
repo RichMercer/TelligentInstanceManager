@@ -17,6 +17,11 @@
 		[ValidateNotNullOrEmpty()]
         [string]$Table
     )
+
+    if ($Database) {
+        $Database = Encode-SqlName $Database
+    }
+
     $parts = $Server.Split('\');
     $hostName = Encode-SqlName $parts[0];
     $instance = if ($parts.Count -eq 1) {'DEFAULT'} else { Encode-SqlName $parts[1] }
@@ -125,7 +130,7 @@ function New-CommunityDatabase {
                 , @AdminUserName = N'admin'
                 , @AdminPassword = N'$adminPassword'
                 , @PasswordFormat = 0
-                , @CreateSamples = 1
+                , @CreateSamples = 0
 "@
 
     Write-ProgressFromVerbose "Database: $database" 'Creating Community' {
