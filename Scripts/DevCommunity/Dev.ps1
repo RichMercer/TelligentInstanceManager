@@ -56,14 +56,23 @@ function Get-DevCommunity {
     #>
     param(
         [Parameter(ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
-        [string]$Name
+        [string]$Name,
+        [string]$Version
     )
-    $results = get-childitem $data.WebBase |
+
+    $results = Get-ChildItem $data.WebBase |
             select -ExpandProperty FullName |
             Get-Community -EA SilentlyContinue
 
     if ($Name) {
         $results = $results |? Name -like $Name
+    }
+
+    if ($Version) {
+        $versionPattern = "$($Version.TrimEnd('*'))*"
+        $results = $results |
+            ? {$_.PlatformVersion.ToString() -like $versionPattern } |
+            select
     }
     $results
 }
