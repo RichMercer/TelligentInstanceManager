@@ -54,7 +54,7 @@ function Get-CommunityBuild {
     $basePackages = Get-VersionedEvolutionPackage $basePackageDir
     $fullBuilds = $basePackages |
         % { 
-            new-object PSObject -Property ([ordered]@{
+            new-object psobject -Property ([ordered]@{
                 Product = $_.Product
                 Version = $_.Version
                 BasePackage = $_.Path

@@ -167,7 +167,7 @@
     Write-Progress 'Configuration' 'Setting Connection Strings'
     Set-ConnectionString $WebsitePath @sqlConnectionSettings $SqlCredential
     
-        New-CommunityDatabase -Package $Package -WebDomain $webDomain -AdminPassword $AdminPassword @sqlConnectionSettings        
+    New-CommunityDatabase -Package $Package -WebDomain $webDomain -AdminPassword $AdminPassword @sqlConnectionSettings        
 
     Grant-CommunityDatabaseAccess -CommunityPath $WebsitePath @sqlAuthSettings
 
