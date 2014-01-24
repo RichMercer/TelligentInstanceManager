@@ -45,14 +45,10 @@
         New-Item $JobSchedulerPath -ItemType Directory | out-null
     }
 
-    Write-Progress 'Job Scheduler' 'Extracting Base Job Scheduler'
-    Expand-Zip $Package $JobSchedulerPath -ZipDirectory tasks
-
-    Write-Progress 'Job Scheduler' 'Updating Job Scheduler from Website'
-    Update-JobSchedulerFromWeb $WebsitePath $JobSchedulerPath
-
     $info = Get-Community $WebsitePath
     if ($info.PlatformVersion.Major -ge 8 ) {
+        Expand-Zip $Package $JobSchedulerPath -ZipDirectory JobService
+
         Write-Progress 'Job Scheduler' 'Executing Job Scheduler SQL'
         $tempDir = Join-Path ([System.IO.Path]::GetFullPath($env:TEMP)) ([guid]::NewGuid())
         Expand-Zip -Path $package -Destination $tempDir -ZipDirectory SqlScripts -ZipFile Jobs_InstallUpdate.sql
@@ -60,6 +56,13 @@
 
     	Invoke-SqlCmdAgainstCommunity -WebsitePath $WebsitePath -File $sqlScript
     }
+    else {
+        Write-Progress 'Job Scheduler' 'Extracting Base Job Scheduler'
+        Expand-Zip $Package $JobSchedulerPath -ZipDirectory tasks
+    }
+    
+    Write-Progress 'Job Scheduler' 'Updating Job Scheduler from Website'
+    Update-JobSchedulerFromWeb $WebsitePath $JobSchedulerPath
 
     if($InstallService){
         Install-JobSchedulerService $ServiceName $JobSchedulerPath $Credential
