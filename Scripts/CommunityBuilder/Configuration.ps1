@@ -312,7 +312,11 @@ function Install-CommunityLicence {
     $licenceContent = (gc $LicenceFile) -join [Environment]::NewLine
     $licenceId = ([xml]$licenceContent).document.licenseId
     
-	Invoke-SqlCmdAgainstCommunity -WebsitePath $WebsitePath -Query "EXEC [cs_Licenses_Update] @LicenseID = N'$licenceId' , @LicenseValue = N'$licenceContent'"
+    $sql = @"
+insert into cs_Licenses (LicenseID, LicenseValue, InstallDate)
+values ('$licenceId', N'$licenceContent', getdate())
+"@
+	Invoke-SqlCmdAgainstCommunity -WebsitePath $WebsitePath -Query $sql
 }
 
 function Register-TasksInWebProcess {

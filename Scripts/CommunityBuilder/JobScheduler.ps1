@@ -110,9 +110,14 @@ function Install-JobSchedulerService {
         $splat.ComputerName = $path.ComputerName
         $localJsPath = $path.LocalPath
     }
-
-    $servicePath = "$($localJsPath.TrimEnd('\'))\Telligent.JobScheduler.Service.exe"
-    $serviceName = "Telligent.JobScheduler-$Name"
+    if (Join-Path $JobSchedulerPath Telligent.Jobs.Server.exe | Test-Path) {
+        $servicePath = "$($localJsPath.TrimEnd('\'))\Telligent.Jobs.Server.exe"
+        $serviceName = "Telligent.Jobs.Server-$Name"
+    }
+    else {
+        $servicePath = "$($localJsPath.TrimEnd('\'))\Telligent.JobScheduler.Service.exe"
+        $serviceName = "Telligent.JobScheduler-$Name"
+    }
     
 
     if ($splat.ComputerName) {
