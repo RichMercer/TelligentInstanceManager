@@ -69,7 +69,7 @@ function Install-SolrMultiCore {
         [string]$InstallDirectory,
         [Parameter(Mandatory=$true)]
 		[ValidateScript({Test-TomcatPath $_ })]
-        [string]$TomcatDir
+        [string]$TomcatDirectory
     )
 
     $tomcatContext = @"
@@ -77,10 +77,28 @@ function Install-SolrMultiCore {
    <Environment name="solr/home" type="java.lang.String" value="{1}" override="true" />
 </Context>
 "@
-    $solrXml = @"
+    $legacySolrXml = @"
 <?xml version='1.0' encoding='UTF-8'?>
 <solr sharedLib="lib" persistent="true">
     <cores adminPath="/admin/cores" />
+</solr>
+"@
+    $modernSolrXml = @"
+<?xml version="1.0" encoding="UTF-8" ?>
+<solr>
+  <solrcloud>
+    <str name="host">$`{host:}</str>
+    <int name="hostPort">$`{jetty.port:8983}</int>
+    <str name="hostContext">$`{hostContext:solr}</str>
+    <int name="zkClientTimeout">$`{zkClientTimeout:15000}</int>
+    <bool name="genericCoreNodeNames">$`{genericCoreNodeNames:true}</bool>
+  </solrcloud>
+
+  <shardHandlerFactory name="shardHandlerFactory"
+    class="HttpShardHandlerFactory">
+    <int name="socketTimeout">$`{socketTimeout:0}</int>
+    <int name="connTimeout">$`{connTimeout:0}</int>
+  </shardHandlerFactory>
 </solr>
 "@
     
@@ -91,18 +109,20 @@ function Install-SolrMultiCore {
         $solrHome = Join-Path $solrBase $_
         $contextPath = Join-Path $tomcatContextDirectory "${_}.xml" 
 
-        if (Test-Path $solrHome) {
+        if (Test-Path $contextPath) {
+            #Don't treat existing context file as an error - most likely means it's already set up
+            Write-Verbose "Not seting up Multi Core Solr $_ Instance - manually ensure this is set up. Context already exists at '$contextPath'"
+        }
+        elseif (Test-Path $solrHome) {
             Write-Warning "Not seting up Multi Core Solr $_ Instance - manually ensure this is set up. SolrHome already exists at '$solrHome'"
         }        
-        elseif (Test-Path $contextPath) {
-            Write-Warning "Not seting up Multi Core Solr $_ Instance - manually ensure this is set up. Context already exists at '$contextPath'"
-        }
         else {
+        $contextPath
             Write-Host "Installing Solr $_"
-            #Create Core Directory
             New-Item $solrHome -ItemType Directory | Out-Null
 
             #Create Solr.xml to enable multicore
+            $solrXml = if($_ -in '1-4', '3-6') { $legacySolrXml } else { $modernSolrXml}
             $solrXmlPath = Join-Path $solrHome solr.xml 
             $solrXml | out-file $solrXmlPath -Encoding utf8
 
@@ -111,7 +131,8 @@ function Install-SolrMultiCore {
             $tomcatContext -f $war, $solrHome | out-file $contextPath
         }
     }
-    "Restarting Tomcat"
+
+    Write-Progress 'Telligent Mass Install Setup' 'Restarting Tocmat' -PercentComplete 50
     Restart-Service tomcat* -ErrorAction Continue
 }
 
@@ -187,6 +208,10 @@ Write-Telligent
 Write-Host "Telligent Evolution Mass Installer"
 Write-Host
 
+if (!$TomcatDirectory) {
+    $TomcatDirectory = Get-TomcatLocation
+}
+
 #Test Prerequisites
 $initialErrorCount = $Error.Count
 Write-Progress "Telligent Mass Install Setup" "Checking Prerequisites" -CurrentOperation "This may take a few moments"
@@ -201,7 +226,12 @@ if ($Error.Count -ne $initialErrorCount) {
     ? {!(Test-Path $_)} |
     % {new-item $_ -ItemType Directory | Out-Null}
 
-Write-Progress 'Telligent Mass Install Setup' 'Installing Solr Multi Cores'-PercentComplete 10
+Write-Progress 'Telligent Mass Install Setup' 'Installing Solr Dependencies to Tomcat Lib'-PercentComplete 10
+$tomcatLib= Join-Path "$TomcatDirectory" 'lib'
+$libSource = Join-Path $PSScriptRoot 'Solr\_tomcatlib\*'
+Copy-Item $libSource  $tomcatLib
+
+Write-Progress 'Telligent Mass Install Setup' 'Installing Solr Multi Cores'-PercentComplete 20
 $solrParams = @{}
 if ($TomcatDirectory) {
     $solrParams.TomcatDirectory = $TomcatDirectory
@@ -219,21 +249,19 @@ Write-Progress 'Telligent Mass Install Setup' -Completed
 #Provide hints for finishing installation
 $licencePath = Join-Path $installDirectory Licences 
 if (!(Get-ChildItem $licencePath -ErrorAction SilentlyContinue)){
-    Write-Warning 'No Licenses available for installation'
-    Write-Host "Add licences to '$licencePath' with filenames of the format 'Community7.xml', 'Enterprise4.xml' etc."
+    Write-Warning "No Licenses available for installation at '$licencePath' "
+    Write-Warning "Add files to this directory with filenames of the format 'Community7.xml', 'Enterprise4.xml' etc."
 }
 
 $fullPackagePath = Join-Path $installDirectory FullPackages
 if (!(Get-ChildItem $licencePath -ErrorAction SilentlyContinue)){
-    Write-Warning 'No Base Packages are available for Installation'
-    Write-Host "Add full installation packages to '$fullPackagePath'."
+    Write-Warning "No Base Packages are available for Installation at '$fullPackagePath'."
 }
 
 $hotfixPackagePath = Join-Path $installDirectory FullPackages
 if (!(Get-ChildItem $hotfixPackagePath -ErrorAction SilentlyContinue)){
-    Write-Warning 'No Hotfixes are available for Installation'
-    Write-Host "Add hotfix installation packages to '$hotfixPackagePath'."
-    Write-Host 'N.B. to install a hotfix, you must have a full packages with the same Major and Minor build number'
+    Write-Warning "No Hotfixes are available for Installation at '$hotfixPackagePath'."
+    Write-Warning 'N.B. to install a hotfix, you must have a full packages with the same Major and Minor build number'
 }
 
 Write-Host
