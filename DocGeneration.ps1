@@ -1,5 +1,4 @@
 ﻿Add-Type -AssemblyName System.Web
-. D:\Telligent\SVN\PowershellRest\RestApiExtractor\test.ps1
 
 function ConvertTo-HtmlEncodedString {
     param(
@@ -69,40 +68,62 @@ function Export-DocsToWiki {
         [parameter(Mandatory=$True)]
         [int]$WikiId,
         [parameter(Mandatory=$True)]
-        [EvolutionCredential]$Credential
+        [CommunityCredential]$Credential
     )
     process {
+        $existingPages = Get-CommunityWikitoc -Wikiid $wikiId -Credential $Credential
+
         $Module |% {
             $currentModule= $_
-            $existingPages = Get-Wikitoc -Wikiid $wikiId -Credential $Credential
-            $parent = $existingPages |? Title -eq $module
-            if (!$parent) {
-                $parent = New-Wikipage -Wikiid $wikiId -Title $currentModule -Credential $Credential
+
+            $modulePage = $existingPages |? Title -eq $module
+            if (!$modulePage) {
+                $modulePage = New-CommunityWikipage `
+                    -Wikiid $wikiId `
+                    -Title $currentModule `
+                    -Credential $Credential
             }
-            $parentId = $parent.Id
-
-            ipmo $currentModule
-            get-module $currentModule |
-                select -ExpandProperty ExportedCommands |
-                select -ExpandProperty Keys |
-                ? { (get-help $_).Name -eq $_ } |
-                % {
-                    $command = $_
-                    Write-Progress "Exporting Documentation" $currentModule -CurrentOperation $command
-                    [string]$body = (Get-CommandHelpHtml $command)
-                    $existingPage = $parent.Children |? Title -eq $command
-                    if($existingPage) {
-                        Set-Wikipage -id $existingPage.Id -Body $body -Credential $Credential | Out-Null
-                    }
-                    else {
-                        New-Wikipage -Wikiid $wikiId -Title $command -Body $body -ParentPageId $parentId -Credential $Credential | Out-Null
+            Get-Command -Module $currentModule -CommandType Function, Workflow |
+                Group Noun |
+                %{
+                    $noun = $_.Name
+                    $noun
+                    $nounPage = $existingPages |? Title -eq $noun
+                    if (!$nounPage) {
+                        $nounPage = New-CommunityWikipage `
+                            -Wikiid $wikiId `
+                            -Title $noun `
+                            -ParentPageId $modulePage.Id `
+                            -Credential $Credential
                     }
 
-                }
+                    $_.Group |% {
+                        $command = $_.Name
+                        $tags = @($noun,$_.Verb);
+                        [string]$body = (Get-CommandHelpHtml $command)
+                        $existingPage = $parent.Children |? Title -eq $command
+                        if($existingPage) {
+                            Set-CommunityWikipage `
+                                -id $existingPage.Id `
+                                -Body $body `
+                                -Tag $tags `
+                                -Credential $Credential | Out-Null
+                        }
+                        else {
+                            New-CommunityWikipage `
+                                -Wikiid $wikiId `
+                                -Title $command `
+                                -Body $body `
+                                -Tag $tags `
+                                -ParentPageId $nounPage.Id `
+                                -Credential $Credential | Out-Null
+                        }
+                    }
+            }
         }
     }
 }
 
-$cred = New-EvolutionCredential http://psdocs.local admin abc123
-$wikiId = (New-Wiki -GroupId 3 -Name ("DocTest$(Get-Date -f 'yyMMdd_HHmmss')") -Credential $cred).Id
-Export-DocsToWiki -Module @('Evolution', 'DevEvolution', 'EvolutionAddons') -WikiId $wikiId -Credential $cred
+$cred = ncc http://pstest3.local admin abc123
+$wikiId = (New-communityWiki -GroupId 3 -Name ("DocTest$(Get-Date -f 'yyMMdd_HHmmss')") -Credential $cred).Id
+Export-DocsToWiki -Module @('CommunityBuilder', 'DevCommunity') -WikiId $wikiId -Credential $cred
