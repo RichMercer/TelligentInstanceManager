@@ -1,4 +1,6 @@
-﻿$base = $env:EvolutionMassInstall
+﻿Set-StrictMode -Version 2
+
+$base = $env:EvolutionMassInstall
 if (!$base) {
     Write-Error 'EvolutionMassInstall environmental variable not defined'
 }

@@ -1,4 +1,6 @@
-﻿function New-CommunityWebsite {
+﻿Set-StrictMode -Version 2
+
+function New-CommunityWebsite {
     <#
     .SYNOPSIS
         Creates a new Evolution website

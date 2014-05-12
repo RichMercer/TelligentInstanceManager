@@ -1,4 +1,6 @@
-﻿function Add-SolrCore {
+﻿Set-StrictMode -Version 2
+
+function Add-SolrCore {
     <#
     .SYNOPSIS
         Creates a new Solr Core for a Telligent Evolution Community

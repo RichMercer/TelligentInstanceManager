@@ -1,4 +1,6 @@
-﻿function Write-ProgressFromVerbose {    
+﻿Set-StrictMode -Version 2
+
+function Write-ProgressFromVerbose {    
     <#
     .SYNOPSIS
         Executes a script, and redirects any output on the verbose stream to Write-Progress.

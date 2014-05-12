@@ -1,4 +1,6 @@
-﻿function Test-SqlServer {
+﻿Set-StrictMode -Version 2
+
+function Test-SqlServer {
     <#
     .SYNOPSIS
         Tests if a SQL Server exists and can be connected to

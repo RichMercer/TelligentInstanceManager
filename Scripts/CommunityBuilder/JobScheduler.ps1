@@ -1,4 +1,6 @@
-﻿function Install-JobScheduler {
+﻿Set-StrictMode -Version 2
+
+function Install-JobScheduler {
     <#
     .SYNOPSIS
         Installs the Telligent Job Scheduler        
@@ -209,7 +211,7 @@ function Update-JobSchedulerFromWeb {
         '/NP', '/NJH', '/NDL', '/NJS', '/XX'
     )
 
-    if ($pscmdlet.ShouldProcess($jsPath)) {
+    if ($pscmdlet.ShouldProcess($JobSchedulerPath)) {
         #$sharedParams += '/L'
 
         #Copy web /bin/ to JS root

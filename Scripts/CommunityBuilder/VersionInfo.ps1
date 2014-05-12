@@ -20,7 +20,7 @@ function Get-Community {
     param(
         [ValidateNotNullOrEmpty()]
         [parameter(Mandatory=$true, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
-        [ValidateScript({ Test-CommunityPath $_ })]
+        #[ValidateScript({ Test-CommunityPath $_ })]
         [alias('physicalPath')]
         [string]$path
     )
@@ -41,7 +41,10 @@ function Get-Community {
         $info = [ordered]@{
             Name = split-path $path -Leaf
             Path = $path
-            CfsPath = @($csConfig.CommunityServer.CentralizedFileStorage.fileStore) + @($csConfig.CommunityServer.CentralizedFileStorage.fileStoreGroup) | select -ExpandProperty basePath -unique
+            CfsPath = $csConfig.CommunityServer.CentralizedFileStorage |
+                select-xml '//fileStore[@basePath] | //fileStoreGroup[@basePath]' |
+                select -expandProperty Node |
+                select -ExpandProperty basePath
             SolrUrl = $csConfig.CommunityServer.Search.Solr.host
             DatabaseServer = $dbInfo.ServerInstance
             DatabaseName = $dbInfo.Database

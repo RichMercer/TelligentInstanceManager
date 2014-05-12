@@ -1,4 +1,6 @@
-﻿function Test-CommunityPath {
+﻿Set-StrictMode -Version 2
+
+function Test-CommunityPath {
     [CmdletBinding(DefaultParameterSetName='Either')]
     param(
         [parameter(Mandatory=$true, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true, Position=0)]

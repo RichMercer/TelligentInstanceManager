@@ -1,4 +1,6 @@
-﻿function Install-Community {
+﻿Set-StrictMode -Version 2
+
+function Install-Community {
 	<#
 	.Synopsis
 		Sets up a new Evolution Community.

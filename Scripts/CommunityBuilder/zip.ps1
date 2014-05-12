@@ -1,4 +1,6 @@
-﻿function Expand-Zip {
+﻿Set-StrictMode -Version 2
+
+function Expand-Zip {
 	<#
 	.Synopsis
 		Extracts files from a zip folder
@@ -73,8 +75,8 @@
             }
         }
 
-        #$totalFileSize = ($entries |% length | Measure-Object -sum).Sum
-        #$processedFileSize = 0
+        $totalFileSize = ($entries |% length | Measure-Object -sum).Sum
+        $processedFileSize = 0
         $entries |% {
             $destination = join-path $absoluteDestination $_.FullName.Substring($prefix.Length)
             <#

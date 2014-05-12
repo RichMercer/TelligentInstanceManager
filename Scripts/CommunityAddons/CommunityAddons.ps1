@@ -1,4 +1,6 @@
-﻿function Install-CommunityAddon {
+﻿Set-StrictMode -Version 2
+
+function Install-CommunityAddon {
     param(
         [Parameter(Mandatory=$true)]
 		[ValidateScript({Test-Zip $_})]
