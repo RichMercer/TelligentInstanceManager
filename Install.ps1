@@ -4,7 +4,7 @@
 [CmdletBinding(SupportsShouldProcess=$true)]
 param(
     [Parameter(Mandatory=$false, HelpMessage="The path where Tomcat is installed.  Used to add Tomcat contexts used for Solr multi core setup.")]
-    [ValidateScript({(Test-TomcatPath $_) })]
+    [ValidateScript({$_ -and (Test-TomcatPath $_) })]
     [string]$TomcatDirectory,
     [switch]$Force
 )
@@ -39,6 +39,8 @@ function Test-Prerequisites
 
 function Get-TomcatLocation {
     $knownTomcatLocations = @(
+        "${env:ProgramFiles}\Apache Software Foundation\Tomcat 8.0"
+        "${env:ProgramFiles(x86)}\Apache Software Foundation\Tomcat 8.0"
         "${env:ProgramFiles}\Apache Software Foundation\Tomcat 7.0"
         "${env:ProgramFiles(x86)}\Apache Software Foundation\Tomcat 7.0"
         "${env:ProgramFiles}\Apache Software Foundation\Tomcat 6.0"
@@ -132,7 +134,7 @@ function Install-SolrMultiCore {
         }
     }
 
-    Write-Progress 'Telligent Mass Install Setup' 'Restarting Tocmat' -PercentComplete 50
+    Write-Progress 'Telligent Mass Install Setup' 'Restarting Tomcat' -PercentComplete 50
     Restart-Service tomcat* -ErrorAction Continue
 }
 
@@ -207,9 +209,11 @@ function Write-Telligent
 Write-Telligent
 Write-Host "Telligent Evolution Mass Installer"
 Write-Host
-
 if (!$TomcatDirectory) {
     $TomcatDirectory = Get-TomcatLocation
+    if(!$TomcatDirectory) {
+        throw "Unable to auto detect Tomcat location.  Please run the script manually, specifying the path on the TomcatDirectory parameter"
+    }
 }
 
 #Test Prerequisites
