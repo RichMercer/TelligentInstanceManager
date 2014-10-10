@@ -1,10 +1,8 @@
 ﻿#Requires -Version 3
-#Requires -Modules sqlps,webadministration
-###Requires -RunAsAdministrator #Requires Powershell Version 4
 [CmdletBinding(SupportsShouldProcess=$true)]
 param(
     [Parameter(Mandatory=$false, HelpMessage="The path where Tomcat is installed.  Used to add Tomcat contexts used for Solr multi core setup.")]
-    [ValidateScript({(Test-TomcatPath $_) })]
+    [ValidateScript({$_ -and (Test-TomcatPath $_) })]
     [string]$TomcatDirectory,
     [switch]$Force
 )
@@ -25,32 +23,29 @@ function Test-Prerequisites
     try{ Add-Type -AssemblyName System.IO.Compression }
     catch { Write-Error '.Net 4.5 not installed' }
 
-    #Check Modules
+    #Check for required modules
+    @('webadministration','sqlps') |
+        ? { !(Get-Module $_ -ListAvailable) } |
+        % { Write-Error "Required Module '$_' is not available" }
 
-    if (Get-Module Evolution) {
-        $modulePath = (Get-Module evolution -ListAvailable).Path
-        Write-Warning "Evolution module already installed at $modulePath"
-    }
-    if (Get-Module DevEvolution) {
-        $modulePath = (Get-Module evolution -ListAvailable).Path
-        Write-Warning  "DevEvolution module already installed at $modulePath"
-    }
+    #Warn for pre-existing modules
+    @( 'CommunityAddons','CommunityBuilder', 'DevCommunity') |
+        % { Get-Module $_ -ListAvailable } |
+        ? { $_} |
+        % { Write-Warning "'$($_.Name)' module already installed at '$($_.Path)'" } 
 }
 
 function Get-TomcatLocation {
-    $knownTomcatLocations = @(
+    @(
         "${env:ProgramFiles}\Apache Software Foundation\Tomcat 8.0"
         "${env:ProgramFiles(x86)}\Apache Software Foundation\Tomcat 8.0"
         "${env:ProgramFiles}\Apache Software Foundation\Tomcat 7.0"
         "${env:ProgramFiles(x86)}\Apache Software Foundation\Tomcat 7.0"
         "${env:ProgramFiles}\Apache Software Foundation\Tomcat 6.0"
         "${env:ProgramFiles(x86)}\Apache Software Foundation\Tomcat 6.0"
-    ) |? { Test-TomcatPath $_ }
-
-    
-    if($knownTomcatLocations.Count -eq 1) {
-        return $knownTomcatLocations
-    }
+    ) |
+		? { Test-TomcatPath $_ } |
+		select -First 1
 }
 
 function Test-TomcatPath {
@@ -107,6 +102,7 @@ function Install-SolrMultiCore {
     $solrBase = Join-Path $InstallDirectory Solr
     $tomcatContextDirectory = Join-Path $TomcatDirectory conf\Catalina\localhost
 
+    #It's not actually Solr 4-0, but changing this may break some previous users of the scripts
     @('1-4', '3-6', '4-0') |% {
         $solrHome = Join-Path $solrBase $_
         $contextPath = Join-Path $tomcatContextDirectory "${_}.xml" 
@@ -210,13 +206,21 @@ Write-Telligent
 Write-Host "Telligent Evolution Mass Installer"
 Write-Host
 
-if (!$TomcatDirectory) {
-    $TomcatDirectory = Get-TomcatLocation
-}
-
 #Test Prerequisites
 $initialErrorCount = $Error.Count
 Write-Progress "Telligent Mass Install Setup" "Checking Prerequisites" -CurrentOperation "This may take a few moments"
+if (!$TomcatDirectory) {
+    $TomcatDirectory = Get-TomcatLocation
+	if (!$TomcatDirectory) {
+		Write-Error 'Could not auto-detect Tomcat location.  Please run the command with the -TomcatDirectory paramater to specify this location manually'
+	}
+}
+else {
+	if (!(Test-TomcatPath $TomcatDirectory)) {
+		Write-Error "'$TomcatDirectory' does not contain a valid Tomcat instance"
+	}
+}
+
 Test-Prerequisites
 if ($Error.Count -ne $initialErrorCount) {
     throw 'Prerequisites not met (see previous errors for more details)'
