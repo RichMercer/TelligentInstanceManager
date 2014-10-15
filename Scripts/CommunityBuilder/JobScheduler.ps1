@@ -123,14 +123,14 @@ function Install-JobSchedulerService {
     
 
     if ($splat.ComputerName) {
-        Write-Verbose "Setting up service on '$computerName'"
+        Write-Verbose "Setting up service on '$($splat.ComputerName)'"
     } 
     else {
         Write-Verbose 'Setting up service'
     }
 
     $displayName = "Telligent Job Scheduler - $Name"
-    $localSqlServer = ('.','(local)','localhost') -contains (Get-Community $JobSchedulerPath).ServerInstance
+    $localSqlServer = ('.','(local)','localhost') -contains (Get-Community $JobSchedulerPath).DatabaseServer
 
     Invoke-Command @splat -ArgumentList @($serviceName, $servicePath, $displayName, $StartupType, $Credential, $localSqlServer) {
         param (

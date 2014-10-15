@@ -121,6 +121,10 @@ function Get-VersionedEvolutionPackage {
             }elseif ($_.Name -match 'enterprise') {
                 $product = 'Enterprise'
             }
+            elseif ($_.Name -match 'social') {
+                $product = 'Community'
+            }
+
             $match = $versionRegex.Match($_.Name)
 
             if ($product -and $match.Value) {                
