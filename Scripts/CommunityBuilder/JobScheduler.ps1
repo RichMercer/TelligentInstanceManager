@@ -155,12 +155,18 @@ function Install-JobSchedulerService {
             [ValidateNotNullOrEmpty()]
             [bool]$localSqlServer
         )
-
-        $service = New-Service $serviceName `
-            -BinaryPathName $servicePath `
-            -DisplayName $displayName `
-            -StartupType $startupType `
-            -Credential $credential
+        #New-Service doesn't support Managed Service accounts on it's Credential object
+        $service = if ($credential.Password.Length -eq 0)
+        {
+            &sc.exe create "$serviceName" binPath="$servicePath" DisplayName="$displayName" start=auto obj=$($credential.UserName)
+        }
+        else {
+            New-Service $serviceName `
+                -BinaryPathName $servicePath `
+                -DisplayName $displayName `
+                -StartupType $startupType `
+                -Credential $credential
+        }
     
         if($service -and $startupType -eq 'Automatic') {
 

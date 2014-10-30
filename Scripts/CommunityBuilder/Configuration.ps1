@@ -82,7 +82,7 @@ function Set-ConnectionString {
         $connectionString = "Server=$Server;Database=$Database;Trusted_Connection=yes;"
     }
     
-    $path = Join-Path $WebsitePath connectionstrings.config | Resolve-Path 
+    $path = Join-Path $WebsitePath connectionstrings.config | Resolve-Path | select -ExpandProperty ProviderPath
     $connectionStrings = [xml](gc $path)  
     $connectionStrings.connectionStrings.add |
         ? { $_.name -eq $ConnectionStringName} |
@@ -216,7 +216,7 @@ function Add-OverrideChangeAttribute {
     $override.SetAttribute('name', $Name)
     $override.SetAttribute('value', $Value)
     $overrides.DocumentElement.AppendChild($override) |out-null
-    $overrides.Save(($overridePath | Resolve-Path))
+    $overrides.Save(($overridePath | Resolve-Path).ProviderPath)
 }
 
 function Set-CommunityFilestorage {

@@ -120,7 +120,7 @@ function New-CommunityDatabase {
     $sqlScript = Join-Path $tempDir cs_CreateFullDatabase.sql | Resolve-Path
 
     Write-ProgressFromVerbose "Database: $database" 'Creating Schema' {
-        Invoke-Sqlcmd @connectionInfo -InputFile $sqlScript -QueryTimeout 6000
+        Invoke-Sqlcmd @connectionInfo -InputFile $sqlScript -QueryTimeout 6000 -DisableVariables
     }
     Remove-Item $tempDir -Recurse -Force | out-null
 
@@ -136,7 +136,7 @@ function New-CommunityDatabase {
 "@
 
     Write-ProgressFromVerbose "Database: $database" 'Creating Community' {
-        Invoke-Sqlcmd @connectionInfo -query $createCommunityQuery
+        Invoke-Sqlcmd @connectionInfo -query $createCommunityQuery -DisableVariables
     }
 }
 
@@ -187,7 +187,7 @@ function Update-CommunityDatabase {
     $sqlScript = Join-Path $tempDir cs_UpdateSchemaAndProcedures.sql | Resolve-Path
 
     Write-ProgressFromVerbose "Database: $Database" 'Upgrading Schema' {
-        Invoke-Sqlcmd @connectionInfo -InputFile $sqlScript -QueryTimeout 6000
+        Invoke-Sqlcmd @connectionInfo -InputFile $sqlScript -QueryTimeout 6000 -DisableVariables
     }
     Remove-Item $tempDir -Recurse -Force | out-null
 }
@@ -237,26 +237,30 @@ function Grant-CommunityDatabaseAccess {
 
     #TODO: Sanatise inputs
     Write-Verbose "Granting database access to $Username"
+
+    if ($Password) {
+        $CreateLogin = "CREATE LOGIN [$Username] WITH PASSWORD=N'$Password', DEFAULT_DATABASE=[$($info.DatabaseName)];"
+    }
+    else {
+        $CreateLogin = "CREATE LOGIN [$Username] FROM WINDOWS WITH DEFAULT_DATABASE=[$($info.DatabaseName)];"
+    }
+
     $query = @"
         IF NOT EXISTS (SELECT 1 FROM master.sys.server_principals WHERE name = N'$Username')
         BEGIN
-        	if(N'$Password' = N'') BEGIN
-        		CREATE LOGIN [$Username] FROM WINDOWS WITH DEFAULT_DATABASE=[$($info.DatabaseName)];
-            END
-        	ELSE BEGIN           
-        		CREATE LOGIN [$Username] WITH PASSWORD=N'$Password', DEFAULT_DATABASE=[$($info.DatabaseName)];
-            END
-        END
+            $CreateLogin
+        END;
         
         IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'$Username') BEGIN
             CREATE USER [$Username] FOR LOGIN [$Username];
-        END
-        EXEC sp_addrolemember N'aspnet_Membership_FullAccess', N'$Username'
-        EXEC sp_addrolemember N'aspnet_Profile_FullAccess', N'$Username'
-        EXEC sp_addrolemember N'db_datareader', N'$Username'
-        EXEC sp_addrolemember N'db_datawriter', N'$Username'
-        EXEC sp_addrolemember N'db_ddladmin', N'$Username'
+        END;
+        EXEC sp_addrolemember N'aspnet_Membership_FullAccess', N'$Username';
+        EXEC sp_addrolemember N'aspnet_Profile_FullAccess', N'$Username';
+        EXEC sp_addrolemember N'db_datareader', N'$Username';
+        EXEC sp_addrolemember N'db_datawriter', N'$Username';
+        EXEC sp_addrolemember N'db_ddladmin', N'$Username';
 "@ 
+
     Invoke-SqlcmdAgainstCommunity -WebsitePath $CommunityPath -Query $query
 }
 
@@ -302,7 +306,7 @@ function Invoke-SqlCmdAgainstCommunity {
         $sqlParams.QueryTimeout = $QueryTimeout
     }
 
-    Invoke-Sqlcmd @sqlParams
+    Invoke-Sqlcmd @sqlParams -DisableVariables
 }
 
 function New-Database {
