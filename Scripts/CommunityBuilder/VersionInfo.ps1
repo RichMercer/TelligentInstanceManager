@@ -138,7 +138,7 @@ function Merge-CommunityConfigurationFile {
                         $node.InnerXml = $override.InnerXml
                     }
                     add {
-                        $where = $override.where
+                        $where = $override.GetAttribute('where')
                         if (!$where) {
                             $where = 'start'
                         }
