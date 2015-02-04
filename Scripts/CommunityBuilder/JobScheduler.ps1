@@ -213,25 +213,29 @@ function Update-JobSchedulerFromWeb {
     $roboCopyParams = @(
         # 1 second Wait between retries, max 5 retries
         '/W:1', '/R:5',
-        #No Progress, no header, no directory list, no summary, no extra file listing
-        '/NP', '/NJH', '/NDL', '/NJS', '/XX'
+        #No Progress, no file list, no header, no directory list, no summary, no extra file listing
+        '/NP', '/NFL', '/NJH', '/NDL', '/NJS', '/XX'
     )
-
     if ($pscmdlet.ShouldProcess($JobSchedulerPath)) {
         #$sharedParams += '/L'
+        $WebsitePath = $WebsitePath.TrimEnd('\')
+        $JobSchedulerPath = $JobSchedulerPath.TrimEnd('\')
 
         #Copy web /bin/ to JS root
         Write-Progress 'Job Scheduler' 'Updating binaries from web'
-        &robocopy "$WebsitePath\bin\" "$JobSchedulerPath" /e @roboCopyParams | Out-Null
+        &robocopy "$WebsitePath\bin" "$JobSchedulerPath" /e @roboCopyParams
 
         Write-Progress 'Job Scheduler' 'Updating config files from web'
-        &robocopy "$WebsitePath" "$JobSchedulerPath\" *.config /s /XF web.config tasks.config /XD ControlPanel @roboCopyParams | Out-Null
+        &robocopy "$WebsitePath" "$JobSchedulerPath" *.config /s /XF web.config tasks.config jobs.config /XD ControlPanel @roboCopyParams 
+
 
         #TODO: is themes explicitly required if we copy *.config?
         Write-Progress 'Job Scheduler' 'Updating modules and languages from web'
         @('modules', 'languages') |% {
-            Write-Verbose "JS Install: Syncing $_"
-            &robocopy "$WebsitePath\$_\" "$JobSchedulerPath\$_\" /e /Mir @roboCopyParams | Out-Null
+            $dir = Join-Path $WebsitePath $_
+            if(Test-Path $dir) {
+                &robocopy "$dir" "$JobSchedulerPath\$_" /e /Mir @roboCopyParams 
+            }
         }
 
         #TODO: Sync sections of web.config into tellgient.js.service.exe.config
