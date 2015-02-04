@@ -52,82 +52,92 @@ function Install-Community {
 	#>
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
         [ValidatePattern('^[a-z0-9\-\._ ]+$')]
         [ValidateNotNullOrEmpty()]
         [string]$Name,
 
 		#Packages
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
         [ValidateNotNullOrEmpty()]
 		[ValidateScript({Test-Zip $_ })]
         [string]$Package,
 
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
 		[ValidateScript({!$_ -or (Test-Zip $_) })]
         [string]$Hotfix,
 
 		#Web Settings
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({ Test-CommunityPath $_ -IsValid })]
         [string]$WebsitePath,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
         [ValidateNotNullOrEmpty()]
         [string]$WebDomain,
 
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
         [uint16]$Port= 80,
 
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
         [ValidateNotNullOrEmpty()]
 		[string]$ApplicationPool = $name,
 
 		#Database Connection
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({ Test-SqlServer $_ })]
         [string]$DatabaseServer = '(local)',
 
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
         [ValidatePattern('^[a-z0-9\-\._ ]+$')]
         [ValidateNotNullOrEmpty()]
         [string]$DatabaseName = $name,
 		
 		#Database Auth
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
         [PSCredential]$SqlCredential,
 
 		#Solr Params
-		[Parameter(ParameterSetName='SolrCore', Mandatory=$true)]
+		[Parameter(ParameterSetName='SolrCore', Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
         [switch]$SolrCore,
 
-        [Parameter(ParameterSetName='SolrCore', Mandatory=$true)]
+        [Parameter(ParameterSetName='SolrCore', Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({ Invoke-WebRequest $_ -UseBasicParsing -Method HEAD })]
         [uri]$SolrBaseUrl,
 
-        [Parameter(ParameterSetName='SolrCore', Mandatory=$true)]
+        [Parameter(ParameterSetName='SolrCore', Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
         [ValidateNotNullOrEmpty()]
         [string]$SolrCoreDir,
 
-        [Parameter(ParameterSetName='SolrCore')]
+        [Parameter(ParameterSetName='SolrCore', ValueFromPipelineByPropertyName=$true)]
         [ValidatePattern('^[a-z0-9\-\._ ]+$')]
         [ValidateNotNullOrEmpty()]
         [string]$SolrCoreName = $Name,
 
 
 		#Misc
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
         [ValidatePattern('^[a-z0-9\-\._ ]+$')]
         [ValidateNotNullOrEmpty()]
         [string]$AdminPassword ,
 
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
         [ValidatePattern('^[a-z0-9\-\._ ]+$')]
         [ValidateNotNullOrEmpty()]
         [string]$ApiKey,
 
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
         [ValidateScript({!$_ -or (Test-Path $_ -PathType Container -IsValid)})]
         [string]$FilestoragePath,
 
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
         [ValidateScript({ Test-CommunityPath $_ -IsValid -AllowEmpty })]
         [string]$JobSchedulerPath,
 
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
         [alias('License')]
 		[ValidateScript({!$_ -or (Test-Path $_ -PathType Leaf)})]
         [string]$Licence
