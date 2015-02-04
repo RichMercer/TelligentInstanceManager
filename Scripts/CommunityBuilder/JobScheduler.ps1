@@ -158,7 +158,7 @@ function Install-JobSchedulerService {
         #New-Service doesn't support Managed Service accounts on it's Credential object
         $service = if ($credential.Password.Length -eq 0)
         {
-            &sc.exe create "$serviceName" binPath="$servicePath" DisplayName="$displayName" start=auto obj=$($credential.UserName)
+            &sc.exe create "$serviceName" binPath= "$servicePath" DisplayName= "$displayName" start= auto obj= "$($credential.UserName)"
         }
         else {
             New-Service $serviceName `
