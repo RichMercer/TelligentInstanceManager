@@ -79,6 +79,7 @@ NestedModules = @(
 # Functions to export from this module
 FunctionsToExport = @(
                     'Get-CommunityBuild'
+                    'Get-Community'
 
                     'Add-SolrCore'
                     'Set-CommunitySolrUrl'
@@ -89,10 +90,12 @@ FunctionsToExport = @(
                     'Install-CommunityHotfix'
                     'Install-CommunityLicence'
 
-                    'New-IISAppPool'
-                    'Get-IISAppPoolIdentity'
                     'Test-Zip'
                     'Expand-Zip'
+
+                    'New-IISAppPool'
+                    'Get-IISAppPoolIdentity'
+                    'New-CommunityWebsite'
 
                     'Install-JobScheduler'
                     'Install-JobSchedulerService'
@@ -106,9 +109,9 @@ FunctionsToExport = @(
                     'Update-CommunityDatabase'
                     'Invoke-SqlCmdAgainstCommunity'
 
-                    'Get-Community'
-
                     'Set-CommunityFilestorage'
+                    'Grant-CommunityNtfsPermission'
+
                     'Write-ProgressFromVerbose'
 
                     'Enable-WindowsAuth'
