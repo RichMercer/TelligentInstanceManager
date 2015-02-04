@@ -122,7 +122,7 @@ function Install-JobSchedulerService {
     }
     
 
-    if ($splat.ComputerName) {
+    if ($splat.ContainsKey('ComputerName')) {
         Write-Verbose "Setting up service on '$($splat.ComputerName)'"
     } 
     else {
