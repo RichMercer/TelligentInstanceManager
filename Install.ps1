@@ -32,7 +32,7 @@ function Test-Prerequisites
     @( 'CommunityAddons','CommunityBuilder', 'DevCommunity') |
         % { Get-Module $_ -ListAvailable } |
         ? { $_} |
-        % { Write-Warning "'$($_.Name)' module already installed at '$($_.Path)'" } 
+        % { Write-Warning "'$($_.Name)' module already installed at '$($_.ModuleBase)'" } 
 }
 
 function Get-TomcatLocation {
