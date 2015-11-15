@@ -328,15 +328,9 @@ function New-Database {
 		[alias('ServerInstance')]
         [string]$Server = "."
     )
-    # need to encode the . used for the local server
-    if ($Server.StartsWith('.')) {
-        $Server = "%2e" + $server.SubString(1)
-    }
-    $db = New-Object Microsoft.SqlServer.Management.SMO.Database
-    $db.Parent = get-item (Convert-UrnToPath "Server[@Name='$Server']")
-    $db.Name = $Name
-    #TODO: Size correctly
-    $db.Create()
+    $safeDbName = Encode-SqlName $Name
+    $query = "Create Database [$(Encode-SqlName $NAME)]";
+    Invoke-Sqlcmd -ServerInstance $Server -Query $query
 }
 
 function Remove-Database {
