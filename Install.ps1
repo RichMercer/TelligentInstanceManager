@@ -102,6 +102,11 @@ function Install-SolrMultiCore {
     $solrBase = Join-Path $InstallDirectory Solr
     $tomcatContextDirectory = Join-Path $TomcatDirectory conf\Catalina\localhost
 
+	if(!(Test-Path $tomcatContextDirectory)) {
+		Write-Host "Creating $tomcatContextDirectory"
+		New-Item $tomcatContextDirectory -ItemType Directory | Out-Null
+	}
+	
     #It's not actually Solr 4-0, but changing this may break some previous users of the scripts
     @('1-4', '3-6', '4-0') |% {
         $solrHome = Join-Path $solrBase $_
@@ -115,7 +120,6 @@ function Install-SolrMultiCore {
             Write-Warning "Not seting up Multi Core Solr $_ Instance - manually ensure this is set up. SolrHome already exists at '$solrHome'"
         }        
         else {
-        $contextPath
             Write-Host "Installing Solr $_"
             New-Item $solrHome -ItemType Directory | Out-Null
 
