@@ -108,7 +108,7 @@ function Install-SolrMultiCore {
 	}
 	
     #It's not actually Solr 4-0, but changing this may break some previous users of the scripts
-    @('1-4', '3-6', '4-0') |% {
+    @('1-4', '3-6', '4-0', '4-10-3') |% {
         $solrHome = Join-Path $solrBase $_
         $contextPath = Join-Path $tomcatContextDirectory "${_}.xml" 
 
