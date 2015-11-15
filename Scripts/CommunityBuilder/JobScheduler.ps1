@@ -223,10 +223,10 @@ function Update-JobSchedulerFromWeb {
 
         #Copy web /bin/ to JS root
         Write-Progress 'Job Scheduler' 'Updating binaries from web'
-        &robocopy "$WebsitePath\bin" "$JobSchedulerPath" /e @roboCopyParams
+        &robocopy "$WebsitePath\bin" "$JobSchedulerPath" /e @roboCopyParams | Write-Host
 
         Write-Progress 'Job Scheduler' 'Updating config files from web'
-        &robocopy "$WebsitePath" "$JobSchedulerPath" *.config /s /XF web.config tasks.config jobs.config /XD ControlPanel @roboCopyParams 
+        &robocopy "$WebsitePath" "$JobSchedulerPath" *.config /s /XF web.config tasks.config jobs.config /XD ControlPanel @roboCopyParams  | Write-Host
 
 
         #TODO: is themes explicitly required if we copy *.config?
@@ -234,7 +234,7 @@ function Update-JobSchedulerFromWeb {
         @('modules', 'languages') |% {
             $dir = Join-Path $WebsitePath $_
             if(Test-Path $dir) {
-                &robocopy "$dir" "$JobSchedulerPath\$_" /e /Mir @roboCopyParams 
+                &robocopy "$dir" "$JobSchedulerPath\$_" /e /Mir @roboCopyParams  | Write-Host
             }
         }
 
