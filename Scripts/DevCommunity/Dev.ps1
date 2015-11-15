@@ -213,7 +213,7 @@ function Get-CommunitySolrVersion {
         .EXAMPLE
             Get-CommunitySolrVersion 9.0
     #>
-    [CmdletBinding(SupportsShouldProcess=$true, ConfirmImpact='High')]
+    [CmdletBinding()]
     param(
         [Parameter(Mandatory=$true, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
         [ValidateNotNullOrEmpty()]
