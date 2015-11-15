@@ -158,7 +158,7 @@ function Install-DevCommunity {
     )
     $name = $name.ToLower()
 
-    $solrVersion = if($Version.Major -ge 8) { '4-0' } elseif(@(2,3,5,6) -contains $Version.Major){ '1-4' } else { '3-6'  }
+    $solrVersion = Get-CommunitySolrVersion $Version
     $webDir = Join-Path $data.WebBase $Name
     $jsDir = Join-Path $data.JobSchedulerBase $Name
     $filestorageDir = Join-Path $webDir filestorage
@@ -204,6 +204,35 @@ function Install-DevCommunity {
     }
 }
 
+function Get-CommunitySolrVersion {
+    <#
+        .SYNOPSIS
+            Gets the Solr version for a given community version numeber
+        .PARAMETER Version
+            The community version
+        .EXAMPLE
+            Get-CommunitySolrVersion 9.0
+    #>
+    [CmdletBinding(SupportsShouldProcess=$true, ConfirmImpact='High')]
+    param(
+        [Parameter(Mandatory=$true, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
+        [ValidateNotNullOrEmpty()]
+        [Version]$Version
+    )
+	if($Version.Major -ge 9) {
+		'4-10-3'
+	}
+	elseif($Version.Major -ge 8) {
+		'4-5-1'
+	}
+	elseif(@(2,3,5,6) -contains $Version.Major) {
+		'1-4'
+	}
+	else {
+		'3-6'
+	}
+}
+
 function Remove-DevCommunity {
     <#
         .SYNOPSIS
@@ -242,7 +271,6 @@ function Remove-DevCommunity {
         }
 
         if($Force -or $PSCmdlet.ShouldProcess($Name)) {
-            $solrVersion = if($info.PlatformVersion.Major -ge 8) { '4-0' } elseif(@(2,3,5,6) -contains $info.PlatformVersion.Major){ '1-4' } else { '3-6'  }
             $domain = if($Name.Contains('.')) { $Name } else { "$Name.local"}
 
             #Delete the JS
@@ -279,6 +307,7 @@ function Remove-DevCommunity {
     
             #Remove the solr core
             Write-Progress 'Uninstalling Evolution Community' $Name -CurrentOperation 'Removing Solr Core'
+            $solrVersion = Get-CommunitySolrVersion $info.PlatformVersion
             $solrUrl = ($data.SolrUrl -f $solrVersion).TrimEnd('/') + '/admin/cores'
             Remove-SolrCore -Name $Name -CoreBaseDir ($data.SolrCoreBase -f $solrVersion) -CoreAdmin $solrUrl -EA SilentlyContinue
 
