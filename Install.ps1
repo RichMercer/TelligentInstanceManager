@@ -13,6 +13,11 @@ $scriptPath = Join-Path $PSScriptRoot Scripts
 
 function Test-Prerequisites
 {
+    param(
+        [Parameter(Mandatory=$true)]
+	    [ValidateScript({Test-Path $_ -PathType Container -IsValid})]
+        [string]$InstallDirectory
+    )
     #Check Admin
     $currentPrincipal = [Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()
     if (!($currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator"))) {
@@ -28,10 +33,12 @@ function Test-Prerequisites
         ? { !(Get-Module $_ -ListAvailable) } |
         % { Write-Error "Required Module '$_' is not available" }
 
+    $scriptPath = Join-Path $InstallDirectory Scripts
+
     #Warn for pre-existing modules
     @( 'CommunityAddons','CommunityBuilder', 'DevCommunity') |
         % { Get-Module $_ -ListAvailable } |
-        ? { $_} |
+        ? { ($_.ModuleBase | Split-Path -Parent) -ne $scriptPath } |
         % { Write-Warning "'$($_.Name)' module already installed at '$($_.ModuleBase)'" } 
 }
 
@@ -108,7 +115,7 @@ function Install-SolrMultiCore {
 	}
 	
     #It's not actually Solr 4-0, but changing this may break some previous users of the scripts
-    @('1-4', '3-6', '4-5-1', '4-10-3') |% {
+    @('1-4', '3-6', '4-0', '4-10-3') |% {
         $solrHome = Join-Path $solrBase $_
         $contextPath = Join-Path $tomcatContextDirectory "${_}.xml" 
 
@@ -225,7 +232,7 @@ else {
 	}
 }
 
-Test-Prerequisites
+Test-Prerequisites $installDirectory
 if ($Error.Count -ne $initialErrorCount) {
     throw 'Prerequisites not met (see previous errors for more details)'
 }
