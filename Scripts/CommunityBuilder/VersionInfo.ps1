@@ -20,11 +20,14 @@ function Get-Community {
     param(
         [ValidateNotNullOrEmpty()]
         [parameter(Mandatory=$true, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
-        #[ValidateScript({ Test-CommunityPath $_ })]
         [alias('physicalPath')]
         [string]$path
     )
     process {
+        if (!(Test-Path $path)) {
+            return
+        }
+
         $csConfig = Merge-CommunityConfigurationFile $path communityserver -ErrorAction SilentlyContinue
 
         $product = @($versionDllNames.platform) |

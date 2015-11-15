@@ -307,9 +307,14 @@ function Remove-DevCommunity {
     
             #Remove the solr core
             Write-Progress 'Uninstalling Evolution Community' $Name -CurrentOperation 'Removing Solr Core'
-            $solrVersion = Get-CommunitySolrVersion $info.PlatformVersion
-            $solrUrl = ($data.SolrUrl -f $solrVersion).TrimEnd('/') + '/admin/cores'
-            Remove-SolrCore -Name $Name -CoreBaseDir ($data.SolrCoreBase -f $solrVersion) -CoreAdmin $solrUrl -EA SilentlyContinue
+            if($info) {
+                $solrVersion = Get-CommunitySolrVersion $info.PlatformVersion
+                $solrUrl = ($data.SolrUrl -f $solrVersion).TrimEnd('/') + '/admin/cores'
+                Remove-SolrCore -Name $Name -CoreBaseDir ($data.SolrCoreBase -f $solrVersion) -CoreAdmin $solrUrl -EA SilentlyContinue
+            }
+            else {
+                Write-Warning "Unable to determine Solr version"
+            }
 
             Write-Host "Deleted website at http://$domain/"
         }
