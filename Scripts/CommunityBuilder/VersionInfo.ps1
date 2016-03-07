@@ -88,7 +88,7 @@ function Get-CommunityVersionFromDlls {
         % { Join-Path $Path $_ } |
         Get-Item -ErrorAction SilentlyContinue |
         Select -ExpandProperty VersionInfo -First 1 |
-        Select -ExpandProperty ProductVersion -ErrorAction SilentlyContinue
+        Select -ExpandProperty FileVersion -ErrorAction SilentlyContinue
 
         return [Version]$version
 }
