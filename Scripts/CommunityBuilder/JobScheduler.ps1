@@ -51,12 +51,14 @@ function Install-JobScheduler {
     if ($info.PlatformVersion.Major -ge 8 ) {
         Expand-Zip $Package $JobSchedulerPath -ZipDirectory JobService
 
-        Write-Progress 'Job Scheduler' 'Executing Job Scheduler SQL'
         $tempDir = Join-Path ([System.IO.Path]::GetFullPath($env:TEMP)) ([guid]::NewGuid())
         Expand-Zip -Path $package -Destination $tempDir -ZipDirectory SqlScripts -ZipFile Jobs_InstallUpdate.sql
-        $sqlScript = Join-Path $tempDir Jobs_InstallUpdate.sql | Resolve-Path
+        $sqlScript = Join-Path $tempDir Jobs_InstallUpdate.sql
 
-    	Invoke-SqlCmdAgainstCommunity -WebsitePath $WebsitePath -File $sqlScript
+        if (Test-Path $sqlScript) {
+            Write-Progress 'Job Scheduler' 'Executing Job Scheduler SQL'
+    	    Invoke-SqlCmdAgainstCommunity -WebsitePath $WebsitePath -File $sqlScript
+        }
     }
     else {
         Write-Progress 'Job Scheduler' 'Extracting Base Job Scheduler'

@@ -116,8 +116,11 @@ function New-CommunityDatabase {
     
     Write-Progress "Database: $database" 'Creating Schema'
     $tempDir = Join-Path ([System.IO.Path]::GetFullPath($env:TEMP)) ([guid]::NewGuid())
-    Expand-Zip -Path $package -Destination $tempDir -ZipDirectory SqlScripts -ZipFile cs_CreateFullDatabase.sql
-    $sqlScript = Join-Path $tempDir cs_CreateFullDatabase.sql | Resolve-Path
+    Expand-Zip -Path $package -Destination $tempDir -ZipDirectory SqlScripts
+    $sqlScript = @('Install.sql', 'cs_CreateFullDatabase.sql') |
+        ForEach-Object { Join-Path $tempDir $_ }|
+        Where-Object { Test-Path $_} |
+        Select-Object -First 1
 
     Write-ProgressFromVerbose "Database: $database" 'Creating Schema' {
         Invoke-Sqlcmd @connectionInfo -InputFile $sqlScript -QueryTimeout 6000 -DisableVariables
@@ -183,8 +186,11 @@ function Update-CommunityDatabase {
     
     Write-Progress "Database: $database" 'Creating Schema'
     $tempDir = Join-Path ([System.IO.Path]::GetFullPath($env:TEMP)) ([guid]::NewGuid())
-    Expand-Zip -Path $package -Destination $tempDir -ZipDirectory SqlScripts -ZipFile cs_UpdateSchemaAndProcedures.sql
-    $sqlScript = Join-Path $tempDir cs_UpdateSchemaAndProcedures.sql | Resolve-Path
+    Expand-Zip -Path $package -Destination $tempDir -ZipDirectory SqlScripts
+    $sqlScript = @('Upgrade.sql', 'cs_UpdateSchemaAndProcedures.sql') |
+        ForEach-Object { Join-Path $tempDir $_ }|
+        Where-Object { Test-Path $_} |
+        Select-Object -First 1
 
     Write-ProgressFromVerbose "Database: $Database" 'Upgrading Schema' {
         Invoke-Sqlcmd @connectionInfo -InputFile $sqlScript -QueryTimeout 6000 -DisableVariables
