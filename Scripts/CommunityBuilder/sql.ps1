@@ -328,8 +328,7 @@ function New-Database {
 		[alias('ServerInstance')]
         [string]$Server = "."
     )
-    $safeDbName = Encode-SqlName $Name
-    $query = "Create Database [$(Encode-SqlName $NAME)]";
+    $query = "Create Database [$Name]";
     Invoke-Sqlcmd -ServerInstance $Server -Query $query
 }
 
