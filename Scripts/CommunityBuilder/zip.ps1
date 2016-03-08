@@ -63,7 +63,7 @@ function Expand-Zip {
         $entries = $zipPackage.Entries
         if ($ZipFileName){
             $entries = $entries |
-                ? {$_.FullName -eq "${prefix}${ZipFileName}"} |
+                ? {$_.FullName.Replace('\','/') -eq "${prefix}${ZipFileName}"} |
                 select -First 1
         }
         else {
@@ -71,7 +71,7 @@ function Expand-Zip {
             $entries = $zipPackage.Entries |? Name
             if ($ZipDirectory) {
                 #Filter out items not under requested directory
-                $entries = $entries |? { $_.FullName.StartsWith($prefix, "OrdinalIgnoreCase")}
+                $entries = $entries |? { $_.FullName.Replace('\','/').StartsWith($prefix, "OrdinalIgnoreCase")}
             }
         }
 
