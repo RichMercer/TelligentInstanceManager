@@ -357,9 +357,13 @@ function Remove-Database {
 		[alias('dbServer')]
         [string]$Server = "."
     )
-    $srv = New-Object Microsoft.SqlServer.Management.SMO.Server($Server)
 
-    if($srv.Databases[$Database]){
-        $srv.KillDatabase($Database)
-    }
+    $query = @"
+        if DB_ID('$Database') is not null
+        begin
+            exec msdb.dbo.sp_delete_database_backuphistory @database_name = N'$Database'
+            drop database [$Database]
+        end
+"@
+    Invoke-Sqlcmd -ServerInstance $Server -Query $query
 }
