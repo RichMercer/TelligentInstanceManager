@@ -35,26 +35,26 @@ $data = @{
 	SolrCoreBase = Join-Path $base 'Solr\{0}\'
 }
 
-function Get-DevCommunity {
+function Get-TelligentInstance {
     <#
         .SYNOPSIS
-            Gets DevCommunity instances
+            Gets TelligentInstance instances
         .PARAMETER Name
             The name of the instance to remove
         .PARAMETER Force
             Forces removal of the named instance, even if the named instance cannot be found.
         .EXAMPLE
-            Get-DevCommunity
+            Get-TelligentInstance
                
-            Gets all DevCommunity instances
+            Gets all TelligentInstance instances
         .EXAMPLE
-            Get-DevCommunity test123
+            Get-TelligentInstance test123
 
-            Gets the DevCommunity instance named 'test123'
+            Gets the TelligentInstance instance named 'test123'
         .EXAMPLE
-            Get-DevCommunity ps*
+            Get-TelligentInstance ps*
                
-            Gets all DevCommunity instances whose names match the pattern 'ps*'
+            Gets all TelligentInstance instances whose names match the pattern 'ps*'
     #>
     param(
         [Parameter(ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
@@ -79,7 +79,7 @@ function Get-DevCommunity {
     $results
 }
 
-function Install-DevCommunity {
+function Install-TelligentInstance {
     <#
     .Synopsis
 	    Sets up a new Telligent Evolution community for development purposes.
@@ -128,7 +128,7 @@ function Install-DevCommunity {
 	    Specify this switch to not set up a new search instance
 
     .Example
-        Get-CommunityBuild 7.6 | Install-DevCommunity TestSite
+        Get-CommunityBuild 7.6 | Install-TelligentInstance TestSite
         
         Output can be piped from Get-CommunityBuild to automatically fill in the product, version, basePackage and hotfixPackage paramaters
     
@@ -139,7 +139,7 @@ function Install-DevCommunity {
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [ValidatePattern('^[a-z0-9\-\._]+$')]
-        [ValidateScript({if(Get-DevCommunity $_){ throw "DevCommunity Instance '$_' already exists" } else { $true }})]
+        [ValidateScript({if(Get-TelligentInstance $_){ throw "TelligentInstance Instance '$_' already exists" } else { $true }})]
         [string] $Name,
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
  		[ValidateSet('Community','Enterprise')]
@@ -233,26 +233,26 @@ function Get-CommunitySolrVersion {
 	}
 }
 
-function Remove-DevCommunity {
+function Remove-TelligentInstance {
     <#
         .SYNOPSIS
-            Removes a DevCommunity Instance
+            Removes a TelligentInstance Instance
         .PARAMETER Name
             The name of the instance to remove
         .PARAMETER Force
             Forces removal of the named instance, even if the named instance cannot be found.
         .EXAMPLE
-            Remove-DevCommunity test1, test2
+            Remove-TelligentInstance test1, test2
                
-            Removes the 'test1' and 'test2' DevCommunity Instances
+            Removes the 'test1' and 'test2' TelligentInstance Instances
         .EXAMPLE
-            Get-DevCommunity | Remove-DevCommunity
+            Get-TelligentInstance | Remove-TelligentInstance
                
-            Removes all DevCommunity instances
+            Removes all TelligentInstance instances
         .EXAMPLE
-            Remove-DevCommunity FailedInstall -Force
+            Remove-TelligentInstance FailedInstall -Force
                
-            Removes the 'FailedInstall' DevCommunity instance if it's corrupted to the point it's not dete
+            Removes the 'FailedInstall' TelligentInstance instance if it's corrupted to the point it's not dete
     #>
     [CmdletBinding(SupportsShouldProcess=$true, ConfirmImpact='High')]
     param(
@@ -320,16 +320,3 @@ function Remove-DevCommunity {
         }
     }
 }
-
-Set-Alias isdc Install-DevCommunity
-Set-Alias rdc Remove-DevCommunity
-Set-Alias gdc Get-DevCommunity
-
-
-#Backwards compatibility with previous names
-Set-Alias Install-DevEvolution Install-DevCommunity
-Set-Alias Remove-DevEvolution Remove-DevCommunity
-Set-Alias Get-DevEvolution Get-DevCommunity
-Set-Alias isde Install-DevCommunity
-Set-Alias rde Remove-DevCommunity
-Set-Alias gde Get-DevCommunity
