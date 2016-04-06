@@ -78,7 +78,7 @@ NestedModules = @(
 
 # Functions to export from this module
 FunctionsToExport = @(
-                    'Get-CommunityBuild'
+                    'Get-TelligentVersion'
                     'Get-Community'
 
                     'Add-SolrCore'

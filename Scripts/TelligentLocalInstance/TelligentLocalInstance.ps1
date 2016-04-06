@@ -128,9 +128,9 @@ function Install-TelligentInstance {
 	    Specify this switch to not set up a new search instance
 
     .Example
-        Get-CommunityBuild 7.6 | Install-TelligentInstance TestSite
+        Get-TelligentVersion 7.6 | Install-TelligentInstance TestSite
         
-        Output can be piped from Get-CommunityBuild to automatically fill in the product, version, basePackage and hotfixPackage paramaters
+        Output can be piped from Get-TelligentVersion to automatically fill in the product, version, basePackage and hotfixPackage paramaters
     
 				
     #>
