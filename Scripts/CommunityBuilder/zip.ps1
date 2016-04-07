@@ -3,7 +3,7 @@
 function Expand-Zip {
 	<#
 	.Synopsis
-		Extracts files from a zip folder
+		Extracts files or directories from a zip folder
 	.Parameter Path
 	    The path to the Zip folder to extract
 	.Parameter Destination
