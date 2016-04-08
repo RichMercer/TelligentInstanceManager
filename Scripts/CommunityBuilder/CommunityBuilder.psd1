@@ -90,9 +90,6 @@ FunctionsToExport = @(
                     'Install-CommunityHotfix'
                     'Install-CommunityLicence'
 
-                    'Test-Zip'
-                    'Expand-Zip'
-
                     'New-IISAppPool'
                     'Get-IISAppPoolIdentity'
                     'New-CommunityWebsite'
