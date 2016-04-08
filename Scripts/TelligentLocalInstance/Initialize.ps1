@@ -143,11 +143,17 @@ function Initalize-Environment
     param(
         [Parameter(Mandatory=$true)]
 	    [ValidateScript({Test-Path $_ -PathType Container -IsValid})]
-        [string]$InstallDirectory
+        [string]$InstallDirectory,
+        [Parameter(Mandatory=$true)]
+        [string]$DBServerName
     )
     #Set Package Location
     [Environment]::SetEnvironmentVariable('TelligentInstanceManager', $InstallDirectory)
     [Environment]::SetEnvironmentVariable('TelligentInstanceManager', $InstallDirectory, 'Machine')
+
+    #Set DB Instance Name, if supplied
+    [Environment]::SetEnvironmentVariable('DBServerName', $DBServerName)
+    [Environment]::SetEnvironmentVariable('DBServerName', $DBServerName, 'Machine')
 }
 
 function Write-Telligent
@@ -198,6 +204,7 @@ function Initialize-TelligentInstanceManager {
 param(
     [Parameter(Mandatory=$true, HelpMessage="The path where Telligent Instances Manager will store instances and builds.")]
     [string]$InstallDirectory,
+    [string]$DBServerName = '(local)',
     [Parameter(Mandatory=$false, HelpMessage="The path where Tomcat is installed.  Used to add Tomcat contexts used for Solr multi core setup.")]
     [ValidateScript({$_ -and (Test-TomcatPath $_) })]
     [string]$TomcatDirectory,
@@ -243,7 +250,7 @@ if ($TomcatDirectory) {
 Install-SolrMultiCore -InstallDirectory $InstallDirectory @solrParams
 
 Write-Progress 'Telligent Instance Manager Setup' 'Setting Environmental Variables' -PercentComplete 70
-Initalize-Environment $InstallDirectory
+Initalize-Environment $InstallDirectory $DBServerName
 
 Write-Progress 'Telligent Instance Manager Setup' "Ensuring files are unblocked" -PercentComplete 80
 Get-ChildItem $InstallDirectory -Recurse | Unblock-File
