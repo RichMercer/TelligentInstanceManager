@@ -136,6 +136,7 @@ function Install-SolrMultiCore {
 
     Write-Progress 'Telligent Instance Manager Setup' 'Starting Tocmat' -PercentComplete 50
     Start-Service tomcat* -ErrorAction Continue
+
 }
 
 function Initalize-Environment
@@ -242,14 +243,12 @@ if ($Error.Count -ne $initialErrorCount) {
     ? {!(Test-Path $_)} |
     % {new-item $_ -ItemType Directory | Out-Null}
 
-Write-Progress 'Telligent Instance Manager Setup' 'Installing Solr Multi Cores'-PercentComplete 20
-$solrParams = @{}
-if ($TomcatDirectory) {
-    $solrParams.TomcatDirectory = $TomcatDirectory
-}
-Install-SolrMultiCore -InstallDirectory $InstallDirectory @solrParams
+Write-Progress 'Telligent Instance Manager Setup' 'Installing Solr Dependencies to Tomcat Lib'-PercentComplete 10
+$tomcatLib= Join-Path "$TomcatDirectory" 'lib'
+#TODO: Download required files from git here
+#$libSource = Join-Path $PSScriptRoot 'Solr\_tomcatlib\*'
+#Copy-Item $libSource  $tomcatLib
 
-Write-Progress 'Telligent Instance Manager Setup' 'Setting Environmental Variables' -PercentComplete 70
 Initalize-Environment $InstallDirectory $DBServerName
 
 Write-Progress 'Telligent Instance Manager Setup' "Ensuring files are unblocked" -PercentComplete 80

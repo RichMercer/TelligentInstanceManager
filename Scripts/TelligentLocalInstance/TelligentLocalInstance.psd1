@@ -63,7 +63,10 @@ TypesToProcess = @()
 FormatsToProcess = @()
 
 # Modules to import as nested modules of the module specified in ModuleToProcess
-NestedModules = @('TelligentLocalInstance.ps1')
+NestedModules = @(
+                    'TelligentLocalInstance.ps1'
+                    'Initialize.ps1'
+)
 
 # Functions to export from this module
 FunctionsToExport = @(

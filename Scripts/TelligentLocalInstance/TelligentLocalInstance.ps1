@@ -1,8 +1,8 @@
 ﻿Set-StrictMode -Version 2
 
-$base = $env:EvolutionMassInstall
+$base = $env:TelligentInstanceManager
 if (!$base) {
-    Write-Error 'EvolutionMassInstall environmental variable not defined'
+    Write-Error 'TelligentInstanceManager environmental variable not defined'
 }
 
 $data = @{
@@ -95,11 +95,11 @@ function Install-TelligentInstance {
         If a Telligent Enterprise instance is being installed, Windows Authentication will be enabled automatically
     .Parameter name
 	    The name of the community to create. This is used when creating the locations used by the community.
-		    * Web Files - %EvolutionMassInstall%\Web\NAME\
+		    * Web Files - %TelligentInstanceManager%\Web\NAME\
 		    * Database Server - (local)
 		    * Database name NAME
 		    * Solr Url - http://localhost:8080/3-6/NAME/ (or 1-4 for versions using solr 1.4)
-		    * Solr Core - %EvolutionMassInstall%\Solr\3-6\NAME\ (or 1-4 for versions using solr 1.4)
+		    * Solr Core - %TelligentInstanceManager%\Solr\3-6\NAME\ (or 1-4 for versions using solr 1.4)
 		    * Url - http://NAME.local/ (entry automatically added to hosts file)
 		    * Jobs run in web process
 		    * Custom Errors disabled
