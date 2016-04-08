@@ -225,9 +225,6 @@ function Get-CommunitySolrVersion {
 	elseif($Version.Major -ge 8) {
 		'4-5-1'
 	}
-	elseif(@(2,3,5,6) -contains $Version.Major) {
-		'1-4'
-	}
 	else {
 		'3-6'
 	}

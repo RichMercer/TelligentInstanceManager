@@ -140,6 +140,3 @@ function Get-VersionedEvolutionPackage {
 
 Set-Alias gcb Get-TelligentVersion
 
-#Backwards compatibility with
-Set-Alias geb Get-TelligentVersion
-Set-Alias Get-EvolutionBuild Get-TelligentVersion
