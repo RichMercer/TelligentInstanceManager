@@ -1,15 +1,4 @@
 ﻿#Requires -Version 3
-[CmdletBinding(SupportsShouldProcess=$true)]
-param(
-    [Parameter(Mandatory=$false, HelpMessage="The path where Tomcat is installed.  Used to add Tomcat contexts used for Solr multi core setup.")]
-    [ValidateScript({$_ -and (Test-TomcatPath $_) })]
-    [string]$TomcatDirectory,
-    [switch]$Force
-)
-
-$installDirectory = $PSScriptRoot
-$scriptPath = Join-Path $PSScriptRoot Scripts
-
 
 function Test-Prerequisites
 {
@@ -24,22 +13,10 @@ function Test-Prerequisites
            Write-Error "Installation requires Administrative credentials"
     }
 
-    #.net 4.5 required for unzipping support
-    try{ Add-Type -AssemblyName System.IO.Compression }
-    catch { Write-Error '.Net 4.5 not installed' }
-
     #Check for required modules
     @('webadministration','sqlps') |
         ? { !(Get-Module $_ -ListAvailable) } |
         % { Write-Error "Required Module '$_' is not available" }
-
-    $scriptPath = Join-Path $InstallDirectory Scripts
-
-    #Warn for pre-existing modules
-    @( 'CommunityAddons','CommunityBuilder', 'DevCommunity') |
-        % { Get-Module $_ -ListAvailable } |
-        ? { ($_.ModuleBase | Split-Path -Parent) -ne $scriptPath } |
-        % { Write-Warning "'$($_.Name)' module already installed at '$($_.ModuleBase)'" } 
 }
 
 function Get-TomcatLocation {
@@ -109,15 +86,27 @@ function Install-SolrMultiCore {
     $solrBase = Join-Path $InstallDirectory Solr
     $tomcatContextDirectory = Join-Path $TomcatDirectory conf\Catalina\localhost
 
+    # TODO: Download files here
+
 	if(!(Test-Path $tomcatContextDirectory)) {
 		Write-Host "Creating $tomcatContextDirectory"
 		New-Item $tomcatContextDirectory -ItemType Directory | Out-Null
 	}
 	
-    #It's not actually Solr 4-0, but changing this may break some previous users of the scripts
-    @('1-4', '3-6', '4-0', '4-10-3') |% {
+    @('3-6', '4-5-1', '4-10-3') |% {
         $solrHome = Join-Path $solrBase $_
         $contextPath = Join-Path $tomcatContextDirectory "${_}.xml" 
+
+        if(!(Test-Path $solrHome)) {
+            new-item $solrHome -ItemType Directory | Out-Null
+        }
+
+        $war = Join-Path $solrBase "solr_${_}.war"
+        if(!(Test-Path $war)) {
+            Write-Host "Downloading $war"
+            $warUri = "https://github.com/afscrome/TelligentInstanceManager/blob/master/Solr/solr_${_}.war?raw=true"
+            Invoke-WebRequest -Uri $warUri -OutFile $war 
+        }        
 
         if (Test-Path $contextPath) {
             #Don't treat existing context file as an error - most likely means it's already set up
@@ -136,15 +125,13 @@ function Install-SolrMultiCore {
             $solrXml | out-file $solrXmlPath -Encoding utf8
 
             #Create context file
-            $war = Join-Path $solrBase "solr_${_}.war"
             $tomcatContext -f $war, $solrHome | out-file $contextPath
         }
     }
 
-    Write-Progress 'Telligent Mass Install Setup' 'Restarting Tocmat' -PercentComplete 50
+    Write-Progress 'Telligent Instance Manager Setup' 'Restarting Tocmat' -PercentComplete 50
     Restart-Service tomcat* -ErrorAction Continue
 }
-
 
 function Initalize-Environment
 {
@@ -154,19 +141,8 @@ function Initalize-Environment
         [string]$InstallDirectory
     )
     #Set Package Location
-    [Environment]::SetEnvironmentVariable('EvolutionMassInstall', $InstallDirectory)
-    [Environment]::SetEnvironmentVariable('EvolutionMassInstall', $InstallDirectory, 'Machine')
-
-    #Add script folder to PSModule Paths
-    $scriptPath = Join-Path $InstallDirectory Scripts
-    $psModulePaths = [Environment]::GetEnvironmentVariable('PSModulePath', 'Machine') -split ';'
-    if ($psModulePaths -notcontains $scriptPath) {
-        $psModulePaths += $scriptPath
-        #Set for both machine & current process
-        [Environment]::SetEnvironmentVariable('PSModulePath', ($psModulePaths -join ';'))
-        [Environment]::SetEnvironmentVariable('PSModulePath', ($psModulePaths -join ';'), 'Machine')
-        Write-Host "Added $scriptPath to %PSModulePath%"
-    }
+    [Environment]::SetEnvironmentVariable('TelligentInstanceManager', $InstallDirectory)
+    [Environment]::SetEnvironmentVariable('TelligentInstanceManager', $InstallDirectory, 'Machine')
 }
 
 function Write-Telligent
@@ -212,14 +188,25 @@ function Write-Telligent
 	Write-Host
 }
 
+function Initialize-TelligentInstanceManager {
+[CmdletBinding(SupportsShouldProcess=$true)]
+param(
+    [Parameter(Mandatory=$true, HelpMessage="The path where Telligent Instances Manager will store instances and builds.")]
+    [string]$InstallDirectory,
+    [Parameter(Mandatory=$false, HelpMessage="The path where Tomcat is installed.  Used to add Tomcat contexts used for Solr multi core setup.")]
+    [ValidateScript({$_ -and (Test-TomcatPath $_) })]
+    [string]$TomcatDirectory,
+    [switch]$Force
+)
+
 #Banner
 Write-Telligent
-Write-Host "Telligent Evolution Mass Installer"
+Write-Host "Telligent Instance Manager"
 Write-Host
 
 #Test Prerequisites
 $initialErrorCount = $Error.Count
-Write-Progress "Telligent Mass Install Setup" "Checking Prerequisites" -CurrentOperation "This may take a few moments"
+Write-Progress "Telligent Instance Manager Setup" "Checking Prerequisites" -CurrentOperation "This may take a few moments"
 if (!$TomcatDirectory) {
     $TomcatDirectory = Get-TomcatLocation
 	if (!$TomcatDirectory) {
@@ -238,55 +225,52 @@ if ($Error.Count -ne $initialErrorCount) {
 }
 
 #Make Required Folders
-@('Licences', 'FullPackages', 'Hotfixes', 'Web') |
-    % { Join-Path $installDirectory $_} |
+@('Licences', 'TelligentPackages', 'Web', 'Solr') |
+    % { Join-Path $InstallDirectory $_} |
     ? {!(Test-Path $_)} |
     % {new-item $_ -ItemType Directory | Out-Null}
 
-Write-Progress 'Telligent Mass Install Setup' 'Installing Solr Dependencies to Tomcat Lib'-PercentComplete 10
+Write-Progress 'Telligent Instance Manager Setup' 'Installing Solr Dependencies to Tomcat Lib'-PercentComplete 10
 $tomcatLib= Join-Path "$TomcatDirectory" 'lib'
-$libSource = Join-Path $PSScriptRoot 'Solr\_tomcatlib\*'
-Copy-Item $libSource  $tomcatLib
+#TODO: Download required files from git here
+#$libSource = Join-Path $PSScriptRoot 'Solr\_tomcatlib\*'
+#Copy-Item $libSource  $tomcatLib
 
-Write-Progress 'Telligent Mass Install Setup' 'Installing Solr Multi Cores'-PercentComplete 20
+Write-Progress 'Telligent Instance Manager Setup' 'Installing Solr Multi Cores'-PercentComplete 20
 $solrParams = @{}
 if ($TomcatDirectory) {
     $solrParams.TomcatDirectory = $TomcatDirectory
 }
-Install-SolrMultiCore -InstallDirectory $installDirectory @solrParams
+Install-SolrMultiCore -InstallDirectory $InstallDirectory @solrParams
 
-Write-Progress 'Telligent Mass Install Setup' 'Setting Environmental Variables' -PercentComplete 70
-Initalize-Environment $installDirectory
+Write-Progress 'Telligent Instance Manager Setup' 'Setting Environmental Variables' -PercentComplete 70
+Initalize-Environment $InstallDirectory
 
-Write-Progress 'Telligent Mass Install Setup' "Ensuring files are unblocked" -PercentComplete 80
-Get-ChildItem $installDirectory -Recurse | Unblock-File
+Write-Progress 'Telligent Instance Manager Setup' "Ensuring files are unblocked" -PercentComplete 80
+Get-ChildItem $InstallDirectory -Recurse | Unblock-File
 
-Write-Progress 'Telligent Mass Install Setup' -Completed
+Write-Progress 'Telligent Instance Manager Setup' -Completed
 
 #Provide hints for finishing installation
-$licencePath = Join-Path $installDirectory Licences 
+$licencePath = Join-Path $InstallDirectory Licences 
 if (!(Get-ChildItem $licencePath -ErrorAction SilentlyContinue)){
     Write-Warning "No Licenses available for installation at '$licencePath' "
-    Write-Warning "Add files to this directory with filenames of the format 'Community7.xml', 'Enterprise4.xml' etc."
+    Write-Warning "Add files to this directory with filenames of the format 'Community8.xml', 'Community9.xml' etc."
 }
 
-$fullPackagePath = Join-Path $installDirectory FullPackages
+$packagesPath = Join-Path $InstallDirectory TelligentPackages
 if (!(Get-ChildItem $licencePath -ErrorAction SilentlyContinue)){
-    Write-Warning "No Base Packages are available for Installation at '$fullPackagePath'."
-}
-
-$hotfixPackagePath = Join-Path $installDirectory FullPackages
-if (!(Get-ChildItem $hotfixPackagePath -ErrorAction SilentlyContinue)){
-    Write-Warning "No Hotfixes are available for Installation at '$hotfixPackagePath'."
-    Write-Warning 'N.B. to install a hotfix, you must have a full packages with the same Major and Minor build number'
+    Write-Warning "No packages are available for Installation at '$fullPackagePath'."
 }
 
 Write-Host
-Write-Host 'Telligent Mass Installer installation  complete' -ForegroundColor Green
+Write-Host 'Telligent Instance Manager installation  complete' -ForegroundColor Green
 Write-Host @"
-For more details on how to use the Mass Installer, use the Get-Help cmdlet to learn more about the following comamnds
-* Get-CommunityBuild (gcb)
-* Install-DevCommunity (isdc)
-* Remove-DevCommunity (rdc)
+For more details on how to use the Telligent Instance Manager, use the Get-Help cmdlet to learn more about the following comamnds
+* Get-TelligentInstance
+* Install-TelligentInstance
+* Remove-TelligentInstance
 
 "@
+
+}

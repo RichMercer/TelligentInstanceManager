@@ -1,8 +1,8 @@
 ﻿Set-StrictMode -Version 2
 
-$base = $env:EvolutionMassInstall
+$base = $env:TelligentInstanceManager
 if (!$base) {
-    Write-Error 'EvolutionMassInstall environmental variable not defined'
+    Write-Error 'TelligentInstanceManager environmental variable not defined'
 }
 
 # The Directory where full installation packages can be found

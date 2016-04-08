@@ -18,7 +18,7 @@ ModuleVersion = '1.0'
 GUID = '1ad0eb2e-ca95-4462-bec2-308e7967b3ce'
 
 # Author of this module
-Author = 'Alex Crome'
+Author = @('Alex Crome', 'Rich Me')
 
 # Company or vendor of this module
 CompanyName = 'Telligent Systems, Inc.'
