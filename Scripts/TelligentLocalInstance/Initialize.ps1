@@ -50,7 +50,8 @@ function Install-SolrMultiCore {
         [string]$InstallDirectory,
         [Parameter(Mandatory=$true)]
 		[ValidateScript({Test-TomcatPath $_ })]
-        [string]$TomcatDirectory
+        [string]$TomcatDirectory,
+        [switch]$Force
     )
 
     $tomcatContext = @"
@@ -97,9 +98,10 @@ function Install-SolrMultiCore {
     @('jcl-over-slf4j-1.6.6.jar', 'jul-to-slf4j-1.6.6.jar', 'log4j-1.2.16.jar', 'slf4j-api-1.6.6.jar', 'slf4j-log4j12-1.6.6.jar') |% {
         Write-Progress 'Telligent Instance Manager Setup' 'Downloading Tomcat dependencies'
         $tomcatLib= Join-Path "$TomcatDirectory" 'lib'        
-        $filePath =  Join-Path $tomcatLib $_       
-
-        Invoke-WebRequest -Uri "https://github.com/afscrome/TelligentInstanceManager/blob/master/Solr/_tomcatlib/${_}?raw=true" -OutFile $filePath
+        $filePath =  Join-Path $tomcatLib $_      
+        if(!(Test-Path $filePath)) {
+            Invoke-WebRequest -Uri "https://github.com/afscrome/TelligentInstanceManager/blob/master/Solr/_tomcatlib/${_}?raw=true" -OutFile $filePath
+        }
     }
 	
     @('3-6', '4-5-1', '4-10-3') |% {
@@ -107,22 +109,24 @@ function Install-SolrMultiCore {
         $contextPath = Join-Path $tomcatContextDirectory "${_}.xml" 
 
         $war = Join-Path $solrBase "solr_${_}.war"
-        if(!(Test-Path $war)) {
+        if(!(Test-Path $war) -or $Force) {
             Write-Progress 'Telligent Instance Manager Setup' "Downloading $war"
             $warUri = "https://github.com/afscrome/TelligentInstanceManager/blob/master/Solr/solr_${_}.war?raw=true"
             Invoke-WebRequest -Uri $warUri -OutFile $war 
         }        
         
-        if (Test-Path $contextPath) {
+        if ((Test-Path $contextPath) -and !$Force) {
             #Don't treat existing context file as an error - most likely means it's already set up
             Write-Verbose "Not seting up Multi Core Solr $_ Instance - manually ensure this is set up. Context already exists at '$contextPath'"
         }
-        elseif (Test-Path $solrHome) {
+        elseif ((Test-Path $solrHome) -and !$Force) {
             Write-Warning "Not seting up Multi Core Solr $_ Instance - manually ensure this is set up. SolrHome already exists at '$solrHome'"
         }        
         else {
             Write-Host "Installing Solr $_"
-            New-Item $solrHome -ItemType Directory | Out-Null
+            if(!(Test-Path $filePath)) {
+                New-Item $solrHome -ItemType Directory | Out-Null
+            }
 
             #Create Solr.xml to enable multicore
             $solrXml = if($_ -in '3-6') { $legacySolrXml } else { $modernSolrXml}
@@ -243,11 +247,7 @@ if ($Error.Count -ne $initialErrorCount) {
     ? {!(Test-Path $_)} |
     % {new-item $_ -ItemType Directory | Out-Null}
 
-Write-Progress 'Telligent Instance Manager Setup' 'Installing Solr Dependencies to Tomcat Lib'-PercentComplete 10
-$tomcatLib= Join-Path "$TomcatDirectory" 'lib'
-#TODO: Download required files from git here
-#$libSource = Join-Path $PSScriptRoot 'Solr\_tomcatlib\*'
-#Copy-Item $libSource  $tomcatLib
+Install-SolrMultiCore -InstallDirectory $InstallDirectory -TomcatDirectory $TomcatDirectory
 
 Initalize-Environment $InstallDirectory $DBServerName
 
