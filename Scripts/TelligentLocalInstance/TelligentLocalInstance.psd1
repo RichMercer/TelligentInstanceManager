@@ -27,7 +27,7 @@ CompanyName = 'Telligent Systems, Inc.'
 Copyright = '(c) 2016 Telligent. All rights reserved.'
 
 # Description of the functionality provided by this module
-Description = ''
+Description = 'Telligent Instance Manager allows you to create and manage local Telligent Community instances.'
 
 # Minimum version of the Windows PowerShell engine required by this module
 PowerShellVersion = '5.0'
@@ -73,6 +73,7 @@ FunctionsToExport = @(
                     'Get-TelligentInstance'
                     'Install-TelligentInstance'
                     'Remove-TelligentInstance'
+					'Initialize-TelligentInstanceManager'
                 )
 
 # Cmdlets to export from this module

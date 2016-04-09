@@ -1,5 +1,81 @@
 ﻿#Requires -Version 3
 
+function Initialize-TelligentInstanceManager {
+[CmdletBinding(SupportsShouldProcess=$true)]
+param(
+    [Parameter(Mandatory=$true, HelpMessage="The path where Telligent Instances Manager will store instances and builds.")]
+    [string]$InstallDirectory,
+    [string]$DBServerName = '(local)',
+    [Parameter(Mandatory=$false, HelpMessage="The path where Tomcat is installed.  Used to add Tomcat contexts used for Solr multi core setup.")]
+    [ValidateScript({$_ -and (Test-TomcatPath $_) })]
+    [string]$TomcatDirectory,
+    [switch]$Force
+)
+
+#Banner
+Write-Telligent
+Write-Host "Telligent Instance Manager"
+Write-Host
+
+#Test Prerequisites
+$initialErrorCount = $Error.Count
+Write-Progress "Telligent Instance Manager Setup" "Checking Prerequisites" -CurrentOperation "This may take a few moments"
+if (!$TomcatDirectory) {
+    $TomcatDirectory = Get-TomcatLocation
+	if (!$TomcatDirectory) {
+		Write-Error 'Could not auto-detect Tomcat location.  Please run the command with the -TomcatDirectory paramater to specify this location manually'
+	}
+}
+else {
+	if (!(Test-TomcatPath $TomcatDirectory)) {
+		Write-Error "'$TomcatDirectory' does not contain a valid Tomcat instance"
+	}
+}
+
+Test-Prerequisites $installDirectory
+if ($Error.Count -ne $initialErrorCount) {
+    throw 'Prerequisites not met (see previous errors for more details)'
+}
+
+#Make Required Folders
+@('Licences', 'TelligentPackages', 'Web', 'Solr') |
+    % { Join-Path $InstallDirectory $_} |
+    ? {!(Test-Path $_)} |
+    % {new-item $_ -ItemType Directory | Out-Null}
+
+Install-SolrMultiCore -InstallDirectory $InstallDirectory -TomcatDirectory $TomcatDirectory
+
+Initalize-Environment $InstallDirectory $DBServerName
+
+Write-Progress 'Telligent Instance Manager Setup' "Ensuring files are unblocked" -PercentComplete 80
+Get-ChildItem $InstallDirectory -Recurse | Unblock-File
+
+Write-Progress 'Telligent Instance Manager Setup' -Completed
+
+#Provide hints for finishing installation
+$licencePath = Join-Path $InstallDirectory Licences 
+if (!(Get-ChildItem $licencePath -ErrorAction SilentlyContinue)){
+    Write-Warning "No Licenses available for installation at '$licencePath' "
+    Write-Warning "Add files to this directory with filenames of the format 'Community8.xml', 'Community9.xml' etc."
+}
+
+$packagesPath = Join-Path $InstallDirectory TelligentPackages
+if (!(Get-ChildItem $licencePath -ErrorAction SilentlyContinue)){
+    Write-Warning "No packages are available for Installation at '$fullPackagePath'."
+}
+
+Write-Host
+Write-Host 'Telligent Instance Manager installation  complete' -ForegroundColor Green
+Write-Host @"
+For more details on how to use the Telligent Instance Manager, use the Get-Help cmdlet to learn more about the following comamnds
+* Get-TelligentInstance
+* Install-TelligentInstance
+* Remove-TelligentInstance
+
+"@
+
+}
+
 function Test-Prerequisites
 {
     param(
@@ -202,80 +278,4 @@ function Write-Telligent
 	Write-LogoPart "/_/" "/_/" "/_/ " " \__\___|_|_|_|\__, |\___|_| |_|\__|"
 	Write-LogoPart "   " "   " "    " "               |___/                "
 	Write-Host
-}
-
-function Initialize-TelligentInstanceManager {
-[CmdletBinding(SupportsShouldProcess=$true)]
-param(
-    [Parameter(Mandatory=$true, HelpMessage="The path where Telligent Instances Manager will store instances and builds.")]
-    [string]$InstallDirectory,
-    [string]$DBServerName = '(local)',
-    [Parameter(Mandatory=$false, HelpMessage="The path where Tomcat is installed.  Used to add Tomcat contexts used for Solr multi core setup.")]
-    [ValidateScript({$_ -and (Test-TomcatPath $_) })]
-    [string]$TomcatDirectory,
-    [switch]$Force
-)
-
-#Banner
-Write-Telligent
-Write-Host "Telligent Instance Manager"
-Write-Host
-
-#Test Prerequisites
-$initialErrorCount = $Error.Count
-Write-Progress "Telligent Instance Manager Setup" "Checking Prerequisites" -CurrentOperation "This may take a few moments"
-if (!$TomcatDirectory) {
-    $TomcatDirectory = Get-TomcatLocation
-	if (!$TomcatDirectory) {
-		Write-Error 'Could not auto-detect Tomcat location.  Please run the command with the -TomcatDirectory paramater to specify this location manually'
-	}
-}
-else {
-	if (!(Test-TomcatPath $TomcatDirectory)) {
-		Write-Error "'$TomcatDirectory' does not contain a valid Tomcat instance"
-	}
-}
-
-Test-Prerequisites $installDirectory
-if ($Error.Count -ne $initialErrorCount) {
-    throw 'Prerequisites not met (see previous errors for more details)'
-}
-
-#Make Required Folders
-@('Licences', 'TelligentPackages', 'Web', 'Solr') |
-    % { Join-Path $InstallDirectory $_} |
-    ? {!(Test-Path $_)} |
-    % {new-item $_ -ItemType Directory | Out-Null}
-
-Install-SolrMultiCore -InstallDirectory $InstallDirectory -TomcatDirectory $TomcatDirectory
-
-Initalize-Environment $InstallDirectory $DBServerName
-
-Write-Progress 'Telligent Instance Manager Setup' "Ensuring files are unblocked" -PercentComplete 80
-Get-ChildItem $InstallDirectory -Recurse | Unblock-File
-
-Write-Progress 'Telligent Instance Manager Setup' -Completed
-
-#Provide hints for finishing installation
-$licencePath = Join-Path $InstallDirectory Licences 
-if (!(Get-ChildItem $licencePath -ErrorAction SilentlyContinue)){
-    Write-Warning "No Licenses available for installation at '$licencePath' "
-    Write-Warning "Add files to this directory with filenames of the format 'Community8.xml', 'Community9.xml' etc."
-}
-
-$packagesPath = Join-Path $InstallDirectory TelligentPackages
-if (!(Get-ChildItem $licencePath -ErrorAction SilentlyContinue)){
-    Write-Warning "No packages are available for Installation at '$fullPackagePath'."
-}
-
-Write-Host
-Write-Host 'Telligent Instance Manager installation  complete' -ForegroundColor Green
-Write-Host @"
-For more details on how to use the Telligent Instance Manager, use the Get-Help cmdlet to learn more about the following comamnds
-* Get-TelligentInstance
-* Install-TelligentInstance
-* Remove-TelligentInstance
-
-"@
-
 }
