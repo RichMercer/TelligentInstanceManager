@@ -61,7 +61,7 @@ if (!(Get-ChildItem $licencePath -ErrorAction SilentlyContinue)){
 
 $packagesPath = Join-Path $InstallDirectory TelligentPackages
 if (!(Get-ChildItem $licencePath -ErrorAction SilentlyContinue)){
-    Write-Warning "No packages are available for Installation at '$fullPackagePath'."
+    Write-Warning "No packages are available for Installation at '$packagesPath'."
 }
 
 Write-Host
