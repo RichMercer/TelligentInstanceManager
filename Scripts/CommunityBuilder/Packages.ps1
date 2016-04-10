@@ -6,10 +6,7 @@ if (!$base) {
 }
 
 # The Directory where full installation packages can be found
-$basePackageDir = Join-Path $base FullPackages
-
-# The Directory where differential hotfix packages can be found
-$hotfixDir = Join-Path $base Hotfixes
+$basePackageDir = Join-Path $base TelligentPackages
 
 $versionRegex = [regex]'[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+'
 
@@ -47,11 +44,7 @@ function Get-TelligentVersion {
     [CmdletBinding(DefaultParameterSetName='All')]
     param(
         [parameter(Position=0)]
-        [string]$Version,
-        [parameter(ParameterSetName='Community', Mandatory=$true)]
-        [switch]$Community,
-        [parameter(ParameterSetName='Enterprise', Mandatory=$true)]
-        [switch]$Enterprise
+        [string]$Version
     )
     $basePackages = Get-VersionedEvolutionPackage $basePackageDir
     $fullBuilds = $basePackages |
@@ -62,34 +55,28 @@ function Get-TelligentVersion {
                 BasePackage = $_.Path
             })
         }
-
-    $hotfixBuilds = Get-VersionedEvolutionPackage $hotfixDir|
-        % {
-            $hotfix = $_
-            $base = $basePackages |
-                ? { $_.Version.Major -eq $hotfix.Version.Major -and $_.Version.Minor -eq $hotfix.Version.Minor -and $hotfix.Version.Revision -gt $_.Version.Revision }|
-                sort Version -Descending |
-                select -First 1
-
-            if ($base) 
-            {
-                new-object PSObject -Property ([ordered]@{
-                    Product = $_.Product
-                    Version = $_.Version
-                    BasePackage = $base.Path
-                    HotfixPackage = $_.Path
-                })
-            }
-        }  
+    # Commenting out hoitfixes for now as theses mostly affect v7. Will circle back and fix later.
+    #$hotfixBuilds = Get-VersionedEvolutionPackage $hotfixDir|
+    #    % {
+    #        $hotfix = $_
+    #        $base = $basePackages |
+    #            ? { $_.Version.Major -eq $hotfix.Version.Major -and $_.Version.Minor -eq $hotfix.Version.Minor -and $hotfix.Version.Revision -gt $_.Version.Revision }|
+    #            sort Version -Descending |
+    #            select -First 1
+    #        if ($base) 
+    #        {
+    #            new-object PSObject -Property ([ordered]@{
+    #                Product = $_.Product
+    #                Version = $_.Version
+    #                BasePackage = $base.Path
+    #                HotfixPackage = $_.Path
+    #            })
+    #        }
+    #    }  
 	
-	$results = @($fullBuilds) + @($hotfixBuilds)
+	$results = @($fullBuilds) # + @($hotfixBuilds)
 
-    if($Community) {
-        $results = $results |? Product -eq 'Community'
-    }	
-    elseif($Enterprise) {
-        $results = $results |? Product -eq 'Enterprise'
-    }
+    $results = $results |? Product -eq 'Community'
 
     $results = $results | sort Version
 		
@@ -116,14 +103,7 @@ function Get-VersionedEvolutionPackage {
         %{
             #$product doesn't get reset on each iteration, so reset it manually to avoid issues
             $product = $null
-            if ($_.Name -match 'community') {
-                $product = 'Community'
-            }elseif ($_.Name -match 'enterprise') {
-                $product = 'Enterprise'
-            }
-            elseif ($_.Name -match 'social') {
-                $product = 'Community'
-            }
+            $product = 'Community'
 
             $match = $versionRegex.Match($_.Name)
 
@@ -137,6 +117,4 @@ function Get-VersionedEvolutionPackage {
         }
 
 }
-
-Set-Alias gcb Get-TelligentVersion
 
