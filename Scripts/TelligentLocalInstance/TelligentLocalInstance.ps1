@@ -157,7 +157,7 @@ function Install-TelligentInstance {
         -JobSchedulerPath $jsDir `
         -FilestoragePath $filestorageDir `
         -WebDomain $domain `
-        -Licence (join-path $data.LicencesPath "Community($Version.Major).xml") `
+        -Licence (join-path $data.LicencesPath "Community$($Version.Major).xml") `
         -SolrCore `
         -SolrBaseUrl ($data.SolrUrl -f $solrVersion).TrimEnd('/') `
         -SolrCoreDir ($data.SolrCoreBase -f $solrVersion) `
