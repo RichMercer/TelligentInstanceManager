@@ -16,7 +16,7 @@ $data = @{
     ApiKey = 'abc123'
 
     # The directory where licences can be found.
-    # Licences in this directory should be named in the format "{Product}{MajorVersion}.xml"
+    # Licences in this directory should be named in the format "Community{MajorVersion}.xml"
     # i.e. Community7.xml for a Community 7.x licence
 	LicencesPath = Join-Path $base Licences | Resolve-Path
 
@@ -84,15 +84,12 @@ function Install-TelligentInstance {
     .Synopsis
 	    Sets up a new Telligent Evolution community for development purposes.
     .Description
-	    The Install-Community cmdlet automates the process of creating a new Telligent Evolution community.
+	    The Install-TelligentInstance cmdlet automates the process of creating a new Telligent Community instance.
 		
 	    It takes the installation package, and from it deploys the website to IIS and a creates a new database using
 	    the scripts from the package.  It also sets permissions automatically.
 		
-	    This scripts install the new community as follows (where NAME is the value of the name paramater)
-
-		
-        If a Telligent Enterprise instance is being installed, Windows Authentication will be enabled automatically
+	    This scripts install the new community as follows (where NAME is the value of the name paramater).
     .Parameter name
 	    The name of the community to create. This is used when creating the locations used by the community.
 		    * Web Files - %TelligentInstanceManager%\Web\NAME\
@@ -104,16 +101,8 @@ function Install-TelligentInstance {
 		    * Jobs run in web process
 		    * Custom Errors disabled
 
-    .Parameter Product
-	    The product being installed.  This along with the version is used to determine what version to determine
-		    * The version of .net to use
-		    * The version of Solr to use
-		    * The licence file to install
-		    * Whether Windows Authenticaiton should be enabled
-		    * Whether Jobs should be enabled in the web process
-	
     .Parameter Version
-	    The version being installed.  See documentation for Product parameter for more details on how this is used.
+	    The version being installed. 
 
     .Parameter BasePackage
 	    The path to the zip package containing the Telligent Evolution installation files, provided by Telligent Support.
@@ -130,7 +119,7 @@ function Install-TelligentInstance {
     .Example
         Get-TelligentVersion 7.6 | Install-TelligentInstance TestSite
         
-        Output can be piped from Get-TelligentVersion to automatically fill in the product, version, basePackage and hotfixPackage paramaters
+        Output can be piped from Get-TelligentVersion to automatically fill in the version, basePackage and hotfixPackage paramaters
     
 				
     #>
@@ -139,11 +128,8 @@ function Install-TelligentInstance {
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [ValidatePattern('^[a-z0-9\-\._]+$')]
-        [ValidateScript({if(Get-TelligentInstance $_){ throw "TelligentInstance Instance '$_' already exists" } else { $true }})]
+        [ValidateScript({if(Get-TelligentInstance $_){ throw "Telligent Instance '$_' already exists" } else { $true }})]
         [string] $Name,
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
- 		[ValidateSet('Community','Enterprise')]
- 		[string] $Product,
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
 		[ValidateNotNullOrEmpty()]
         [version] $Version,
@@ -171,7 +157,7 @@ function Install-TelligentInstance {
         -JobSchedulerPath $jsDir `
         -FilestoragePath $filestorageDir `
         -WebDomain $domain `
-        -Licence (join-path $data.LicencesPath "${Product}$($Version.Major).xml") `
+        -Licence (join-path $data.LicencesPath "Community($Version.Major).xml") `
         -SolrCore `
         -SolrBaseUrl ($data.SolrUrl -f $solrVersion).TrimEnd('/') `
         -SolrCoreDir ($data.SolrCoreBase -f $solrVersion) `

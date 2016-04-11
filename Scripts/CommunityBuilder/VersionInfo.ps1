@@ -30,15 +30,6 @@ function Get-Community {
 
         $csConfig = Merge-CommunityConfigurationFile $path communityserver -ErrorAction SilentlyContinue
 
-        $product = @($versionDllNames.platform) |
-            % { $_, (join-path bin $_) } |
-            % { join-path $path $_ } |
-            Get-Item -ErrorAction SilentlyContinue |
-            Select -ExpandProperty VersionInfo -First 1 |
-            Select -ExpandProperty ProductName -ErrorAction SilentlyContinue
-
-        $product = if($product -match 'community') { 'Community' } elseif ($product -match 'enterprise') { 'Enterprise' } else { 'Unknown' }
-
         $dbInfo = Get-ConnectionString $path -ErrorAction SilentlyContinue
 
         $info = [ordered]@{
@@ -51,7 +42,6 @@ function Get-Community {
             SolrUrl = $csConfig.CommunityServer.Search.Solr.host
             DatabaseServer = $dbInfo.ServerInstance
             DatabaseName = $dbInfo.Database
-            Product = $product
         }
         $versionDllNames.GetEnumerator() |% {
             $info["$($_.Key)Version"] = Get-CommunityVersionFromDlls $path $_.Value

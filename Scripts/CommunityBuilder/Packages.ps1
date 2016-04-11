@@ -16,30 +16,14 @@ function Get-TelligentVersion {
 	    Gets a list of Teligent Evolution builds in the Mass Install directory.
     .PARAMETER Version
 	    Filters to the most recent build whose version matches the given pattern
-    .PARAMETER Community
-	    If specified, filters the build list to just those of Telligent Community
-    .PARAMETER Enterprise
-	    If specified, filters the build list to just those of Telligent Enterprise
     .EXAMPLE
         Get-TelligentVersion
         
-        Gets a list of all available builds
+        Gets a list of all available builds of Telligent Community.
     .EXAMPLE
         Get-TelligentVersion 7.6
         
         Gets the most recent build with major version 7 and minor version 6.
-    .EXAMPLE
-        Get-TelligentVersion -Community
-        
-        List all builds of Telligent Community.
-    .EXAMPLE
-        Get-TelligentVersion -Enterprise
-        
-        List all builds of Telligent Enterprise.
-    .EXAMPLE
-        Get-TelligentVersion 4 -Enterprise
-        
-        List the most recent build of Telligent Enterprise version 4.
     #>
     [CmdletBinding(DefaultParameterSetName='All')]
     param(
@@ -50,12 +34,11 @@ function Get-TelligentVersion {
     $fullBuilds = $basePackages |
         % { 
             new-object psobject -Property ([ordered]@{
-                Product = $_.Product
                 Version = $_.Version
                 BasePackage = $_.Path
             })
         }
-    # Commenting out hoitfixes for now as theses mostly affect v7. Will circle back and fix later.
+    # Commenting out hotfixes for now as theses mostly affect v7. Will circle back and fix later.
     #$hotfixBuilds = Get-VersionedEvolutionPackage $hotfixDir|
     #    % {
     #        $hotfix = $_
@@ -66,7 +49,6 @@ function Get-TelligentVersion {
     #        if ($base) 
     #        {
     #            new-object PSObject -Property ([ordered]@{
-    #                Product = $_.Product
     #                Version = $_.Version
     #                BasePackage = $base.Path
     #                HotfixPackage = $_.Path
@@ -75,8 +57,6 @@ function Get-TelligentVersion {
     #    }  
 	
 	$results = @($fullBuilds) # + @($hotfixBuilds)
-
-    $results = $results |? Product -eq 'Community'
 
     $results = $results | sort Version
 		
@@ -101,15 +81,10 @@ function Get-VersionedEvolutionPackage {
 
     Get-ChildItem $Path  *.zip|
         %{
-            #$product doesn't get reset on each iteration, so reset it manually to avoid issues
-            $product = $null
-            $product = 'Community'
-
             $match = $versionRegex.Match($_.Name)
 
-            if ($product -and $match.Value) {                
+            if ($match.Value) {                
                 New-Object PSObject -Property (@{
-                    Product = $product
                     Version = [version]$match.Value
                     Path = $_.FullName
                 })
