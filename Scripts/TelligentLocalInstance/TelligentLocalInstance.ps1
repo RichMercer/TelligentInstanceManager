@@ -115,7 +115,8 @@ function Install-TelligentInstance {
 
     .Parameter NoSearch
 	    Specify this switch to not set up a new search instance
-
+    .Parameter DBServerName
+        Specify the SQL DB Instance name to install the site.
     .Example
         Get-TelligentVersion 7.6 | Install-TelligentInstance TestSite
         
@@ -140,7 +141,8 @@ function Install-TelligentInstance {
         [Parameter(ValueFromPipelineByPropertyName=$true)]
 		[ValidateScript({!$_ -or (Test-Zip $_) })]
         [string] $HotfixPackage,
-        [switch] $WindowsAuth
+        [switch] $WindowsAuth,
+        [string] $DBServerName
     )
     $name = $name.ToLower()
 
@@ -149,6 +151,7 @@ function Install-TelligentInstance {
     $jsDir = Join-Path $data.JobSchedulerBase $Name
     $filestorageDir = Join-Path $webDir filestorage
     $domain = if($Name.Contains('.')) { $Name } else { "$Name.local"}
+    $dbServer = if($DBServerName) { $DBServerName } else { $data.SqlServer }
 
     $info = Install-Community -name $Name `
         -Package $BasePackage `
@@ -162,7 +165,7 @@ function Install-TelligentInstance {
         -SolrBaseUrl ($data.SolrUrl -f $solrVersion).TrimEnd('/') `
         -SolrCoreDir ($data.SolrCoreBase -f $solrVersion) `
         -AdminPassword $data.AdminPassword `
-        -DatabaseServer $data.SqlServer `
+        -DatabaseServer $dbServer  `
         -ApiKey $data.ApiKey
 
     if ($info) {
@@ -267,7 +270,7 @@ function Remove-TelligentInstance {
             #Delete the site in IIS
             Write-Progress 'Uninstalling Evolution Community' $Name -CurrentOperation 'Removing Website from IIS'
             if(Get-Website -Name $Name -ErrorAction SilentlyContinue) {
-                Remove-Website -Name $Name
+                Remove-Website -Name $Namegti
             }
             if((Join-Path IIS:\AppPools\ $Name| Test-Path)){
                 Remove-WebAppPool -Name $Name
@@ -275,7 +278,7 @@ function Remove-TelligentInstance {
 
             #Delete the DB
             Write-Progress 'Uninstalling Evolution Community' $Name -CurrentOperation 'Removing Database'
-            Remove-Database -Database $Name -Server $data.SqlServer
+            Remove-Database -Database $info.DatabaseName -Server $info.DatabaseServer
 
             #Delete the files
             Write-Progress 'Uninstalling Evolution Community' $Name -CurrentOperation 'Removing Website Files'
