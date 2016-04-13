@@ -270,7 +270,7 @@ function Remove-TelligentInstance {
             #Delete the site in IIS
             Write-Progress 'Uninstalling Evolution Community' $Name -CurrentOperation 'Removing Website from IIS'
             if(Get-Website -Name $Name -ErrorAction SilentlyContinue) {
-                Remove-Website -Name $Namegti
+                Remove-Website -Name $Name
             }
             if((Join-Path IIS:\AppPools\ $Name| Test-Path)){
                 Remove-WebAppPool -Name $Name

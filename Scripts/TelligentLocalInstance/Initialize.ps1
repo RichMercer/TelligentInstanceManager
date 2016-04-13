@@ -43,7 +43,7 @@ if ($Error.Count -ne $initialErrorCount) {
     ? {!(Test-Path $_)} |
     % {new-item $_ -ItemType Directory | Out-Null}
 
-Install-SolrMultiCore -InstallDirectory $InstallDirectory -TomcatDirectory $TomcatDirectory
+Install-SolrMultiCore -InstallDirectory $InstallDirectory -TomcatDirectory $TomcatDirectory -Force:$Force
 
 Initalize-Environment $InstallDirectory $DBServerName
 
@@ -200,7 +200,7 @@ function Install-SolrMultiCore {
         }        
         else {
             Write-Host "Installing Solr $_"
-            if(!(Test-Path $filePath)) {
+            if(!(Test-Path $solrHome)) {
                 New-Item $solrHome -ItemType Directory | Out-Null
             }
 
@@ -279,3 +279,5 @@ function Write-Telligent
 	Write-LogoPart "   " "   " "    " "               |___/                "
 	Write-Host
 }
+
+
