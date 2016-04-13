@@ -7,7 +7,7 @@ if (!$base) {
 
 $data = @{
     #SQL Server to use.
-    SqlServer = if($env:DBServerName) { $env:DBServerName } else { '(local)' }
+    SqlServer = if($env:TelligentDatabaseServerInstance) { $env:TelligentDatabaseServerInstance } else { '(local)' }
 
     #Default password to use for new communities
     AdminPassword = 'password'
@@ -115,7 +115,7 @@ function Install-TelligentInstance {
 
     .Parameter NoSearch
 	    Specify this switch to not set up a new search instance
-    .Parameter DBServerName
+    .Parameter DatabaseServerInstance
         Specify the SQL DB Instance name to install the site.
     .Example
         Get-TelligentVersion 7.6 | Install-TelligentInstance TestSite
@@ -142,7 +142,7 @@ function Install-TelligentInstance {
 		[ValidateScript({!$_ -or (Test-Zip $_) })]
         [string] $HotfixPackage,
         [switch] $WindowsAuth,
-        [string] $DBServerName
+        [string] $DatabaseServerInstance
     )
     $name = $name.ToLower()
 
@@ -151,7 +151,7 @@ function Install-TelligentInstance {
     $jsDir = Join-Path $data.JobSchedulerBase $Name
     $filestorageDir = Join-Path $webDir filestorage
     $domain = if($Name.Contains('.')) { $Name } else { "$Name.local"}
-    $dbServer = if($DBServerName) { $DBServerName } else { $data.SqlServer }
+    $DatabaseServerInstance = if($DatabaseServerInstance) { $DatabaseServerInstance } else { $data.SqlServer }
 
     $info = Install-Community -name $Name `
         -Package $BasePackage `
@@ -165,7 +165,7 @@ function Install-TelligentInstance {
         -SolrBaseUrl ($data.SolrUrl -f $solrVersion).TrimEnd('/') `
         -SolrCoreDir ($data.SolrCoreBase -f $solrVersion) `
         -AdminPassword $data.AdminPassword `
-        -DatabaseServer $dbServer  `
+        -DatabaseServer $DatabaseServerInstance  `
         -ApiKey $data.ApiKey
 
     if ($info) {
