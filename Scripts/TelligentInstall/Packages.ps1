@@ -1,13 +1,5 @@
 ﻿Set-StrictMode -Version 2
 
-$base = $env:TelligentInstanceManager
-if (!$base) {
-    Write-Error 'TelligentInstanceManager environmental variable not defined'
-}
-
-# The Directory where full installation packages can be found
-$basePackageDir = Join-Path $base TelligentPackages
-
 $versionRegex = [regex]'[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+'
 
 function Get-TelligentVersion {
@@ -30,6 +22,13 @@ function Get-TelligentVersion {
         [parameter(Position=0)]
         [string]$Version
     )
+	
+	$base = $env:TelligentInstanceManager
+	if (!$base) {
+		throw 'TelligentInstanceManager environmental variable not defined' 
+	}
+	$basePackageDir = Join-Path $base TelligentPackages
+	
     $basePackages = Get-VersionedEvolutionPackage $basePackageDir
     $fullBuilds = $basePackages |
         % { 
