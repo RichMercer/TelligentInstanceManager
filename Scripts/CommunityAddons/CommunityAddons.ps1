@@ -6,9 +6,9 @@ function Install-CommunityAddon {
 		[ValidateScript({Test-Zip $_})]
         [string]$AddonPackage,
         [Parameter(Mandatory=$true)]
-        [ValidateScript({ Test-CommunityPath $_ -Web })]
+        [ValidateScript({ Test-TelligentPath $_ -Web })]
         [string]$WebsitePath,
-        [ValidateScript({ Test-CommunityPath $_ -JobScheduler -AllowEmpty})]
+        [ValidateScript({ Test-TelligentPath $_ -JobScheduler -AllowEmpty})]
         [string]$JobSchedulerPath,
         [string[]]$SqlScripts,
         [string[]]$Plugins,
@@ -43,7 +43,7 @@ function Install-CommunityAddon {
 
             if(Test-Path $sqlScript) {
                 Write-ProgressFromVerbose "Installing $Name" $progressTitle {
-                    Invoke-SqlcmdAgainstCommunity `
+                    Invoke-TelligentSqlCmd `
                         -WebsitePath $WebsitePath `
                         -File $sqlScript `
                         -QueryTimeout 6000
@@ -101,7 +101,7 @@ function Install-CommunityAddon {
         #TODO: Update tasks.config
 
         Write-Progress "Installing $Name" 'Syncing JS from Web'
-        Update-JobSchedulerFromWeb $WebsitePath $JobSchedulerPath
+        Update-TelligentJobSchedulerFromWeb $WebsitePath $JobSchedulerPath
     }
     
 
@@ -110,7 +110,7 @@ function Install-CommunityAddon {
     $plugins | % {
         Write-Progress "Installing $Name" 'Enabling Plugins' -CurrentOperation $_ 
 
-		Invoke-SqlcmdAgainstCommunity `
+		Invoke-TelligentSqlCmd `
 			-WebsitePath $WebsitePath `
             -Query @"
             DELETE FROM [dbo].[te_Plugins] WHERE [Type] = '$_';
@@ -152,9 +152,9 @@ function Install-CommunityIdeation
 		[ValidateScript({Test-Zip $_})]
         [string]$Package,
         [Parameter(Mandatory=$true)]
-        [ValidateScript({ Test-CommunityPath $_ -Web })]
+        [ValidateScript({ Test-TelligentPath $_ -Web })]
         [string]$WebsitePath,
-        [ValidateScript({ Test-CommunityPath $_ -JobScheduler -AllowEmpty})]
+        [ValidateScript({ Test-TelligentPath $_ -JobScheduler -AllowEmpty})]
         [string]$JobSchedulerPath
     )
 
@@ -177,9 +177,9 @@ function Install-CommunityChat {
 		[ValidateScript({Test-Zip $_})]
         [string]$Package,
         [Parameter(Mandatory=$true)]
-        [ValidateScript({ Test-CommunityPath $_ -Web })]
+        [ValidateScript({ Test-TelligentPath $_ -Web })]
         [string]$WebsitePath,
-        [ValidateScript({ Test-CommunityPath $_ -JobScheduler -AllowEmpty})]
+        [ValidateScript({ Test-TelligentPath $_ -JobScheduler -AllowEmpty})]
         [string]$JobSchedulerPath
     )
 
@@ -201,9 +201,9 @@ function Install-CommunityVideoTranscoding
 		[ValidateScript({Test-Zip $_})]
         [string]$Package,
         [Parameter(Mandatory=$true)]
-        [ValidateScript({ Test-CommunityPath $_ -Web })]
+        [ValidateScript({ Test-TelligentPath $_ -Web })]
         [string]$WebsitePath,
-        [ValidateScript({ Test-CommunityPath $_ -JobScheduler -AllowEmpty})]
+        [ValidateScript({ Test-TelligentPath $_ -JobScheduler -AllowEmpty})]
         [string]$JobSchedulerPath
     )
 
@@ -228,9 +228,9 @@ function Install-CommunityDocumentPreview
 		[ValidateScript({Test-Zip $_})]
         [string]$Package,
         [Parameter(Mandatory=$true)]
-        [ValidateScript({ Test-CommunityPath $_ -Web })]
+        [ValidateScript({ Test-TelligentPath $_ -Web })]
         [string]$WebsitePath,
-        [ValidateScript({ Test-CommunityPath $_ -JobScheduler -AllowEmpty})]
+        [ValidateScript({ Test-TelligentPath $_ -JobScheduler -AllowEmpty})]
         [string]$JobSchedulerPath
     )
 
@@ -252,9 +252,9 @@ function Install-CommunityCalendar {
 		[ValidateScript({Test-Zip $_})]
         [string]$Package,
         [Parameter(Mandatory=$true)]
-        [ValidateScript({ Test-CommunityPath $_ -Web })]
+        [ValidateScript({ Test-TelligentPath $_ -Web })]
         [string]$WebsitePath,
-        [ValidateScript({ Test-CommunityPath $_ -JobScheduler -AllowEmpty})]
+        [ValidateScript({ Test-TelligentPath $_ -JobScheduler -AllowEmpty})]
         [string]$JobSchedulerPath
     )
 
@@ -271,3 +271,5 @@ function Install-CommunityCalendar {
     #TODO: Add task
     # <job schedule="0 */2 * * * ? *" type="Telligent.Evolution.VideoTranscoding.TranscodingJob, Telligent.Evolution.VideoTranscoding"/>
 }
+
+

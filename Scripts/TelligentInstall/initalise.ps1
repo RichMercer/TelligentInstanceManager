@@ -11,3 +11,5 @@ if (!($currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole] 'Admini
     Start-Process powershell.exe '-NoExit -Command "Write-Host "Loading..."; ipmo TelligentInstall"' -Verb runas
 	throw 'Cannot continue in current unelevated prompt.  Please switch to the elvated prompt.'
 }
+
+

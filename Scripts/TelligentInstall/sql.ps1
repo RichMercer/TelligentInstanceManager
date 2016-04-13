@@ -60,7 +60,7 @@ function Test-SqlServer {
     $true
 }
 
-function New-CommunityDatabase {
+function New-TelligentDatabase {
 	<#
 	.SYNOPSIS
 		Grants a user access to an Evolution database.  If the user or login doesn't exist, in SQL server, they
@@ -143,7 +143,7 @@ function New-CommunityDatabase {
     }
 }
 
-function Update-CommunityDatabase {
+function Update-TelligentDatabase {
 	<#
 	.SYNOPSIS
         Updates an existing Telligent Evolution database to upgrade it to the version in the package
@@ -198,7 +198,7 @@ function Update-CommunityDatabase {
     Remove-Item $tempDir -Recurse -Force | out-null
 }
 
-function Grant-CommunityDatabaseAccess {
+function Grant-TelligentDatabaseAccess {
 	<#
 	.SYNOPSIS
 		Grants a user access to an Evolution database.  If the user or login doesn't exist, in SQL server, they
@@ -213,14 +213,14 @@ function Grant-CommunityDatabaseAccess {
 	.PARAMETER  Password
 		The password for the SQL user
 	.EXAMPLE
-		Grant-CommunityDatabaseAccess (local)\SqlExpress SampleCommunity 'NT AUTHORITY\NETWORK SERVICE'
+		Grant-TelligentDatabaseAccess (local)\SqlExpress SampleCommunity 'NT AUTHORITY\NETWORK SERVICE'
 
 		Description
 		-----------
 		This command grant access to the SampleCommunity database on the SqlExpress instance of the local SQL server
 		for the Network Service Windows account
 	.EXAMPLE
-		Grant-CommunityDatabaseAccess ServerName SampleCommunity CommunityUser -password SqlPa$$w0rd
+		Grant-TelligentDatabaseAccess ServerName SampleCommunity CommunityUser -password SqlPa$$w0rd
 		
 		Description
 		-----------
@@ -232,14 +232,14 @@ function Grant-CommunityDatabaseAccess {
     param(
     	[Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({ Test-CommunityPath $_ })]
+        [ValidateScript({ Test-TelligentPath $_ })]
         [string]$CommunityPath,
         [parameter(Mandatory=$true, Position = 2)]
         [ValidateNotNullOrEmpty()]
         [string]$Username,
         [string]$Password
     )
-    $info = Get-Community $CommunityPath
+    $info = Get-TelligentCommunity $CommunityPath
 
     #TODO: Sanatise inputs
     Write-Verbose "Granting database access to $Username"
@@ -267,10 +267,10 @@ function Grant-CommunityDatabaseAccess {
         EXEC sp_addrolemember N'db_ddladmin', N'$Username';
 "@ 
 
-    Invoke-SqlcmdAgainstCommunity -WebsitePath $CommunityPath -Query $query
+    Invoke-TelligentSqlCmd -WebsitePath $CommunityPath -Query $query
 }
 
-function Invoke-SqlCmdAgainstCommunity {
+function Invoke-TelligentSqlCmd {
 	<#
 	.SYNOPSIS
 		Executes a SQL Script agains the specified community's database.
@@ -285,7 +285,7 @@ function Invoke-SqlCmdAgainstCommunity {
 	#>
     param (
 		[Parameter(Mandatory=$true, Position=0)]
-        [ValidateScript({ Test-CommunityPath $_ -Web })]
+        [ValidateScript({ Test-TelligentPath $_ -Web })]
         [string]$WebsitePath,
 
 		[Parameter(ParameterSetName='Query', Mandatory=$true)]
@@ -296,7 +296,7 @@ function Invoke-SqlCmdAgainstCommunity {
         [string]$File,
         [int]$QueryTimeout
     )    
-    $info = Get-Community $WebsitePath
+    $info = Get-TelligentCommunity $WebsitePath
 
     $sqlParams = @{
         ServerInstance = $info.DatabaseServer
@@ -367,3 +367,5 @@ function Remove-Database {
 "@
     Invoke-Sqlcmd -ServerInstance $Server -Query $query
 }
+
+

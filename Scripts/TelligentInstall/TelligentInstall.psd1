@@ -79,46 +79,46 @@ NestedModules = @(
 # Functions to export from this module
 FunctionsToExport = @(
                     'Get-TelligentVersion'
-                    'Get-Community'
+                    'Get-TelligentCommunity'
 
                     'Add-SolrCore'
-                    'Set-CommunitySolrUrl'
+                    'Set-TelligentSolrUrl'
                     'Remove-SolrCore'
 
                     'Install-Community'
                     'Uninstall-Community'
-                    'Install-CommunityHotfix'
-                    'Install-CommunityLicence'
+                    'Install-TelligentHotfix'
+                    'Install-TelligentLicence'
 
                     'New-IISAppPool'
                     'Get-IISAppPoolIdentity'
-                    'New-CommunityWebsite'
+                    'New-TelligentWebsite'
 
-                    'Install-JobScheduler'
-                    'Install-JobSchedulerService'
-                    'Update-JobSchedulerFromWeb'
-                    'Register-TasksInWebProcess'
+                    'Install-TelligentJobScheduler'
+                    'Install-TelligentJobSchedulerService'
+                    'Update-TelligentJobSchedulerFromWeb'
+                    'Register-TelligentTasksInWebProcess'
 
                     'Remove-Database'
                     'Set-ConnectionString'
-                    'Grant-CommunityDatabaseAccess'
-                    'New-CommunityDatabase'
-                    'Update-CommunityDatabase'
-                    'Invoke-SqlCmdAgainstCommunity'
+                    'Grant-TelligentDatabaseAccess'
+                    'New-TelligentDatabase'
+                    'Update-TelligentDatabase'
+                    'Invoke-TelligentSqlCmd'
 
-                    'Set-CommunityFilestorage'
-                    'Grant-CommunityNtfsPermission'
+                    'Set-TelligentFilestorage'
+                    'Grant-TelligentNtfsPermission'
 
                     'Write-ProgressFromVerbose'
 
-                    'Enable-WindowsAuth'
-                    'Enable-CommunityLdap'
+                    'Enable-TelligentWindowsAuth'
+                    'Enable-TelligentLdap'
 
                     'Disable-CustomErrors'
-                    'Add-OverrideChangeAttribute'
+                    'Add-TelligentOverrideChangeAttribute'
                     'Merge-CommunityOverrideFile'
 
-                    'Test-CommunityPath'
+                    'Test-TelligentPath'
                     'Test-SqlServer'
                 )
 
@@ -141,4 +141,6 @@ FileList = @()
 PrivateData = ''
 
 }
+
+
 

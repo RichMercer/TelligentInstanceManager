@@ -64,7 +64,7 @@ function Get-TelligentInstance {
 
     $results = Get-ChildItem $data.WebBase |
             select -ExpandProperty FullName |
-            Get-Community -EA SilentlyContinue
+            Get-TelligentCommunity -EA SilentlyContinue
 
     if ($Name) {
         $results = $results |? Name -like $Name
@@ -172,14 +172,14 @@ function Install-TelligentInstance {
 	    Disable-CustomErrors $webDir
 
         $dbUsername = Get-IISAppPoolIdentity $Name
-        Invoke-SqlCmdAgainstCommunity -WebsitePath $webDir -Query "EXEC sp_addrolemember N'db_owner', N'$dbUsername'"
+        Invoke-TelligentSqlCmd -WebsitePath $webDir -Query "EXEC sp_addrolemember N'db_owner', N'$dbUsername'"
 
     	if($info.PlatformVersion -ge 5.6 -and $info.PlatformVersion.Major -lt 8){
-            Register-TasksInWebProcess $webDir $basePackage
+            Register-TelligentTasksInWebProcess $webDir $basePackage
         }
 
         if ($WindowsAuth) {
-            Enable-WindowsAuth $webDir -EmailDomain '@tempuri.org' -ProfileRefreshInterval 0
+            Enable-TelligentWindowsAuth $webDir -EmailDomain '@tempuri.org' -ProfileRefreshInterval 0
         }        
 
         #Add site to hosts files
@@ -251,7 +251,7 @@ function Remove-TelligentInstance {
     process {
         $webDir = Join-Path $data.WebBase $Name
     
-        $info = Get-Community $webDir -ErrorAction SilentlyContinue
+        $info = Get-TelligentCommunity $webDir -ErrorAction SilentlyContinue
         if(!($info -or $Force)) {
             return
         }
@@ -334,3 +334,5 @@ function Test-Zip {
 		throw "$Path is not a zip file"
     }
 }
+
+

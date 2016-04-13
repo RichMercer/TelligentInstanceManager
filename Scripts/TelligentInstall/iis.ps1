@@ -1,6 +1,6 @@
 ﻿Set-StrictMode -Version 2
 
-function New-CommunityWebsite {
+function New-TelligentWebsite {
     <#
     .SYNOPSIS
         Creates a new Evolution website
@@ -30,7 +30,7 @@ function New-CommunityWebsite {
         [ValidatePattern('^[a-z0-9\-\._ ]+$')]
         [string]$Name,
         [Parameter(Mandatory=$true)]
-        [ValidateScript({ Test-CommunityPath $_ -IsValid})]
+        [ValidateScript({ Test-TelligentPath $_ -IsValid})]
         [ValidateNotNullOrEmpty()]
         [string]$Path,
         [Parameter(Mandatory=$true)]
@@ -52,7 +52,7 @@ function New-CommunityWebsite {
     Write-Progress "Website: $Name" "Extracting Web Files: $Path"
     Expand-Zip $Package $Path -ZipDirectory Web
 
-    $info = Get-Community $Path
+    $info = Get-TelligentCommunity $Path
 
     [double]$clrVersion = if($info.PlatformVersion.Major -le 5) { 2.0 } else { 4.0 }
 
@@ -70,16 +70,16 @@ function New-CommunityWebsite {
             Remove-Item $initialFilestoragePath
         }
 
-        Set-CommunityFilestorage $Path $FilestoragePath
+        Set-TelligentFilestorage $Path $FilestoragePath
     }
     else {
         $FilestoragePath = $initialFilestoragePath       
     }
 
-    Grant-CommunityNtfsPermission $Path $FilestoragePath
+    Grant-TelligentNtfsPermission $Path $FilestoragePath
 }
 
-function Grant-CommunityNtfsPermission {
+function Grant-TelligentNtfsPermission {
     <#
     .SYNOPSIS
       Grants the required NTFS permissions for a Telligent Evolution community.
@@ -92,7 +92,7 @@ function Grant-CommunityNtfsPermission {
     param(
         [Parameter(Position=0, Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({ Test-CommunityPath $_ })]
+        [ValidateScript({ Test-TelligentPath $_ })]
         [string]$WebsitePath,
         [Parameter(Position=1, Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
@@ -136,7 +136,7 @@ function New-IISWebsite {
         [ValidatePattern('^[a-z0-9\-\._ ]+$')]
         [string]$Name,
         [Parameter(Mandatory=$true)]
-        [ValidateScript({ Test-CommunityPath $_ -IsValid })]
+        [ValidateScript({ Test-TelligentPath $_ -IsValid })]
         [ValidateNotNullOrEmpty()]
         [string]$Path,
         [Parameter(Mandatory=$true)]
@@ -248,4 +248,6 @@ function Get-IISWebsite {
     )
     return Get-ChildItem iis:\sites |? {$_.PhysicalPath.TrimEnd('\') -eq $Path.TrimEnd('\') }
 }
+
+
 
