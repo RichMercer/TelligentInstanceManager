@@ -27,7 +27,7 @@ CompanyName = 'Telligent Systems, Inc.'
 Copyright = '(c) 2012 Alex Crome. All rights reserved.'
 
 # Description of the functionality provided by this module
-Description = ''
+Description = 'Helper fucntions for installing Telligent Community'
 
 # Minimum version of the Windows PowerShell engine required by this module
 PowerShellVersion = '3.0'
@@ -138,7 +138,11 @@ ModuleList = @()
 FileList = @()
 
 # Private data to pass to the module specified in ModuleToProcess
-PrivateData = ''
+PrivateData = @{
+    PSData = @{
+        ExternalModuleDependencies = @('webadministration', 'sqlps')
+    }
+}
 
 }
 
