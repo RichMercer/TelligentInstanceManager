@@ -87,3 +87,5 @@ function Remove-SolrCore {
         Remove-Item $coreDir -Recurse -Force
     }
 }
+
+

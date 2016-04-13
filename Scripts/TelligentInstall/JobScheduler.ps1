@@ -1,6 +1,6 @@
 ﻿Set-StrictMode -Version 2
 
-function Install-JobScheduler {
+function Install-TelligentJobScheduler {
     <#
     .SYNOPSIS
         Installs the Telligent Job Scheduler        
@@ -21,7 +21,7 @@ function Install-JobScheduler {
     param(
     	[Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({ Test-CommunityPath $_ -IsValid})]
+        [ValidateScript({ Test-TelligentPath $_ -IsValid})]
         [string]$JobSchedulerPath,
     	[Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
@@ -29,7 +29,7 @@ function Install-JobScheduler {
         [string]$Package,
     	[Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({ Test-CommunityPath $_ -Web })]
+        [ValidateScript({ Test-TelligentPath $_ -Web })]
         [string]$WebsitePath,
     	[Parameter(ParameterSetName='InstallService')]
         [switch]$InstallService,
@@ -47,7 +47,7 @@ function Install-JobScheduler {
         New-Item $JobSchedulerPath -ItemType Directory | out-null
     }
 
-    $info = Get-Community $WebsitePath
+    $info = Get-TelligentCommunity $WebsitePath
     if ($info.PlatformVersion.Major -ge 8 ) {
         Expand-Zip $Package $JobSchedulerPath -ZipDirectory JobService
 
@@ -57,7 +57,7 @@ function Install-JobScheduler {
 
         if (Test-Path $sqlScript) {
             Write-Progress 'Job Scheduler' 'Executing Job Scheduler SQL'
-    	    Invoke-SqlCmdAgainstCommunity -WebsitePath $WebsitePath -File $sqlScript
+    	    Invoke-TelligentSqlCmd -WebsitePath $WebsitePath -File $sqlScript
         }
     }
     else {
@@ -66,14 +66,14 @@ function Install-JobScheduler {
     }
     
     Write-Progress 'Job Scheduler' 'Updating Job Scheduler from Website'
-    Update-JobSchedulerFromWeb $WebsitePath $JobSchedulerPath
+    Update-TelligentJobSchedulerFromWeb $WebsitePath $JobSchedulerPath
 
     if($InstallService){
-        Install-JobSchedulerService $ServiceName $JobSchedulerPath $Credential
+        Install-TelligentJobSchedulerService $ServiceName $JobSchedulerPath $Credential
     }
 }
 
-function Install-JobSchedulerService {
+function Install-TelligentJobSchedulerService {
     <#
     .SYNOPSIS
         Installs the Telligent Job Scheduler as a windows service allation files.        
@@ -93,7 +93,7 @@ function Install-JobSchedulerService {
         [string]$Name,
     	[Parameter(Mandatory=$true,Position=2)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({ Test-CommunityPath $_ -JobScheduler -AllowEmpty})]
+        [ValidateScript({ Test-TelligentPath $_ -JobScheduler -AllowEmpty})]
         [string]$JobSchedulerPath,
 	    [Parameter(Mandatory=$true,Position=3)]
         [ValidateNotNullOrEmpty()]
@@ -132,7 +132,7 @@ function Install-JobSchedulerService {
     }
 
     $displayName = "Telligent Job Scheduler - $Name"
-    $localSqlServer = ('.','(local)','localhost') -contains (Get-Community $JobSchedulerPath).DatabaseServer
+    $localSqlServer = ('.','(local)','localhost') -contains (Get-TelligentCommunity $JobSchedulerPath).DatabaseServer
 
     Invoke-Command @splat -ArgumentList @($serviceName, $servicePath, $displayName, $StartupType, $Credential, $localSqlServer) {
         param (
@@ -188,7 +188,7 @@ function Install-JobSchedulerService {
     }
 }
 
-function Update-JobSchedulerFromWeb {
+function Update-TelligentJobSchedulerFromWeb {
     <#
     .SYNOPSIS
         Installs the Telligent Job Scheduler as a windows service allation files.        
@@ -205,11 +205,11 @@ function Update-JobSchedulerFromWeb {
     param(
     	[Parameter(Mandatory=$true,Position=0)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({ Test-CommunityPath $_ -Web})]
+        [ValidateScript({ Test-TelligentPath $_ -Web})]
         [string]$WebsitePath,
     	[Parameter(Mandatory=$true,Position=1)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({ Test-CommunityPath $_ -JobScheduler})]
+        [ValidateScript({ Test-TelligentPath $_ -JobScheduler})]
         [string]$JobSchedulerPath
     )
     $roboCopyParams = @(
@@ -278,3 +278,5 @@ function Remove-Service {
             $_.Delete() | Out-Null
         }
 }
+
+

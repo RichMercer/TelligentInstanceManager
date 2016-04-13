@@ -70,7 +70,7 @@ function Install-Community {
 		#Web Settings
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({ Test-CommunityPath $_ -IsValid })]
+        [ValidateScript({ Test-TelligentPath $_ -IsValid })]
         [string]$WebsitePath,
 
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
@@ -134,7 +134,7 @@ function Install-Community {
         [string]$FilestoragePath,
 
         [Parameter(ValueFromPipelineByPropertyName=$true)]
-        [ValidateScript({ Test-CommunityPath $_ -IsValid -AllowEmpty })]
+        [ValidateScript({ Test-TelligentPath $_ -IsValid -AllowEmpty })]
         [string]$JobSchedulerPath,
 
         [Parameter(ValueFromPipelineByPropertyName=$true)]
@@ -157,7 +157,7 @@ function Install-Community {
     }
 
 
-    New-CommunityWebsite `
+    New-TelligentWebsite `
         -Name $name `
 		-Path $WebsitePath `
 		-Package $package `
@@ -179,24 +179,24 @@ function Install-Community {
     Write-Progress 'Configuration' 'Setting Connection Strings'
     Set-ConnectionString $WebsitePath @sqlConnectionSettings $SqlCredential
     
-    New-CommunityDatabase -Package $Package -WebDomain $webDomain -AdminPassword $AdminPassword @sqlConnectionSettings        
+    New-TelligentDatabase -Package $Package -WebDomain $webDomain -AdminPassword $AdminPassword @sqlConnectionSettings        
 
-    Grant-CommunityDatabaseAccess -CommunityPath $WebsitePath @sqlAuthSettings
+    Grant-TelligentDatabaseAccess -CommunityPath $WebsitePath @sqlAuthSettings
 
 	if($Hotfix) {
-        Install-CommunityHotfix -WebsitePath $WebsitePath -Package $Hotfix
+        Install-TelligentHotfix -WebsitePath $WebsitePath -Package $Hotfix
 	}	
 
 
 	if ($Licence) {
         Write-Progress 'Configuration' 'Installing Licence'
-        Install-CommunityLicence $WebsitePath $Licence
+        Install-TelligentLicence $WebsitePath $Licence
 	}
 	else {
 		Write-Warning 'No Licence installed.'
 	}
 
-    $info = Get-Community $WebsitePath 
+    $info = Get-TelligentCommunity $WebsitePath 
 	if(!$SolrCore) {
 		Write-Warning 'No search url specified.  Many features will not work until search is configured.'
 	}
@@ -213,7 +213,7 @@ function Install-Community {
 		    -coreAdmin "$solrUrl/admin/cores" `
             @solrCoreParams
 
-	    Set-CommunitySolrUrl $WebsitePath "$solrUrl/$SolrCoreName/"
+	    Set-TelligentSolrUrl $WebsitePath "$solrUrl/$SolrCoreName/"
 	}
 
     if($ApiKey) {
@@ -221,19 +221,19 @@ function Install-Community {
     }
 
     if($JobSchedulerPath -and $info.PlatformVersion.Major -ge 6) {
-        Install-JobScheduler -JobSchedulerPath $JobSchedulerPath -Package $Package -WebsitePath $WebsitePath
+        Install-TelligentJobScheduler -JobSchedulerPath $JobSchedulerPath -Package $Package -WebsitePath $WebsitePath
     }
     else {
         $JobSchedulerPath = ''
     }
 
     # Ensure Community Info has the latest configuration changes
-    Get-Community $WebsitePath |
+    Get-TelligentCommunity $WebsitePath |
         Add-Member JobSchedulerPath $JobSchedulerPath -PassThru |
         Add-Member AdminApiKey $ApiKey -PassThru
 }
 
-function Install-CommunityHotfix {
+function Install-TelligentHotfix {
     <#
     .SYNOPSIS
         Installs a Telligent Evolution hotfix 
@@ -250,13 +250,13 @@ function Install-CommunityHotfix {
     param (
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({ Test-CommunityPath $_ -Web })]
+        [ValidateScript({ Test-TelligentPath $_ -Web })]
         [string]$WebsitePath,
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [string]$Package,
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({ Test-CommunityPath $_ -JobScheduler -AllowEmpty})]
+        [ValidateScript({ Test-TelligentPath $_ -JobScheduler -AllowEmpty})]
         [string]$JobSchedulerPath
     )
    
@@ -274,14 +274,14 @@ function Install-CommunityHotfix {
 
         if (Test-Path $sqlFile -PathType Leaf) {
             Write-ProgressFromVerbose 'Applying Hotfix' 'Updating Database' {
-                Invoke-SqlCmdAgainstCommunity -WebsitePath $WebsitePath -File $sqlFile 
+                Invoke-TelligentSqlCmd -WebsitePath $WebsitePath -File $sqlFile 
             }
         }
     }
 
     if($JobSchedulerPath) {
         Write-Progress 'Applying Hotfix' 'Updating Job Scheduler'
-        Update-JobSchedulerFromWeb $WebsitePath $JobSchedulerPath
+        Update-TelligentJobSchedulerFromWeb $WebsitePath $JobSchedulerPath
     }
 
     Write-Progress 'Applying Hotfix' 'Cleanup'
@@ -293,15 +293,15 @@ function Uninstall-Community {
     param(
     	[Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true, ValueFromPipeline=$true)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({ Test-CommunityPath $_ -Web})]
+        [ValidateScript({ Test-TelligentPath $_ -Web})]
         [string]$WebsitePath,
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({ Test-CommunityPath $_ -JobScheduler })]
+        [ValidateScript({ Test-TelligentPath $_ -JobScheduler })]
         [string]$JobschedulerPath
     )
     process {
         $WebsitePath
-        $info = Get-Community $WebsitePath
+        $info = Get-TelligentCommunity $WebsitePath
 
         #Delete JS
         if($JobSchedulerPath) {
@@ -345,3 +345,5 @@ function Uninstall-Community {
         #TODO: Remove from hosts file
     }
 }
+
+

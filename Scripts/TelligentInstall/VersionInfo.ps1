@@ -7,7 +7,7 @@
     Transcoding = 'Telligent.Evolution.VideoTranscoding.dll'
 }
 
-function Get-Community {
+function Get-TelligentCommunity {
     <#
     .SYNOPSIS
         Gets an summary of a Telligent Evolution community
@@ -65,7 +65,7 @@ function Get-CommunityVersionFromDlls {
     [CmdletBinding()]
     param(
         [parameter(Mandatory=$true)]
-        [ValidateScript({ Test-CommunityPath $_ })]
+        [ValidateScript({ Test-TelligentPath $_ })]
         [ValidateNotNullOrEmpty()]
         [string]$Path,
         [ValidateScript({Test-Path $_ -PathType Leaf -IsValid})]
@@ -177,3 +177,5 @@ function Merge-CommunityConfigurationFile {
     }
     return $config
 }
+
+

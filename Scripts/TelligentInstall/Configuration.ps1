@@ -1,6 +1,6 @@
 ﻿Set-StrictMode -Version 2
 
-function Test-CommunityPath {
+function Test-TelligentPath {
     [CmdletBinding(DefaultParameterSetName='Either')]
     param(
         [parameter(Mandatory=$true, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true, Position=0)]
@@ -61,7 +61,7 @@ function Set-ConnectionString {
     param(
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({ Test-CommunityPath $_ })]
+        [ValidateScript({ Test-TelligentPath $_ })]
         [string]$WebsitePath,
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
@@ -109,7 +109,7 @@ function Get-ConnectionString {
     param(
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({ Test-CommunityPath $_ })]
+        [ValidateScript({ Test-TelligentPath $_ })]
         [string]$Directory,
 		[ValidateScript({Test-Path $_ -PathType Leaf})]
         [string]$ConfigurationFile = 'connectionStrings.Config',
@@ -158,7 +158,7 @@ function New-CommunityApiKey {
     param (
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({ Test-CommunityPath $_ })]
+        [ValidateScript({ Test-TelligentPath $_ })]
         [string]$WebsitePath,
         [Parameter(Mandatory=$true)]
         [ValidatePattern('^[a-z0-9]+$')]
@@ -170,10 +170,10 @@ function New-CommunityApiKey {
     )
 
     $createApiKey = "INSERT INTO [dbo].[cs_ApiKeys] ([UserID],[Value],[Name],[DateCreated],[Enabled]) VALUES ($UserId,'$ApiKey','$Name',GETDATE(), 1)"
-    Invoke-SqlCmdAgainstCommunity $WebsitePath -Query $createApiKey
+    Invoke-TelligentSqlCmd $WebsitePath -Query $createApiKey
 }
 
-function Add-OverrideChangeAttribute {
+function Add-TelligentOverrideChangeAttribute {
     <#
     .SYNOPSIS
         Adds a Change entry to the communityserver_override.config
@@ -190,7 +190,7 @@ function Add-OverrideChangeAttribute {
     param(
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({ Test-CommunityPath $_ })]
+        [ValidateScript({ Test-TelligentPath $_ })]
         [string]$WebsitePath,
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
@@ -219,7 +219,7 @@ function Add-OverrideChangeAttribute {
     $overrides.Save(($overridePath | Resolve-Path).ProviderPath)
 }
 
-function Set-CommunityFilestorage {
+function Set-TelligentFilestorage {
     <#
     .SYNOPSIS
         Sets the Filestorage location for a Telligent Evolution Community
@@ -232,7 +232,7 @@ function Set-CommunityFilestorage {
     param(
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({ Test-CommunityPath $_ })]
+        [ValidateScript({ Test-TelligentPath $_ })]
         [string]$WebsitePath,
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
@@ -240,10 +240,10 @@ function Set-CommunityFilestorage {
         [string]$FilestoragePath
     )
 
-    $version = Get-Community $WebsitePath | select -ExpandProperty PlatformVersion
+    $version = Get-TelligentCommunity $WebsitePath | select -ExpandProperty PlatformVersion
 
     if ($version.Major -ge 7) {
-        Add-OverrideChangeAttribute $WebsitePath `
+        Add-TelligentOverrideChangeAttribute $WebsitePath `
             -XPath "/CommunityServer/CentralizedFileStorage/fileStoreGroup[@name='default']" `
             -Name basePath `
             -Value $FilestoragePath
@@ -251,7 +251,7 @@ function Set-CommunityFilestorage {
     else {
         $csConfig = Merge-CommunityConfigurationFile $WebsitePath communityserver
         $csConfig.CommunityServer.CentralizedFileStorage.fileStore.name |% {
-            Add-OverrideChangeAttribute $WebsitePath `
+            Add-TelligentOverrideChangeAttribute $WebsitePath `
                 -XPath "/CommunityServer/CentralizedFileStorage/fileStore[@name='$_']" `
                 -Name basePath `
                 -Value $FilestoragePath
@@ -260,7 +260,7 @@ function Set-CommunityFilestorage {
 
 }
 
-function Set-CommunitySolrUrl {
+function Set-TelligentSolrUrl {
 	<#
 	.SYNOPSIS
 		Updates the Search Url used by the Telligent Evolution community in the current directory
@@ -273,7 +273,7 @@ function Set-CommunitySolrUrl {
     param(
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({ Test-CommunityPath $_ })]
+        [ValidateScript({ Test-TelligentPath $_ })]
         [string]$WebsitePath,
         [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
         ##No longer works for solr 4.0
@@ -283,14 +283,14 @@ function Set-CommunitySolrUrl {
     )
 
     Write-Progress "Configuration" "Updating Solr Url"
-    Add-OverrideChangeAttribute `
+    Add-TelligentOverrideChangeAttribute `
         -XPath /CommunityServer/Search/Solr `
         -Name host `
         -Value $Url `
         -WebsitePath $WebsitePath
 }
 
-function Install-CommunityLicence {
+function Install-TelligentLicence {
 	<#
 	.SYNOPSIS
 		Installs a licence file into a Telligent Evolution Community
@@ -303,7 +303,7 @@ function Install-CommunityLicence {
     param(
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({ Test-CommunityPath $_ })]
+        [ValidateScript({ Test-TelligentPath $_ })]
         [string]$WebsitePath,
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
         [ValidateNotNullOrEmpty()]
@@ -318,10 +318,10 @@ function Install-CommunityLicence {
 insert into cs_Licenses (LicenseID, LicenseValue, InstallDate)
 values ('$licenceId', N'$licenceContent', getdate())
 "@
-	Invoke-SqlCmdAgainstCommunity -WebsitePath $WebsitePath -Query $sql
+	Invoke-TelligentSqlCmd -WebsitePath $WebsitePath -Query $sql
 }
 
-function Register-TasksInWebProcess {
+function Register-TelligentTasksInWebProcess {
 	<#
 	.SYNOPSIS
 		Registers the Job Scheduler tasks in the web process of the Telligent Evolution instance in the current directory for a development environment
@@ -338,14 +338,14 @@ function Register-TasksInWebProcess {
     param (
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({ Test-CommunityPath $_ })]
+        [ValidateScript({ Test-TelligentPath $_ })]
         [string]$WebsitePath,
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
 		[ValidateScript({Test-Zip $_ })]
         [string]$Package
     )
-    $info = Get-Community $WebsitePath
+    $info = Get-TelligentCommunity $WebsitePath
 	if($info.PlatformVersion -lt 5.6){
         Write-Error 'Job Scheduler not supported on 5.5 or below'
     }
@@ -374,7 +374,7 @@ function Register-TasksInWebProcess {
 		        $tasks.jobs.job |% {
     	            $webTasks.scheduler.jobs.AppendChild($webTasks.ImportNode($_, $true)) | out-null
 	            }
-		        $version = (Get-Community $WebsitePath).PlatformVersion
+		        $version = (Get-TelligentCommunity $WebsitePath).PlatformVersion
 		        if($version.Revision -ge 17537) {
 			        $reindexNode = [xml]'<job schedule="30 * * * * ? *" type="CommunityServer.Search.SiteReindexJob, CommunityServer.Search" />'
     	            $webTasks.scheduler.jobs.AppendChild($webTasks.ImportNode($reindexNode.job, $true)) | out-null
@@ -399,7 +399,7 @@ function Disable-CustomErrors {
     param(
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({ Test-CommunityPath $_ })]
+        [ValidateScript({ Test-TelligentPath $_ })]
         [string]$WebsitePath
     )
     
@@ -411,7 +411,7 @@ function Disable-CustomErrors {
     $webConfig.Save($configPath)
 }
 
-function Enable-WindowsAuth {
+function Enable-TelligentWindowsAuth {
 	<#
 	.SYNOPSIS
 		Configures IIS to use Windows Authentication for the ASP.Net website
@@ -429,7 +429,7 @@ function Enable-WindowsAuth {
     param (
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({ Test-CommunityPath $_ })]
+        [ValidateScript({ Test-TelligentPath $_ })]
         [string]$WebsitePath,
         [ValidateNotNullOrEmpty()]
         [string]$AdminWindowsGroup = "$env:ComputerName\Administrators",
@@ -445,7 +445,7 @@ function Enable-WindowsAuth {
     $webConfig.configuration.{system.web}.authentication.mode = 'Windows'
     $webConfig.Save($configPath)
     
-    Add-OverrideChangeAttribute $WebsitePath `
+    Add-TelligentOverrideChangeAttribute $WebsitePath `
         -XPath /CommunityServer/Core/extensionModules `
         -Name enabled `
         -Value true
@@ -456,7 +456,7 @@ function Enable-WindowsAuth {
         emailDomain = "@$($EmailDomain.TrimStart('@'))";
         profileRefreshInterval = $ProfileRefreshInterval
     }.GetEnumerator() |%{
-        Add-OverrideChangeAttribute $WebsitePath `
+        Add-TelligentOverrideChangeAttribute $WebsitePath `
             -XPath "/CommunityServer/Core/extensionModules/add[@name='WindowsAuthentication']" `
             -Name $_.Key `
             -Value $_.Value
@@ -478,12 +478,12 @@ function Enable-WindowsAuth {
     }
 }
 
-function Enable-CommunityLdap {
+function Enable-TelligentLdap {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({ Test-CommunityPath $_ })]
+        [ValidateScript({ Test-TelligentPath $_ })]
         [string]$WebsitePath,
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
@@ -618,3 +618,5 @@ $tasks5x = data {@"
 
 </jobs>
 "@}
+
+
