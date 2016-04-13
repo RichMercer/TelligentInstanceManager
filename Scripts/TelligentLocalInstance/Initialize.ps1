@@ -163,22 +163,10 @@ function Install-SolrMultiCore {
     $solrBase = Join-Path $InstallDirectory Solr
     $tomcatContextDirectory = Join-Path $TomcatDirectory conf\Catalina\localhost
 
-    Write-Progress 'Telligent Instance Manager Setup' 'Stopping Tocmat'
-    Stop-Service tomcat*
-
 	if(!(Test-Path $tomcatContextDirectory)) {
 		Write-Host "Creating $tomcatContextDirectory"
 		New-Item $tomcatContextDirectory -ItemType Directory | Out-Null
 	}
-
-    @('jcl-over-slf4j-1.6.6.jar', 'jul-to-slf4j-1.6.6.jar', 'log4j-1.2.16.jar', 'slf4j-api-1.6.6.jar', 'slf4j-log4j12-1.6.6.jar') |% {
-        Write-Progress 'Telligent Instance Manager Setup' 'Downloading Tomcat dependencies'
-        $tomcatLib= Join-Path "$TomcatDirectory" 'lib'        
-        $filePath =  Join-Path $tomcatLib $_      
-        if(!(Test-Path $filePath)) {
-            Invoke-WebRequest -Uri "https://github.com/afscrome/TelligentInstanceManager/blob/master/Solr/_tomcatlib/${_}?raw=true" -OutFile $filePath
-        }
-    }
 	
     @('3-6', '4-5-1', '4-10-3') |% {
         $solrHome = Join-Path $solrBase $_
@@ -211,6 +199,18 @@ function Install-SolrMultiCore {
 
             #Create context file
             $tomcatContext -f $war, $solrHome | out-file $contextPath
+        }
+    }
+
+    Write-Progress 'Telligent Instance Manager Setup' 'Stopping Tocmat'
+    Stop-Service tomcat*
+
+    @('jcl-over-slf4j-1.6.6.jar', 'jul-to-slf4j-1.6.6.jar', 'log4j-1.2.16.jar', 'slf4j-api-1.6.6.jar', 'slf4j-log4j12-1.6.6.jar') |% {
+        Write-Progress 'Telligent Instance Manager Setup' 'Downloading Tomcat dependencies'
+        $tomcatLib= Join-Path "$TomcatDirectory" 'lib'        
+        $filePath =  Join-Path $tomcatLib $_      
+        if(!(Test-Path $filePath)) {
+            Invoke-WebRequest -Uri "https://github.com/afscrome/TelligentInstanceManager/blob/master/Solr/_tomcatlib/${_}?raw=true" -OutFile $filePath
         }
     }
 
