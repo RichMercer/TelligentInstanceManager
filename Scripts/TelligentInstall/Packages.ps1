@@ -36,26 +36,9 @@ function Get-TelligentVersion {
                 Version = $_.Version
                 BasePackage = $_.Path
             })
-        }
-    # Commenting out hotfixes for now as theses mostly affect v7. Will circle back and fix later.
-    #$hotfixBuilds = Get-VersionedEvolutionPackage $hotfixDir|
-    #    % {
-    #        $hotfix = $_
-    #        $base = $basePackages |
-    #            ? { $_.Version.Major -eq $hotfix.Version.Major -and $_.Version.Minor -eq $hotfix.Version.Minor -and $hotfix.Version.Revision -gt $_.Version.Revision }|
-    #            sort Version -Descending |
-    #            select -First 1
-    #        if ($base) 
-    #        {
-    #            new-object PSObject -Property ([ordered]@{
-    #                Version = $_.Version
-    #                BasePackage = $base.Path
-    #                HotfixPackage = $_.Path
-    #            })
-    #        }
-    #    }  
+        } 
 	
-	$results = @($fullBuilds) # + @($hotfixBuilds)
+	$results = @($fullBuilds)
 
     $results = $results | sort Version
 		
