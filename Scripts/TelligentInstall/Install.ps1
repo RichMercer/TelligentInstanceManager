@@ -10,7 +10,7 @@ function Install-Community {
 		It takes the installation package, and from it deploys the website to IIS and a creates a new database using
 		the scripts from the package.  It also sets permissions automatically.
 		
-		Optionally, you can specify a path to a licence file and this will be installed into your community.
+		Optionally, you can specify a path to a License file and this will be installed into your community.
 		
 		By default, authentication between the web and databases uses the Applicaiton Pool Identity, but SQL authentiation
 		is used if an explicit username & password are provided.
@@ -40,8 +40,8 @@ function Install-Community {
 	    If specified, a REST Api Key is created for the admin user with the given value.  This is useful for automation scenarios where you want to go and automate creation of content after installation.
 	.Parameter FilestoragePath
 	    The location to install Filestorage to.  If not specified, will use the default location ~/filestorage/ in the website.
-	.Parameter Licence
-	    The path to the licence XML file to install in the community
+	.Parameter License
+	    The path to the License XML file to install in the community
 	.Example
 		Install-Community -name 'Telligent Evolution' -package d:\temp\TelligentCommunity-7.0.1824.27400.zip -webDir "d:\inetpub\TelligentEvolution\" -webdomain "mydomain.com" -searchUrl "http://localhost:8080/solr/"
 		
@@ -140,7 +140,7 @@ function Install-Community {
         [Parameter(ValueFromPipelineByPropertyName=$true)]
         [alias('License')]
 		[ValidateScript({!$_ -or (Test-Path $_ -PathType Leaf)})]
-        [string]$Licence
+        [string]$License
     )   
 
     if($JobSchedulerPath -and -not $FilestoragePath) {
@@ -188,12 +188,12 @@ function Install-Community {
 	}	
 
 
-	if ($Licence) {
-        Write-Progress 'Configuration' 'Installing Licence'
-        Install-TelligentLicence $WebsitePath $Licence
+	if ($License) {
+        Write-Progress 'Configuration' 'Installing License'
+        Install-TelligentLicense $WebsitePath $License
 	}
 	else {
-		Write-Warning 'No Licence installed.'
+		Write-Warning 'No License installed.'
 	}
 
     $info = Get-TelligentCommunity $WebsitePath 

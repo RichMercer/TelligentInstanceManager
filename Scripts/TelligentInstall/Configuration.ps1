@@ -290,12 +290,12 @@ function Set-TelligentSolrUrl {
         -WebsitePath $WebsitePath
 }
 
-function Install-TelligentLicence {
+function Install-TelligentLicense {
 	<#
 	.SYNOPSIS
-		Installs a licence file into a Telligent Evolution Community
-	.PARAMETER licenceFile
-	    The XML Licence file
+		Installs a License file into a Telligent Evolution Community
+	.PARAMETER LicenseFile
+	    The XML License file
     .PARAMETER WebsitePath
         The path of the Telligent Evolution Community website.  If not specified, defaults to the current directory.
 	#>
@@ -308,15 +308,15 @@ function Install-TelligentLicence {
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
         [ValidateNotNullOrEmpty()]
 		[ValidateScript({Test-Path $_ -PathType Leaf})]
-        [string]$LicenceFile
+        [string]$LicenseFile
     )
 
-    $licenceContent = (gc $LicenceFile) -join [Environment]::NewLine
-    $licenceId = ([xml]$licenceContent).document.licenseId
+    $LicenseContent = (gc $LicenseFile) -join [Environment]::NewLine
+    $LicenseId = ([xml]$LicenseContent).document.licenseId
     
     $sql = @"
 insert into cs_Licenses (LicenseID, LicenseValue, InstallDate)
-values ('$licenceId', N'$licenceContent', getdate())
+values ('$LicenseId', N'$LicenseContent', getdate())
 "@
 	Invoke-TelligentSqlCmd -WebsitePath $WebsitePath -Query $sql
 }

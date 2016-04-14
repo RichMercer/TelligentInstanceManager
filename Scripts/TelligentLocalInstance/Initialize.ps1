@@ -38,7 +38,7 @@ if ($Error.Count -ne $initialErrorCount) {
 }
 
 #Make Required Folders
-@('Licences', 'TelligentPackages', 'Web', 'Solr') |
+@('Licenses', 'TelligentPackages', 'Web', 'Solr') |
     % { Join-Path $InstallDirectory $_} |
     ? {!(Test-Path $_)} |
     % {new-item $_ -ItemType Directory | Out-Null}
@@ -53,14 +53,14 @@ Get-ChildItem $InstallDirectory -Recurse | Unblock-File
 Write-Progress 'Telligent Instance Manager Setup' -Completed
 
 #Provide hints for finishing installation
-$licencePath = Join-Path $InstallDirectory Licences 
-if (!(Get-ChildItem $licencePath -ErrorAction SilentlyContinue)){
-    Write-Warning "No Licenses available for installation at '$licencePath' "
-    Write-Warning "Add files to this directory with filenames of the format 'Community8.xml', 'Community9.xml' etc."
+$LicensePath = Join-Path $InstallDirectory Licenses 
+if (!(Get-ChildItem $LicensePath -ErrorAction SilentlyContinue)){
+    Write-Warning "No Licenses available for installation at '$LicensePath' "
+    Write-Warning "Add license files to this directory with filenames of the format 'Community8.xml', 'Community9.xml' etc."
 }
 
 $packagesPath = Join-Path $InstallDirectory TelligentPackages
-if (!(Get-ChildItem $licencePath -ErrorAction SilentlyContinue)){
+if (!(Get-ChildItem $LicensePath -ErrorAction SilentlyContinue)){
     Write-Warning "No packages are available for Installation at '$packagesPath'."
 }
 

@@ -15,10 +15,10 @@ $data = @{
     #A default API key to create for the administrator account
     ApiKey = 'abc123'
 
-    # The directory where licences can be found.
-    # Licences in this directory should be named in the format "Community{MajorVersion}.xml"
-    # i.e. Community7.xml for a Community 7.x licence
-	LicencesPath = Join-Path $base Licences | Resolve-Path
+    # The directory where Licenses can be found.
+    # Licenses in this directory should be named in the format "Community{MajorVersion}.xml"
+    # i.e. Community7.xml for a Community 7.x License
+	LicensesPath = Join-Path $base Licenses | Resolve-Path
 
     # The directory where web folders are created for each website
 	WebBase = Join-Path $base Web
@@ -152,6 +152,9 @@ function Install-TelligentInstance {
     $filestorageDir = Join-Path $webDir filestorage
     $domain = if($Name.Contains('.')) { $Name } else { "$Name.local"}
     $DatabaseServerInstance = if($DatabaseServerInstance) { $DatabaseServerInstance } else { $data.SqlServer }
+	$licensePath = join-path $data.LicensesPath "Community$($Version.Major).xml"
+	if(!(Test-Path $licensePath)) { $licensePath = $null }
+	 Write-Host $licensePath
 
     $info = Install-Community -name $Name `
         -Package $BasePackage `
@@ -160,7 +163,7 @@ function Install-TelligentInstance {
         -JobSchedulerPath $jsDir `
         -FilestoragePath $filestorageDir `
         -WebDomain $domain `
-        -Licence (join-path $data.LicencesPath "Community$($Version.Major).xml") `
+        -License $licensePath `
         -SolrCore `
         -SolrBaseUrl ($data.SolrUrl -f $solrVersion).TrimEnd('/') `
         -SolrCoreDir ($data.SolrCoreBase -f $solrVersion) `

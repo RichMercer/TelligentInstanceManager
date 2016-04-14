@@ -88,7 +88,7 @@ FunctionsToExport = @(
                     'Install-Community'
                     'Uninstall-Community'
                     'Install-TelligentHotfix'
-                    'Install-TelligentLicence'
+                    'Install-TelligentLicense'
 
                     'New-IISAppPool'
                     'Get-IISAppPoolIdentity'
