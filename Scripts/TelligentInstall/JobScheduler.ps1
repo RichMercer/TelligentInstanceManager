@@ -49,7 +49,8 @@ function Install-TelligentJobScheduler {
 
     $info = Get-TelligentCommunity $WebsitePath
     if ($info.PlatformVersion.Major -ge 8 ) {
-        Expand-Zip $Package $JobSchedulerPath -ZipDirectory JobService
+        $zipDirName = if ($info.Platformversion -ge 9.1) { 'JobServer' } else { 'Jobservice' }
+        Expand-Zip $Package $JobSchedulerPath -ZipDirectory $zipDirName
 
         $tempDir = Join-Path ([System.IO.Path]::GetFullPath($env:TEMP)) ([guid]::NewGuid())
         Expand-Zip -Path $package -Destination $tempDir -ZipDirectory SqlScripts -ZipFile Jobs_InstallUpdate.sql
