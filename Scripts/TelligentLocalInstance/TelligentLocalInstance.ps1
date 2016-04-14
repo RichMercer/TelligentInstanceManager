@@ -12,13 +12,10 @@ $data = @{
     #Default password to use for new communities
     AdminPassword = 'password'
 
-    #A default API key to create for the administrator account
-    ApiKey = 'abc123'
-
-    # The directory where Licenses can be found.
-    # Licenses in this directory should be named in the format "Community{MajorVersion}.xml"
-    # i.e. Community7.xml for a Community 7.x License
-	LicensesPath = Join-Path $base Licenses | Resolve-Path
+    # The directory where licences can be found.
+    # Licences in this directory should be named in the format "Community{MajorVersion}.xml"
+    # i.e. Community7.xml for a Community 7.x licence
+	LicencesPath = Join-Path $base Licences | Resolve-Path
 
     # The directory where web folders are created for each website
 	WebBase = Join-Path $base Web
@@ -112,7 +109,10 @@ function Install-TelligentInstance {
 
     .Parameter Version
 	    The version being installed.  This is used to determine what version of .net to use for the app pool, and which version of Solr to use.
-
+    
+    .Parameter ApiKey
+	    If specified, a REST Api Key is created for the admin user with the given value.  This is useful for automation scenarios where you want to go and automate creation of content after installation.
+	
     .Parameter NoSearch
 	    Specify this switch to not set up a new search instance
     .Parameter DatabaseServerInstance
@@ -142,7 +142,9 @@ function Install-TelligentInstance {
 		[ValidateScript({!$_ -or (Test-Zip $_) })]
         [string] $HotfixPackage,
         [switch] $WindowsAuth,
-        [string] $DatabaseServerInstance
+        [string] $DatabaseServerInstance,
+        [ValidatePattern('^[a-z0-9\-\._ ]+$')]
+        [string] $ApiKey
     )
     $name = $name.ToLower()
 
@@ -152,9 +154,8 @@ function Install-TelligentInstance {
     $filestorageDir = Join-Path $webDir filestorage
     $domain = if($Name.Contains('.')) { $Name } else { "$Name.local"}
     $DatabaseServerInstance = if($DatabaseServerInstance) { $DatabaseServerInstance } else { $data.SqlServer }
-	$licensePath = join-path $data.LicensesPath "Community$($Version.Major).xml"
+	$licensePath = join-path $data.LicencesPath "Community$($Version.Major).xml"
 	if(!(Test-Path $licensePath)) { $licensePath = $null }
-	 Write-Host $licensePath
 
     $info = Install-Community -name $Name `
         -Package $BasePackage `
@@ -169,7 +170,7 @@ function Install-TelligentInstance {
         -SolrCoreDir ($data.SolrCoreBase -f $solrVersion) `
         -AdminPassword $data.AdminPassword `
         -DatabaseServer $DatabaseServerInstance  `
-        -ApiKey $data.ApiKey
+        -ApiKey $ApiKey
 
     if ($info) {
 	    Disable-CustomErrors $webDir

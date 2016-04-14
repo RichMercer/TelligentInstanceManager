@@ -125,8 +125,6 @@ function Install-Community {
         [string]$AdminPassword ,
 
         [Parameter(ValueFromPipelineByPropertyName=$true)]
-        [ValidatePattern('^[a-z0-9\-\._ ]+$')]
-        [ValidateNotNullOrEmpty()]
         [string]$ApiKey,
 
         [Parameter(ValueFromPipelineByPropertyName=$true)]
@@ -138,7 +136,6 @@ function Install-Community {
         [string]$JobSchedulerPath,
 
         [Parameter(ValueFromPipelineByPropertyName=$true)]
-        [alias('License')]
 		[ValidateScript({!$_ -or (Test-Path $_ -PathType Leaf)})]
         [string]$License
     )   
