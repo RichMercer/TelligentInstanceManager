@@ -362,6 +362,7 @@ function Remove-Database {
         if DB_ID('$Database') is not null
         begin
             exec msdb.dbo.sp_delete_database_backuphistory @database_name = N'$Database'
+            alter database [$Database] set single_user with rollback immediate
             drop database [$Database]
         end
 "@
