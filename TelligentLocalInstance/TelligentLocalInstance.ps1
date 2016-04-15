@@ -1,35 +1,40 @@
 ﻿Set-StrictMode -Version 2
 
-$base = $env:TelligentInstanceManager
-if (!$base) {
-    Write-Error 'TelligentInstanceManager environmental variable not defined'
-}
 
-$data = @{
-    #SQL Server to use.
-    SqlServer = if($env:TelligentDatabaseServerInstance) { $env:TelligentDatabaseServerInstance } else { '(local)' }
+function Get-Configuration {
+    $base = $env:TelligentInstanceManager
+    if (!$base) {
+        Write-Error 'TelligentInstanceManager environmental variable not defined'
+    }
 
-    #Default password to use for new communities
-    AdminPassword = 'password'
+    $data = @{
+        #SQL Server to use.
+        SqlServer = if($env:TelligentDatabaseServerInstance) { $env:TelligentDatabaseServerInstance } else { '(local)' }
 
-    # The directory where licenses can be found.
-    # Licenses in this directory should be named in the format "Community{MajorVersion}.xml"
-    # i.e. Community7.xml for a Community 7.x license
-	LicensesPath = Join-Path $base Licenses | Resolve-Path
+        #Default password to use for new communities
+        AdminPassword = 'password'
 
-    # The directory where web folders are created for each website
-	WebBase = Join-Path $base Web
+        # The directory where licenses can be found.
+        # Licenses in this directory should be named in the format "Community{MajorVersion}.xml"
+        # i.e. Community7.xml for a Community 7.x license
+	    LicensesPath = Join-Path $base Licenses | Resolve-Path
 
-    # The directory where web folders are created for each website
-	JobSchedulerBase = Join-Path $base JobScheduler
+        # The directory where web folders are created for each website
+	    WebBase = Join-Path $base Web
 
-    #Solr Url for solr cores.
-    #{0} gets replaced with 1-4 or 3-6 depending on the solr version needed
-	SolrUrl = "http://${env:COMPUTERNAME}:8080/{0}"
+        # The directory where web folders are created for each website
+	    JobSchedulerBase = Join-Path $base JobScheduler
 
-    # Solr core Directories.
-    # {0} gets replaced in the same way as for SolrUrl
-	SolrCoreBase = Join-Path $base 'Solr\{0}\'
+        #Solr Url for solr cores.
+        #{0} gets replaced with 1-4 or 3-6 depending on the solr version needed
+	    SolrUrl = "http://${env:COMPUTERNAME}:8080/{0}"
+
+        # Solr core Directories.
+        # {0} gets replaced in the same way as for SolrUrl
+	    SolrCoreBase = Join-Path $base 'Solr\{0}\'
+    }
+
+    $data
 }
 
 function Get-TelligentInstance {
@@ -58,6 +63,8 @@ function Get-TelligentInstance {
         [string]$Name,
         [string]$Version
     )
+
+    $data = Get-Configuration
 
     $results = Get-ChildItem $data.WebBase |
             select -ExpandProperty FullName |
@@ -146,6 +153,8 @@ function Install-TelligentInstance {
         [ValidatePattern('^[a-z0-9\-\._ ]+$')]
         [string] $ApiKey
     )
+
+    $data = Get-Configuration
     $name = $name.ToLower()
 
     $solrVersion = Get-CommunitySolrVersion $Version
@@ -253,6 +262,8 @@ function Remove-TelligentInstance {
         [switch]$Force
     )
     process {
+
+        $data = Get-Configuration
         $webDir = Join-Path $data.WebBase $Name
     
         $info = Get-TelligentCommunity $webDir -ErrorAction SilentlyContinue
