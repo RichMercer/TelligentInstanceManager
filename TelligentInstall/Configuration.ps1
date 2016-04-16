@@ -1,7 +1,20 @@
 ﻿Set-StrictMode -Version 2
 
 function Test-TelligentPath {
-    [CmdletBinding(DefaultParameterSetName='Either')]
+    <#
+    .SYNOPSIS
+        Tests if a SQL Server exists and can be connected to.  Optonally checks for a specific database or table.
+    .PARAMETER Path
+        The path to test for a Teligent Community
+    .PARAMETER AllowEmpty
+        Specifies that an empty path should be considered as valid
+    .PARAMETER IsValid
+        Only test if the path is syntaticly valid, not that it actually contains a valid Telligent Community instance
+    .PARAMETER Web
+        Only pass if the path contains a Telligent Community website, not a Job Server 
+    .PARAMETER JobScheduler
+        Only pass if the path contains a Telligent Community Job Server, not a website 
+    #>    [CmdletBinding(DefaultParameterSetName='Either')]
     param(
         [parameter(Mandatory=$true, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true, Position=0)]
         [AllowEmptyString()]
@@ -46,10 +59,12 @@ function Set-ConnectionString {
     <#
     .SYNOPSIS
         Sets the Connection Strings in the .net configurationf ile
-    .PARAMETER Database
-        The database 
+    .PARAMETER WebsitePath
+        The path to the application you want to set connection strings for
     .PARAMETER Server
         The SQL Server the connection string will point to
+    .PARAMETER Database
+        The database to use
     .PARAMETER SqlCredentials
         If using SQL Authenticaiton, specifies the username nad password to use in the connection string.  If not specified, the connection string uses Integrated Security.
     .PARAMETER ConfigurationFile
@@ -324,15 +339,15 @@ values ('$LicenseId', N'$LicenseContent', getdate())
 function Register-TelligentTasksInWebProcess {
 	<#
 	.SYNOPSIS
-		Registers the Job Scheduler tasks in the web process of the Telligent Evolution instance in the current directory for a development environment
-    .DETAILS
+		Registers the Job Scheduler tasks in the web process of the Telligent Community instance in the current directory for a development environment
+    .DESCRIPTION
         Do NOT use this in a production environment
         
         In production environments, the Job Scheduler must be used to offload tasks from the Web Server and to ensure tasks continue to run through Application Pool recycles, as well as to avoid conflicts in a multi server environment
-	.PARAMETER Package
-	    The path to the zip package containing the Telligent Evolution installation files from Telligent Support
     .PARAMETER WebsitePath
         The path of the Telligent Community website.  If not specified, defaults to the current directory.
+	.PARAMETER Package
+	    The path to the zip package containing the Telligent Community installation files from Telligent Support
 	#>
     [CmdletBinding()]
     param (
@@ -391,7 +406,7 @@ function Disable-CustomErrors {
 	.SYNOPSIS
 		Disables Custom Errors for the ASP.Net website in the specified directory
     .PARAMETER WebsitePath
-        The path of the Telligent Community website.  If not specified, defaults to the current directory.
+        The path of the ASP.Net Web Application.  If not specified, defaults to the current directory.
 	.EXAMPLE
 		Disable-CustomErrors 
 	#>
@@ -479,21 +494,37 @@ function Enable-TelligentWindowsAuth {
 }
 
 function Enable-TelligentLdap {
+	<#
+	.SYNOPSIS
+		Enables LDAP integration in a Telligent Community
+    .PARAMETER WebsitePath
+        The path of the Telligent Community website.  If not specified, defaults to the current directory.
+    .PARAMETER Server
+        The server to use for LDAP.  Defaults to the Global Catalog of the AD Forest the server is in.
+    .PARAMETER AuthenticationType
+        The email domain to append to a user's username to get their email address if it's not found in Active Directory (USERNAME@EmailDomain).
+    .PARAMETER Port
+        The port to connect to ldap.  Defaults to the Global Catalog port.
+    .PARAMETER Username
+        The username port to connect to ldap with .  Defaults to the credntials of Application Pool Identiy.
+    .PARAMETER Password
+        The password port to connect to ldap with .  Defaults to the credntials of Application Pool Identiy.
+	#>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({ Test-TelligentPath $_ })]
         [string]$WebsitePath,
+        [string]$Server = 'GC://',
+        [string]$AuthenticationType = 'Secure',
+        [int]$Port = 3268,
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [string]$Username,
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [string]$Password,
-        [string]$Server = 'GC://',
-        [string]$AuthenticationType = 'Secure',
-        [int]$Port = 3268
+        [string]$Password
     )
 
     #Install Package

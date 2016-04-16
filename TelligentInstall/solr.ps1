@@ -12,6 +12,10 @@ function Add-SolrCore {
         The path to the root of the Solr instance hosting the core
     .PARAMETER CoreAdmin
         The url to the solr instance's Core Admin API.
+    .PARAMETER LegacyCore
+        Creates a core for Telligent Community 7.6 and below
+	.PARAMETER ModernCore
+		Creates a core for Telligent Community 8.0 and above
     #>
     [CmdletBinding(DefaultParameterSetName='Legacy')]
     param (

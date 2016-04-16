@@ -24,6 +24,8 @@ function Install-Community {
 	    The directory to place the Telligent Community website in
 	.Parameter WebDomain
 	    The domain name the community will be accessible at
+	.Parameter Port
+	    The port the community will be accessible at. If unspecified, defaults to 80.
 	.Parameter ApplicationPool
 	    The name of the Application Pool to use the community with.  If not specified creates a new apppool.
 	.Parameter DatabaseServer
@@ -34,12 +36,18 @@ function Install-Community {
 	    Specifies the SQL Authenticaiton credential the community will use to connect to the database.  If not specified, then Windows Authentication is used (prefered).  Note, the installer will always connect using Windows Authentication to create the database.  These credentials are only used post-installation.
 	.Parameter SolrBaseUrl
 	    The url the base Solr instance to create the new core in.
+	.Parameter SolrCoreDir
+	    TODO.
+	.Parameter SolrCoreName
+	    The name of the Solr Core to create.
 	.Parameter AdminPassword
 	    The password to use for the admin user created during installation.
 	.Parameter ApiKey
-	    If specified, a REST Api Key is created for the admin user with the given value.  This is useful for automation scenarios where you want to go and automate creation of content after installation.
+	    When specified, a REST Api Key is created for the admin user with the given value.  This is useful for automation scenarios where you want to go and automate creation of content after installation.
 	.Parameter FilestoragePath
 	    The location to install Filestorage to.  If not specified, will use the default location ~/filestorage/ in the website.
+	.Parameter JobSchedulerPath
+	    The location to install the Job Server to.  If unspecified, the Job server is not installed.
 	.Parameter License
 	    The path to the License XML file to install in the community
 	.Example
@@ -234,13 +242,13 @@ function Install-TelligentHotfix {
     <#
     .SYNOPSIS
         Installs a Telligent Community hotfix 
-    .Details
+    .Description
         Applies a hotfix to a Telligent Community.  It updates the web files, pulls the Database conneciton information from the website and updates the database.  If a Job Scheduler path is specified, it also updates the Job Scheduler.
     .PARAMETER WebsitePath
         The path to the Telligent Community website files to apply the hotfix against.
     .PARAMETER Package
         The path to the Telligent Community hotfix installation packgae.
-    .PARAMETER WebsitePath
+    .PARAMETER JobSchedulerPath
         The path to the community's Job Scheduler.
     #>
     [CmdletBinding()]
@@ -286,6 +294,15 @@ function Install-TelligentHotfix {
 }
 
 function Uninstall-Community {
+    <#
+    .SYNOPSIS
+        Uninstalls a Telligent Community  
+    .PARAMETER WebsitePath
+        The path to the Telligent Community website
+    .PARAMETER JobSchedulerPath
+        The path to the Telligent Community Job Scheduler.
+    #>
+
 	[CmdletBinding(DefaultParameterSetName='NoService')]
     param(
     	[Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true, ValueFromPipeline=$true)]

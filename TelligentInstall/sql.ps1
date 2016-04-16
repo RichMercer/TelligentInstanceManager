@@ -3,9 +3,13 @@
 function Test-SqlServer {
     <#
     .SYNOPSIS
-        Tests if a SQL Server exists and can be connected to
+        Tests if a SQL Server exists and can be connected to.  Optonally checks for a specific database or table.
     .PARAMETER Server
-        The SQL Server to test
+        The SQL Server to test 
+    .PARAMETER Database
+        The database to test exists on the SQL Server 
+    .PARAMETER Table
+        The Table to test exists in the database being connected 
     #>
     [CmdletBinding()]
     param(
@@ -202,14 +206,12 @@ function Grant-TelligentDatabaseAccess {
 	.SYNOPSIS
 		Grants a user access to a Telligent Community database.  If the user or login doesn't exist, in SQL server, they
 		are created before being granted access to the database.
-	.PARAMETER  Server
-		The SQL server the database is contained on
-	.PARAMETER  Database
-		The name of the database
-	.PARAMETER  Username
+	.PARAMETER CommunityPath
+		The path to the Telligent Community you're granting database access for
+	.PARAMETER Username
 		The name of the user to grant access to.  If no password is specified, the user is assumed to be a Windows
 		login.
-	.PARAMETER  Password
+	.PARAMETER Password
 		The password for the SQL user
 	.EXAMPLE
 		Grant-TelligentDatabaseAccess (local)\SqlExpress SampleCommunity 'NT AUTHORITY\NETWORK SERVICE'

@@ -11,9 +11,9 @@ function Get-TelligentCommunity {
     <#
     .SYNOPSIS
         Gets an summary of a Telligent Community
-    .Descriptions
+    .Description
         Gets information about a Telligent Community including Filestorage, Solr and database locations as well as platform and addon version numbers.
-    .PARAMETER path
+    .PARAMETER Path
         The path to the community's Website or Job Scheduler.
     #>
     [CmdletBinding()]
@@ -21,7 +21,7 @@ function Get-TelligentCommunity {
         [ValidateNotNullOrEmpty()]
         [parameter(Mandatory=$true, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
         [alias('physicalPath')]
-        [string]$path
+        [string]$Path
     )
     process {
         if (!(Test-Path $path)) {
