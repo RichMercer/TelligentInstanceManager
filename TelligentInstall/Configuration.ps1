@@ -1,7 +1,20 @@
 ﻿Set-StrictMode -Version 2
 
 function Test-TelligentPath {
-    [CmdletBinding(DefaultParameterSetName='Either')]
+    <#
+    .SYNOPSIS
+        Tests if a SQL Server exists and can be connected to. Optonally checks for a specific database or table.
+    .PARAMETER Path
+        The path to test for a Teligent Community
+    .PARAMETER AllowEmpty
+        Specifies that an empty path should be considered as valid
+    .PARAMETER IsValid
+        Only test if the path is syntaticly valid, not that it actually contains a valid Telligent Community instance
+    .PARAMETER Web
+        Only pass if the path contains a Telligent Community website, not a Job Server 
+    .PARAMETER JobScheduler
+        Only pass if the path contains a Telligent Community Job Server, not a website 
+    #>    [CmdletBinding(DefaultParameterSetName='Either')]
     param(
         [parameter(Mandatory=$true, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true, Position=0)]
         [AllowEmptyString()]
@@ -29,13 +42,13 @@ function Test-TelligentPath {
             throw "'$Path' does not exist"
         }
         if (!(Join-Path $Path communityserver.config | Test-Path  -ErrorAction SilentlyContinue)) {
-            throw "'$Path' does not contain a valid Telligent Evolution community"
+            throw "'$Path' does not contain a valid Telligent Community community"
         }
         if ($Web -and !(Join-Path $Path web.config | Test-Path  -ErrorAction SilentlyContinue)) {
-            throw "'$Path' does not contain a valid Telligent Evolution website"
+            throw "'$Path' does not contain a valid Telligent Community website"
         }
         elseif ($JobScheduler -and !((Join-Path $Path Telligent.JobScheduler.Service.exe | Test-Path) -or (Join-Path $Path Telligent.Jobs.Server.exe | Test-Path))) {
-            throw "'$Path' does not contain a valid Telligent Job Scheduler"
+            throw "'$Path' does not contain a valid Telligent Community Job Server"
         }
     }
     return $true
@@ -46,12 +59,14 @@ function Set-ConnectionString {
     <#
     .SYNOPSIS
         Sets the Connection Strings in the .net configurationf ile
-    .PARAMETER Database
-        The database 
+    .PARAMETER WebsitePath
+        The path to the application you want to set connection strings for
     .PARAMETER Server
         The SQL Server the connection string will point to
+    .PARAMETER Database
+        The database to use
     .PARAMETER SqlCredentials
-        If using SQL Authenticaiton, specifies the username nad password to use in the connection string.  If not specified, the connection string uses Integrated Security.
+        If using SQL Authenticaiton, specifies the username nad password to use in the connection string. If not specified, the connection string uses Integrated Security.
     .PARAMETER ConfigurationFile
         The configuration file to set the connection strings in.
     .PARAMETER ConnectionStringName
@@ -99,7 +114,7 @@ function Get-ConnectionString {
     .PARAMETER Server
         The SQL Server the connection string will point to
     .PARAMETER SqlCredentials
-        If using SQL Authenticaiton, specifies the username nad password to use in the connection string.  If not specified, the connection string uses Integrated Security.
+        If using SQL Authenticaiton, specifies the username nad password to use in the connection string. If not specified, the connection string uses Integrated Security.
     .PARAMETER ConfigurationFile
         The configuration file containing the connection string to read.
     .PARAMETER ConnectionStringName
@@ -152,7 +167,7 @@ function New-CommunityApiKey {
     .PARAMETER UserId
         The User to create the API Key for
     .PARAMETER WebsitePath
-        The path of the Telligent Evolution Community website.  If not specified, defaults to the current directory.
+        The path of the Telligent Community website. If not specified, defaults to the current directory.
     #>
     [CmdletBinding()]
     param (
@@ -184,7 +199,7 @@ function Add-TelligentOverrideChangeAttribute {
     .PARAMETER Value
         The new value of the node
     .PARAMETER WebsitePath
-        The path of the Telligent Evolution Community website.  If not specified, defaults to the current directory.
+        The path of the Telligent Community website. If not specified, defaults to the current directory.
     #>
     [CmdletBinding()]
     param(
@@ -222,9 +237,9 @@ function Add-TelligentOverrideChangeAttribute {
 function Set-TelligentFilestorage {
     <#
     .SYNOPSIS
-        Sets the Filestorage location for a Telligent Evolution Community
+        Sets the Filestorage location for a Telligent Community
     .PARAMETER WebsitePath
-        The path of the Telligent Evolution Community website.
+        The path of the Telligent Community website.
     .PARAMETER FilestoragePath
         The Filestorage Location to use. The Filestorage should already have been moved to this location.
     #>
@@ -263,11 +278,11 @@ function Set-TelligentFilestorage {
 function Set-TelligentSolrUrl {
 	<#
 	.SYNOPSIS
-		Updates the Search Url used by the Telligent Evolution community in the current directory
+		Updates the Search Url used by the Telligent Community in the current directory
 	.PARAMETER Url
-	    The url of the solr instance to use
+	    The url of the Solr instance to use
     .PARAMETER WebsitePath
-        The path of the Telligent Evolution Community website.  If not specified, defaults to the current directory.
+        The path of the Telligent Community website. If not specified, defaults to the current directory.
     #>
     [CmdletBinding()]
     param(
@@ -293,11 +308,11 @@ function Set-TelligentSolrUrl {
 function Install-TelligentLicense {
 	<#
 	.SYNOPSIS
-		Installs a License file into a Telligent Evolution Community
+		Installs a License file into a Telligent Community
 	.PARAMETER LicenseFile
 	    The XML License file
     .PARAMETER WebsitePath
-        The path of the Telligent Evolution Community website.  If not specified, defaults to the current directory.
+        The path of the Telligent Community website. If not specified, defaults to the current directory.
 	#>
     [CmdletBinding()]
     param(
@@ -324,15 +339,15 @@ values ('$LicenseId', N'$LicenseContent', getdate())
 function Register-TelligentTasksInWebProcess {
 	<#
 	.SYNOPSIS
-		Registers the Job Scheduler tasks in the web process of the Telligent Evolution instance in the current directory for a development environment
-    .DETAILS
+		Registers the Job Scheduler tasks in the web process of the Telligent Community instance in the current directory for a development environment
+    .DESCRIPTION
         Do NOT use this in a production environment
         
         In production environments, the Job Scheduler must be used to offload tasks from the Web Server and to ensure tasks continue to run through Application Pool recycles, as well as to avoid conflicts in a multi server environment
-	.PARAMETER Package
-	    The path to the zip package containing the Telligent Evolution installation files from Telligent Support
     .PARAMETER WebsitePath
-        The path of the Telligent Evolution Community website.  If not specified, defaults to the current directory.
+        The path of the Telligent Community website. If not specified, defaults to the current directory.
+	.PARAMETER Package
+	    The path to the zip package containing the Telligent Community installation files from Telligent Support
 	#>
     [CmdletBinding()]
     param (
@@ -391,7 +406,7 @@ function Disable-CustomErrors {
 	.SYNOPSIS
 		Disables Custom Errors for the ASP.Net website in the specified directory
     .PARAMETER WebsitePath
-        The path of the Telligent Evolution Community website.  If not specified, defaults to the current directory.
+        The path of the ASP.Net Web Application. If not specified, defaults to the current directory.
 	.EXAMPLE
 		Disable-CustomErrors 
 	#>
@@ -417,13 +432,13 @@ function Enable-TelligentWindowsAuth {
 		Configures IIS to use Windows Authentication for the ASP.Net website
         in the current directory
     .PARAMETER AdminWindowsGroup
-        The name of the windows group who should be automatically made Administrators in the community.  Defaults to the local Administrators group.
+        The name of the windows group who should be automatically made Administrators in the community. Defaults to the local Administrators group.
     .PARAMETER EmailDomain
         The email domain to append to a user's username to get their email address if it's not found in Active Directory (USERNAME@EmailDomain).
     .PARAMETER ProfileRefreshInterval
         The interval (in days) at which a user's profile should be updated.
     .PARAMETER WebsitePath
-        The path of the Telligent Evolution Community website.  If not specified, defaults to the current directory.
+        The path of the Telligent Community website. If not specified, defaults to the current directory.
 	#>
     [CmdletBinding()]
     param (
@@ -479,21 +494,37 @@ function Enable-TelligentWindowsAuth {
 }
 
 function Enable-TelligentLdap {
+	<#
+	.SYNOPSIS
+		Enables LDAP integration in a Telligent Community
+    .PARAMETER WebsitePath
+        The path of the Telligent Community website. If not specified, defaults to the current directory.
+    .PARAMETER Server
+        The server to use for LDAP. Defaults to the Global Catalog of the AD Forest the server is in.
+    .PARAMETER AuthenticationType
+        The email domain to append to a user's username to get their email address if it's not found in Active Directory (USERNAME@EmailDomain).
+    .PARAMETER Port
+        The port to connect to ldap. Defaults to the Global Catalog port.
+    .PARAMETER Username
+        The username port to connect to ldap with . Defaults to the credntials of Application Pool Identiy.
+    .PARAMETER Password
+        The password port to connect to ldap with . Defaults to the credntials of Application Pool Identiy.
+	#>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({ Test-TelligentPath $_ })]
         [string]$WebsitePath,
+        [string]$Server = 'GC://',
+        [string]$AuthenticationType = 'Secure',
+        [int]$Port = 3268,
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [string]$Username,
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [string]$Password,
-        [string]$Server = 'GC://',
-        [string]$AuthenticationType = 'Secure',
-        [int]$Port = 3268
+        [string]$Password
     )
 
     #Install Package
@@ -607,7 +638,7 @@ $tasks5x = data {@"
 	<job schedule="0 */5 * * * ? *" type="CommunityServer.Components.LdapSyncJob, CommunityServer.Components" />
 	<!-- Enable this task to enable background deletion of old activity messages.
 					expirationDays (int) = messages older than this number of days can be deleted
-					minUserMessages (int) = the minimum number of messages a user should retain.  -->
+					minUserMessages (int) = the minimum number of messages a user should retain. -->
 	<!--<job schedule="0 */3 * * * ? *" type="CommunityServer.Messages.Tasks.MessageRemovalTask, CommunityServer.Messages">
 			<settings>
 				<add key="expirationDays" value="30" />

@@ -4,17 +4,17 @@ function Install-TelligentJobScheduler {
     <#
     .SYNOPSIS
         Installs the Telligent Job Scheduler        
-    .PARAMETER package
-        The installation package containing the Job Scheduler installation files.        
-    .PARAMETER webPath
-        The path containing the Telligent Evolution website. Any configuration, addons and hotfixed are copied from here into the Job Scheduler.
-    .PARAMETER jsPath
+    .PARAMETER JobSchedulerPath
         The path to install the Job Scheduler at
+    .PARAMETER Package
+        The installation package containing the Job Scheduler installation files.       
+    .PARAMETER WebsitePath
+        The path containing the Telligent Community website. Any configuration, addons and hotfixed are copied from here into the Job Scheduler.
     .PARAMETER InstallService
-        Specify this flag to install the Job Scheduler as a service.  You will have to manually run the Job Scheduler as required.        
+        Specify this flag to install the Job Scheduler as a service. You will have to manually run the Job Scheduler as required.       
     .PARAMETER ServiceName
         The name to use when installing the Service
-    .PARAMETER Credential
+    .PARAMETER ServiceCredential
         The credentials for the service to run under
     #>
 	[CmdletBinding(DefaultParameterSetName='NoService')]
@@ -77,10 +77,10 @@ function Install-TelligentJobScheduler {
 function Install-TelligentJobSchedulerService {
     <#
     .SYNOPSIS
-        Installs the Telligent Job Scheduler as a windows service allation files.        
+        Installs the Telligent Job Scheduler as a windows service allation files.       
     .PARAMETER Name
         The name to use when installing the Service
-    .PARAMETER Path
+    .PARAMETER JobSchedulerPath
         The path the Job Scheduler has been installed to.
     .PARAMETER Credential
         The credentials for the service to run under
@@ -192,15 +192,11 @@ function Install-TelligentJobSchedulerService {
 function Update-TelligentJobSchedulerFromWeb {
     <#
     .SYNOPSIS
-        Installs the Telligent Job Scheduler as a windows service allation files.        
-    .PARAMETER Name
-        The name to use when installing the Service
-    .PARAMETER jsPath
-        The path the Job Scheduler has been installed to.
-    .PARAMETER Credential
-        The credentials for the service to run under
-    .PARAMETER StartupType
-        The startup type to use for the service.
+        Syncs configuration from a Telligent Website to the Job Server
+    .PARAMETER WebsitePath
+        The path to thte Telligent Community website
+    .PARAMETER JobSchedulerPath
+        The path to the Telligent Community Job Server
     #>
     [CmdletBinding(SupportsShouldProcess=$true)]
     param(

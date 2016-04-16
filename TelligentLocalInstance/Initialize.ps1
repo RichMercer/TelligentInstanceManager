@@ -6,7 +6,7 @@ param(
     [Parameter(Mandatory=$true, HelpMessage="The path where Telligent Instances Manager will store instances and builds.")]
     [string]$InstallDirectory,
     [string]$DatabaseServerInstance = '(local)',
-    [Parameter(Mandatory=$false, HelpMessage="The path where Tomcat is installed.  Used to add Tomcat contexts used for Solr multi core setup.")]
+    [Parameter(Mandatory=$false, HelpMessage="The path where Tomcat is installed. Used to add Tomcat contexts used for Solr multi core setup.")]
     [ValidateScript({$_ -and (Test-TomcatPath $_) })]
     [string]$TomcatDirectory,
     [switch]$Force
@@ -23,7 +23,7 @@ Write-Progress "Telligent Instance Manager Setup" "Checking Prerequisites" -Curr
 if (!$TomcatDirectory) {
     $TomcatDirectory = Get-TomcatLocation
 	if (!$TomcatDirectory) {
-		Write-Error 'Could not auto-detect Tomcat location.  Please run the command with the -TomcatDirectory paramater to specify this location manually'
+		Write-Error 'Could not auto-detect Tomcat location. Please run the command with the -TomcatDirectory paramater to specify this location manually'
 	}
 }
 else {

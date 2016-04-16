@@ -3,9 +3,9 @@
 function New-TelligentWebsite {
     <#
     .SYNOPSIS
-        Creates a new Evolution website
+        Creates a new Telligent Community website
     .DESCRIPTION
-        Creates a new Telligent Evolution Website, including extracting the installation package, creating the IIS website and setting up filestorage.
+        Creates a new Telligent Community Website, including extracting the installation package, creating the IIS website and setting up filestorage.
     .PARAMETER name
         The name of the site to be created in IIS.
     .PARAMETER Path
@@ -17,11 +17,11 @@ function New-TelligentWebsite {
     .PARAMETER Port
         The port to use in the IIS site binding.
     .PARAMETER ApplicationPool
-        The name of the application pool to create the website with.  If the specified application pool doesn't exist, it is created.  If not specified, IIS configuration will determine the application pool to use.
+        The name of the application pool to create the website with. If the specified application pool doesn't exist, it is created. If not specified, IIS configuration will determine the application pool to use.
     .PARAMETER ClrVersion
-        The version of .net to configure the application pool for.  If not specified, defaults to 4.0
+        The version of .net to configure the application pool for. If not specified, defaults to 4.0
     .PARAMETER FilestoragePath
-        The location the filestorage should be stored at.  If not specified, uses teh default
+        The location the filestorage should be stored at. If not specified, uses teh default
     #>
     [CmdletBinding()]
     param(
@@ -82,11 +82,11 @@ function New-TelligentWebsite {
 function Grant-TelligentNtfsPermission {
     <#
     .SYNOPSIS
-      Grants the required NTFS permissions for a Telligent Evolution community.
+      Grants the required NTFS permissions for a Telligent Community.
     .PARAMETER WebsitePath
-        The path to the Telligent Evolution Website. This location has read permissions granted to the Application Pool Identity
+        The path to the Telligent Community Website. This location has read permissions granted to the Application Pool Identity
     .PARAMETER FilestoragePath
-        The path to the Telligent Evolution Filestorage. This location has Modify permissions granted to the Application Pool Identity        
+        The path to the Telligent Community Filestorage. This location has Modify permissions granted to the Application Pool Identity        
     #>
     [CmdletBinding()]
     param(
@@ -104,7 +104,7 @@ function Grant-TelligentNtfsPermission {
         $appPoolIdentity = Get-IISAppPoolIdentity $_.applicationPool
         Write-Progress "Website: $name" "Granting read access to '$appPoolIdentity' on '$WebsitePath'"
 
-        #TODO: outputs a status message.  switch to Set-Acl instead
+        #TODO: outputs a status message. switch to Set-Acl instead
         &icacls "$WebsitePath" /grant "${appPoolIdentity}:(OI)(CI)RX" /Q | out-null
 
         Write-Progress "Website: $name" "Granting modify access to $appPoolIdentity on $FilestoragePath"
@@ -125,9 +125,9 @@ function New-IISWebsite {
     .PARAMETER Port
         The port to use in the IIS site binding.
     .PARAMETER ApplicationPool
-        The name of the application pool to create the website with.  If the specified application pool doesn't exist, it is created.  If not specified, IIS configuration will determine the application pool to use.
+        The name of the application pool to create the website with. If the specified application pool doesn't exist, it is created. If not specified, IIS configuration will determine the application pool to use.
     .PARAMETER ClrVersion
-        The version of .net to configure the application pool for.  If not specified, defaults to 4.0
+        The version of .net to configure the application pool for. If not specified, defaults to 4.0
     #>
     [CmdletBinding()]
     param(
@@ -169,13 +169,13 @@ function New-IISAppPool{
     .SYNOPSIS
         Creates a new Application Pool
     .DESCRIPTION
-        Creates a new IIS Application Pool using the specified .net version.  If credentials are specified, uses these as the Application Pool Identity, otherwise uses ApplicationPoolIdentity.
+        Creates a new IIS Application Pool using the specified .net version. If credentials are specified, uses these as the Application Pool Identity, otherwise uses ApplicationPoolIdentity.
     .PARAMETER Name
         The name of the Application Pool to create.
     .PARAMETER ClrVersion
         The version of .Net CLR the Application Pool should run under.
     .PARAMETER Credential
-        The credentials the Application Pool should run under.  If not specified, then the ApplicationPoolIdentity is used.
+        The credentials the Application Pool should run under. If not specified, then the ApplicationPoolIdentity is used.
     #>
     [CmdletBinding()]
     param(
@@ -238,7 +238,7 @@ function Get-IISWebsite {
     .SYNOPSIS
         Gets the IIS Websites rooted at the provided location
     .PARAMETER Path
-        The path used as the physicalPath for an IIS Websites.  If not specified, uses the current location.
+        The path used as the physicalPath for an IIS Websites. If not specified, uses the current location.
     #>
     [CmdletBinding()]
     param(

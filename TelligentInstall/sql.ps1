@@ -3,9 +3,13 @@
 function Test-SqlServer {
     <#
     .SYNOPSIS
-        Tests if a SQL Server exists and can be connected to
+        Tests if a SQL Server exists and can be connected to. Optonally checks for a specific database or table.
     .PARAMETER Server
-        The SQL Server to test
+        The SQL Server to test 
+    .PARAMETER Database
+        The database to test exists on the SQL Server 
+    .PARAMETER Table
+        The Table to test exists in the database being connected 
     #>
     [CmdletBinding()]
     param(
@@ -28,7 +32,7 @@ function Test-SqlServer {
     $hostName = Encode-SqlName $parts[0];
     $instance = if ($parts.Count -eq 1) {'DEFAULT'} else { Encode-SqlName $parts[1] }
 
-    #Test-Path will only fail after a timeout.  Reduce the timeout for the local scope to 
+    #Test-Path will only fail after a timeout. Reduce the timeout for the local scope to 
     Set-Variable -Scope Local -Name SqlServerConnectionTimeout 5
     $path = "SQLSERVER:\Sql\$hostName\$instance"
 
@@ -63,8 +67,7 @@ function Test-SqlServer {
 function New-TelligentDatabase {
 	<#
 	.SYNOPSIS
-		Grants a user access to an Evolution database.  If the user or login doesn't exist, in SQL server, they
-		are created before being granted access to the database.
+		Creates a new database for Telligent Community.
 	.PARAMETER Server
 		The SQL server to install the community to 
 	.PARAMETER  Database
@@ -146,7 +149,7 @@ function New-TelligentDatabase {
 function Update-TelligentDatabase {
 	<#
 	.SYNOPSIS
-        Updates an existing Telligent Evolution database to upgrade it to the version in the package
+        Updates an existing Telligent Community database to upgrade it to the version in the package
 	.PARAMETER Server
 		The SQL server to install the community to 
 	.PARAMETER  Database
@@ -181,7 +184,7 @@ function Update-TelligentDatabase {
 
     Write-Progress "Database: $Database" 'Checking if database can be upgraded'
     if(!(Test-SqlServer @connectionInfo -Table dbo.cs_schemaversion -EA SilentlyContinue)) {
-        throw "Database '$Database' on Server '$Server' is not a valid Telligent Evolution database to be upgraded"
+        throw "Database '$Database' on Server '$Server' is not a valid Telligent Community database to be upgraded"
     }
     
     Write-Progress "Database: $database" 'Creating Schema'
@@ -201,16 +204,14 @@ function Update-TelligentDatabase {
 function Grant-TelligentDatabaseAccess {
 	<#
 	.SYNOPSIS
-		Grants a user access to an Evolution database.  If the user or login doesn't exist, in SQL server, they
+		Grants a user access to a Telligent Community database. If the user or login doesn't exist, in SQL server, they
 		are created before being granted access to the database.
-	.PARAMETER  Server
-		The SQL server the database is contained on
-	.PARAMETER  Database
-		The name of the database
-	.PARAMETER  Username
-		The name of the user to grant access to.  If no password is specified, the user is assumed to be a Windows
+	.PARAMETER CommunityPath
+		The path to the Telligent Community you're granting database access for
+	.PARAMETER Username
+		The name of the user to grant access to. If no password is specified, the user is assumed to be a Windows
 		login.
-	.PARAMETER  Password
+	.PARAMETER Password
 		The password for the SQL user
 	.EXAMPLE
 		Grant-TelligentDatabaseAccess (local)\SqlExpress SampleCommunity 'NT AUTHORITY\NETWORK SERVICE'
@@ -275,7 +276,7 @@ function Invoke-TelligentSqlCmd {
 	.SYNOPSIS
 		Executes a SQL Script agains the specified community's database.
     .PARAMETER WebsitePath
-        The path of the Telligent Evolution Community website.  If not specified, defaults to the current directory.
+        The path of the Telligent Community website. If not specified, defaults to the current directory.
     .PARAMETER Query
         A bespoke query to run agains the community's database.
     .PARAMETER File

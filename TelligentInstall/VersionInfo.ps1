@@ -10,10 +10,10 @@
 function Get-TelligentCommunity {
     <#
     .SYNOPSIS
-        Gets an summary of a Telligent Evolution community
-    .Descriptions
-        Gets information about a Telligent Evolution community including Filestorage, Solr and database locations as well as platform and addon version numbers.
-    .PARAMETER path
+        Gets an summary of a Telligent Community
+    .Description
+        Gets information about a Telligent Community including Filestorage, Solr and database locations as well as platform and addon version numbers.
+    .PARAMETER Path
         The path to the community's Website or Job Scheduler.
     #>
     [CmdletBinding()]
@@ -21,7 +21,7 @@ function Get-TelligentCommunity {
         [ValidateNotNullOrEmpty()]
         [parameter(Mandatory=$true, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
         [alias('physicalPath')]
-        [string]$path
+        [string]$Path
     )
     process {
         if (!(Test-Path $path)) {
@@ -54,9 +54,9 @@ function Get-TelligentCommunity {
 function Get-CommunityVersionFromDlls {
     <#
     .SYNOPSIS
-        Gets version information from Telligent Evolution dlls
+        Gets version information from Telligent Community dlls
     .DESCRIPTION
-        Helper function for getting the version of a Telligent extension.  It looks for the version number of the speciifed dll in both the root directoy and the /bin/ directory (to support both Web and Job Schedulers)        .
+        Helper function for getting the version of a Telligent extension. It looks for the version number of the speciifed dll in both the root directoy and the /bin/ directory (to support both Web and Job Schedulers)        .
     .PARAMETER path
         The path to the community's Website or Job Scheduler.
     .PARAMETER dlls
