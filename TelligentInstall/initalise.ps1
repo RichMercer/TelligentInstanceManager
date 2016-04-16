@@ -9,7 +9,7 @@ $currentPrincipal = [Security.Principal.WindowsPrincipal] [Security.Principal.Wi
 if (!($currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole] 'Administrator'))) {
     Write-Warning 'This module requires administrative credentials'
     Start-Process powershell.exe '-NoExit -Command "Write-Host "Loading..."; ipmo TelligentInstall"' -Verb runas
-	throw 'Cannot continue in current unelevated prompt.  Please switch to the elvated prompt.'
+	throw 'Cannot continue in current unelevated prompt. Please switch to the elvated prompt.'
 }
 
 

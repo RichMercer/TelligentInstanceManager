@@ -9,7 +9,7 @@ function Expand-Zip {
 	.Parameter Destination
 	    The location to extract the files to
     .Parameter ZipDirectory
-        The directory within the zip folder to extract.  If not specified, extracts the whole zip file
+        The directory within the zip folder to extract. If not specified, extracts the whole zip file
     .Parameter ZipFileName
         The name of a specific file within ZipDirectory to extract
 	.Example 

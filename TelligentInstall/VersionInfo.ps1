@@ -56,7 +56,7 @@ function Get-CommunityVersionFromDlls {
     .SYNOPSIS
         Gets version information from Telligent Community dlls
     .DESCRIPTION
-        Helper function for getting the version of a Telligent extension.  It looks for the version number of the speciifed dll in both the root directoy and the /bin/ directory (to support both Web and Job Schedulers)        .
+        Helper function for getting the version of a Telligent extension. It looks for the version number of the speciifed dll in both the root directoy and the /bin/ directory (to support both Web and Job Schedulers)        .
     .PARAMETER path
         The path to the community's Website or Job Scheduler.
     .PARAMETER dlls

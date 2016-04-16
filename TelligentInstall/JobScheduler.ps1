@@ -7,11 +7,11 @@ function Install-TelligentJobScheduler {
     .PARAMETER JobSchedulerPath
         The path to install the Job Scheduler at
     .PARAMETER Package
-        The installation package containing the Job Scheduler installation files.        
+        The installation package containing the Job Scheduler installation files.       
     .PARAMETER WebsitePath
         The path containing the Telligent Community website. Any configuration, addons and hotfixed are copied from here into the Job Scheduler.
     .PARAMETER InstallService
-        Specify this flag to install the Job Scheduler as a service.  You will have to manually run the Job Scheduler as required.        
+        Specify this flag to install the Job Scheduler as a service. You will have to manually run the Job Scheduler as required.       
     .PARAMETER ServiceName
         The name to use when installing the Service
     .PARAMETER ServiceCredential
@@ -77,7 +77,7 @@ function Install-TelligentJobScheduler {
 function Install-TelligentJobSchedulerService {
     <#
     .SYNOPSIS
-        Installs the Telligent Job Scheduler as a windows service allation files.        
+        Installs the Telligent Job Scheduler as a windows service allation files.       
     .PARAMETER Name
         The name to use when installing the Service
     .PARAMETER JobSchedulerPath

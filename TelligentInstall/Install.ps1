@@ -8,7 +8,7 @@ function Install-Community {
 		The Install-Community cmdlet automates the process of creating a new Telligent Community.
 		
 		It takes the installation package, and from it deploys the website to IIS and a creates a new database using
-		the scripts from the package.  It also sets permissions automatically.
+		the scripts from the package. It also sets permissions automatically.
 		
 		Optionally, you can specify a path to a License file and this will be installed into your community.
 		
@@ -27,13 +27,13 @@ function Install-Community {
 	.Parameter Port
 	    The port the community will be accessible at. If unspecified, defaults to 80.
 	.Parameter ApplicationPool
-	    The name of the Application Pool to use the community with.  If not specified creates a new apppool.
+	    The name of the Application Pool to use the community with. If not specified creates a new apppool.
 	.Parameter DatabaseServer
-	    The DNS name of your SQL server.  Must be able to connect using Windows Authentication from the current machine.  Only supports Default instances.
+	    The DNS name of your SQL server. Must be able to connect using Windows Authentication from the current machine. Only supports Default instances.
 	.Parameter DatabaseName
-	    The name of the database to locate your community in.  Defaults to the value provided for name.
+	    The name of the database to locate your community in. Defaults to the value provided for name.
 	.Parameter SqlCredential
-	    Specifies the SQL Authenticaiton credential the community will use to connect to the database.  If not specified, then Windows Authentication is used (prefered).  Note, the installer will always connect using Windows Authentication to create the database.  These credentials are only used post-installation.
+	    Specifies the SQL Authenticaiton credential the community will use to connect to the database. If not specified, then Windows Authentication is used (prefered). Note, the installer will always connect using Windows Authentication to create the database. These credentials are only used post-installation.
 	.Parameter SolrBaseUrl
 	    The url the base Solr instance to create the new core in.
 	.Parameter SolrCoreDir
@@ -43,11 +43,11 @@ function Install-Community {
 	.Parameter AdminPassword
 	    The password to use for the admin user created during installation.
 	.Parameter ApiKey
-	    When specified, a REST Api Key is created for the admin user with the given value.  This is useful for automation scenarios where you want to go and automate creation of content after installation.
+	    When specified, a REST Api Key is created for the admin user with the given value. This is useful for automation scenarios where you want to go and automate creation of content after installation.
 	.Parameter FilestoragePath
-	    The location to install Filestorage to.  If not specified, will use the default location ~/filestorage/ in the website.
+	    The location to install Filestorage to. If not specified, will use the default location ~/filestorage/ in the website.
 	.Parameter JobSchedulerPath
-	    The location to install the Job Server to.  If unspecified, the Job server is not installed.
+	    The location to install the Job Server to. If unspecified, the Job server is not installed.
 	.Parameter License
 	    The path to the License XML file to install in the community
 	.Example
@@ -203,7 +203,7 @@ function Install-Community {
 
     $info = Get-TelligentCommunity $WebsitePath 
 	if(!$SolrCore) {
-		Write-Warning 'No search url specified.  Many features will not work until search is configured.'
+		Write-Warning 'No search url specified. Many features will not work until search is configured.'
 	}
 	else {
         $solrUrl = $SolrBaseUrl.AbsoluteUri.TrimEnd('/')
@@ -243,7 +243,7 @@ function Install-TelligentHotfix {
     .SYNOPSIS
         Installs a Telligent Community hotfix 
     .Description
-        Applies a hotfix to a Telligent Community.  It updates the web files, pulls the Database conneciton information from the website and updates the database.  If a Job Scheduler path is specified, it also updates the Job Scheduler.
+        Applies a hotfix to a Telligent Community. It updates the web files, pulls the Database conneciton information from the website and updates the database. If a Job Scheduler path is specified, it also updates the Job Scheduler.
     .PARAMETER WebsitePath
         The path to the Telligent Community website files to apply the hotfix against.
     .PARAMETER Package

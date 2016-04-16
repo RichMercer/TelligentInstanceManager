@@ -91,7 +91,7 @@ function Install-TelligentInstance {
 	    The Install-TelligentInstance cmdlet automates the process of creating a new Telligent Community instance.
 		
 	    It takes the installation package, and from it deploys the website to IIS and a creates a new database using
-	    the scripts from the package.  It also sets permissions automatically.
+	    the scripts from the package. It also sets permissions automatically.
 		
 	    This scripts install the new community as follows (where NAME is the value of the name paramater).
     .Parameter name
@@ -115,10 +115,10 @@ function Install-TelligentInstance {
 	    If specified applys the hotfix from the referenced zip file to the community.
 
     .Parameter Version
-	    The version being installed.  This is used to determine what version of .net to use for the app pool, and which version of Solr to use.
+	    The version being installed. This is used to determine what version of .net to use for the app pool, and which version of Solr to use.
     
     .Parameter ApiKey
-	    If specified, a REST Api Key is created for the admin user with the given value.  This is useful for automation scenarios where you want to go and automate creation of content after installation.
+	    If specified, a REST Api Key is created for the admin user with the given value. This is useful for automation scenarios where you want to go and automate creation of content after installation.
 	
     .Parameter NoSearch
 	    Specify this switch to not set up a new search instance

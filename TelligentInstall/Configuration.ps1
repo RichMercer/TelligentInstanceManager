@@ -3,7 +3,7 @@
 function Test-TelligentPath {
     <#
     .SYNOPSIS
-        Tests if a SQL Server exists and can be connected to.  Optonally checks for a specific database or table.
+        Tests if a SQL Server exists and can be connected to. Optonally checks for a specific database or table.
     .PARAMETER Path
         The path to test for a Teligent Community
     .PARAMETER AllowEmpty
@@ -66,7 +66,7 @@ function Set-ConnectionString {
     .PARAMETER Database
         The database to use
     .PARAMETER SqlCredentials
-        If using SQL Authenticaiton, specifies the username nad password to use in the connection string.  If not specified, the connection string uses Integrated Security.
+        If using SQL Authenticaiton, specifies the username nad password to use in the connection string. If not specified, the connection string uses Integrated Security.
     .PARAMETER ConfigurationFile
         The configuration file to set the connection strings in.
     .PARAMETER ConnectionStringName
@@ -114,7 +114,7 @@ function Get-ConnectionString {
     .PARAMETER Server
         The SQL Server the connection string will point to
     .PARAMETER SqlCredentials
-        If using SQL Authenticaiton, specifies the username nad password to use in the connection string.  If not specified, the connection string uses Integrated Security.
+        If using SQL Authenticaiton, specifies the username nad password to use in the connection string. If not specified, the connection string uses Integrated Security.
     .PARAMETER ConfigurationFile
         The configuration file containing the connection string to read.
     .PARAMETER ConnectionStringName
@@ -167,7 +167,7 @@ function New-CommunityApiKey {
     .PARAMETER UserId
         The User to create the API Key for
     .PARAMETER WebsitePath
-        The path of the Telligent Community website.  If not specified, defaults to the current directory.
+        The path of the Telligent Community website. If not specified, defaults to the current directory.
     #>
     [CmdletBinding()]
     param (
@@ -199,7 +199,7 @@ function Add-TelligentOverrideChangeAttribute {
     .PARAMETER Value
         The new value of the node
     .PARAMETER WebsitePath
-        The path of the Telligent Community website.  If not specified, defaults to the current directory.
+        The path of the Telligent Community website. If not specified, defaults to the current directory.
     #>
     [CmdletBinding()]
     param(
@@ -282,7 +282,7 @@ function Set-TelligentSolrUrl {
 	.PARAMETER Url
 	    The url of the Solr instance to use
     .PARAMETER WebsitePath
-        The path of the Telligent Community website.  If not specified, defaults to the current directory.
+        The path of the Telligent Community website. If not specified, defaults to the current directory.
     #>
     [CmdletBinding()]
     param(
@@ -312,7 +312,7 @@ function Install-TelligentLicense {
 	.PARAMETER LicenseFile
 	    The XML License file
     .PARAMETER WebsitePath
-        The path of the Telligent Community website.  If not specified, defaults to the current directory.
+        The path of the Telligent Community website. If not specified, defaults to the current directory.
 	#>
     [CmdletBinding()]
     param(
@@ -345,7 +345,7 @@ function Register-TelligentTasksInWebProcess {
         
         In production environments, the Job Scheduler must be used to offload tasks from the Web Server and to ensure tasks continue to run through Application Pool recycles, as well as to avoid conflicts in a multi server environment
     .PARAMETER WebsitePath
-        The path of the Telligent Community website.  If not specified, defaults to the current directory.
+        The path of the Telligent Community website. If not specified, defaults to the current directory.
 	.PARAMETER Package
 	    The path to the zip package containing the Telligent Community installation files from Telligent Support
 	#>
@@ -406,7 +406,7 @@ function Disable-CustomErrors {
 	.SYNOPSIS
 		Disables Custom Errors for the ASP.Net website in the specified directory
     .PARAMETER WebsitePath
-        The path of the ASP.Net Web Application.  If not specified, defaults to the current directory.
+        The path of the ASP.Net Web Application. If not specified, defaults to the current directory.
 	.EXAMPLE
 		Disable-CustomErrors 
 	#>
@@ -432,13 +432,13 @@ function Enable-TelligentWindowsAuth {
 		Configures IIS to use Windows Authentication for the ASP.Net website
         in the current directory
     .PARAMETER AdminWindowsGroup
-        The name of the windows group who should be automatically made Administrators in the community.  Defaults to the local Administrators group.
+        The name of the windows group who should be automatically made Administrators in the community. Defaults to the local Administrators group.
     .PARAMETER EmailDomain
         The email domain to append to a user's username to get their email address if it's not found in Active Directory (USERNAME@EmailDomain).
     .PARAMETER ProfileRefreshInterval
         The interval (in days) at which a user's profile should be updated.
     .PARAMETER WebsitePath
-        The path of the Telligent Community website.  If not specified, defaults to the current directory.
+        The path of the Telligent Community website. If not specified, defaults to the current directory.
 	#>
     [CmdletBinding()]
     param (
@@ -498,17 +498,17 @@ function Enable-TelligentLdap {
 	.SYNOPSIS
 		Enables LDAP integration in a Telligent Community
     .PARAMETER WebsitePath
-        The path of the Telligent Community website.  If not specified, defaults to the current directory.
+        The path of the Telligent Community website. If not specified, defaults to the current directory.
     .PARAMETER Server
-        The server to use for LDAP.  Defaults to the Global Catalog of the AD Forest the server is in.
+        The server to use for LDAP. Defaults to the Global Catalog of the AD Forest the server is in.
     .PARAMETER AuthenticationType
         The email domain to append to a user's username to get their email address if it's not found in Active Directory (USERNAME@EmailDomain).
     .PARAMETER Port
-        The port to connect to ldap.  Defaults to the Global Catalog port.
+        The port to connect to ldap. Defaults to the Global Catalog port.
     .PARAMETER Username
-        The username port to connect to ldap with .  Defaults to the credntials of Application Pool Identiy.
+        The username port to connect to ldap with . Defaults to the credntials of Application Pool Identiy.
     .PARAMETER Password
-        The password port to connect to ldap with .  Defaults to the credntials of Application Pool Identiy.
+        The password port to connect to ldap with . Defaults to the credntials of Application Pool Identiy.
 	#>
     [CmdletBinding()]
     param(
@@ -638,7 +638,7 @@ $tasks5x = data {@"
 	<job schedule="0 */5 * * * ? *" type="CommunityServer.Components.LdapSyncJob, CommunityServer.Components" />
 	<!-- Enable this task to enable background deletion of old activity messages.
 					expirationDays (int) = messages older than this number of days can be deleted
-					minUserMessages (int) = the minimum number of messages a user should retain.  -->
+					minUserMessages (int) = the minimum number of messages a user should retain. -->
 	<!--<job schedule="0 */3 * * * ? *" type="CommunityServer.Messages.Tasks.MessageRemovalTask, CommunityServer.Messages">
 			<settings>
 				<add key="expirationDays" value="30" />
