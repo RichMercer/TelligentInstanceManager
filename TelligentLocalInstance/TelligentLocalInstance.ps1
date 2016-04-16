@@ -166,7 +166,14 @@ function Install-TelligentInstance {
 	$licensePath = join-path $data.LicensesPath "Community$($Version.Major).xml"
 	if(!(Test-Path $licensePath)) { $licensePath = $null }
 
-    $info = Install-Community -name $Name `
+
+	# To avoid ambiguity between the enviornment specificl Install-TelligentCommunity and
+	# the generic base, the base function is private, so have to pull it out via a bit
+	# of module hackery
+	$module = Get-Module TelligentInstall
+	$installCommunityFunc = $module.Invoke({Get-Command Install-TelligentCommunity})
+    $info = & $installCommunityFunc `
+		-Name $Name `
         -Package $BasePackage `
         -Hotfix $HotfixPackage `
         -WebsitePath $webDir `

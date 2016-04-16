@@ -1,11 +1,11 @@
 ﻿Set-StrictMode -Version 2
 
-function Install-Community {
+function Install-TelligentCommunity {
 	<#
 	.Synopsis
 		Sets up a new Telligent Community.
 	.Description
-		The Install-Community cmdlet automates the process of creating a new Telligent Community.
+		The Install-TelligentCommunity cmdlet automates the process of creating a new Telligent Evolution community.
 		
 		It takes the installation package, and from it deploys the website to IIS and a creates a new database using
 		the scripts from the package. It also sets permissions automatically.
@@ -51,7 +51,7 @@ function Install-Community {
 	.Parameter License
 	    The path to the License XML file to install in the community
 	.Example
-		Install-Community -name 'Telligent Community' -package d:\temp\TelligentCommunity-7.0.1824.27400.zip -webDir "d:\inetpub\TelligentCommunity\" -webdomain "mydomain.com" -searchUrl "http://localhost:8080/solr/"
+		Install-TelligentCommunity -name 'Telligent Evolution' -package d:\temp\TelligentCommunity-7.0.1824.27400.zip -webDir "d:\inetpub\TelligentEvolution\" -webdomain "mydomain.com" -searchUrl "http://localhost:8080/solr/"
 		
 		Description
 		-----------
@@ -293,7 +293,7 @@ function Install-TelligentHotfix {
     Remove-Item $tempDir -Recurse -Force | Out-Null
 }
 
-function Uninstall-Community {
+function Uninstall-TelligentCommunity {
     <#
     .SYNOPSIS
         Uninstalls a Telligent Community  
@@ -302,7 +302,6 @@ function Uninstall-Community {
     .PARAMETER JobSchedulerPath
         The path to the Telligent Community Job Scheduler.
     #>
-
 	[CmdletBinding(DefaultParameterSetName='NoService')]
     param(
     	[Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true, ValueFromPipeline=$true)]
