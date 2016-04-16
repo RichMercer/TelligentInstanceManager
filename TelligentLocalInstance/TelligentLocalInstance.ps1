@@ -304,7 +304,7 @@ function Remove-TelligentInstance {
             #Remove site from hosts files
             Write-Progress 'Uninstalling Evolution Community' $Name -CurrentOperation 'Removing Hosts entry'
             $hostsPath = join-path $env:SystemRoot system32\drivers\etc\hosts
-            (Get-Content $hostsPath) | Foreach-Object {$_ -replace "127.0.0.1 $domain", ''} | Set-Content $hostsPath
+            (Get-Content $hostsPath) | Where-Object {$_ -ne "127.0.0.1 $domain"} | Set-Content $hostsPath
     
             #Remove the solr core
             Write-Progress 'Uninstalling Evolution Community' $Name -CurrentOperation 'Removing Solr Core'
