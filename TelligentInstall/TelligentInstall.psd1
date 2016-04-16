@@ -85,8 +85,6 @@ FunctionsToExport = @(
                     'Set-TelligentSolrUrl'
                     'Remove-SolrCore'
 
-                    'Install-Community'
-                    'Uninstall-Community'
                     'Install-TelligentLicense'
 
                     'New-IISAppPool'
