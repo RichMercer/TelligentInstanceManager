@@ -12,7 +12,7 @@
 ModuleToProcess = ''
 
 # Version number of this module.
-ModuleVersion = '0.0.1'
+ModuleVersion = '0.0.2'
 
 # ID used to uniquely identify this module
 GUID = '1ad0eb2e-ca95-4462-bec2-308e7967b3ce'
@@ -24,7 +24,7 @@ Author = @('Alex Crome', 'Rich Mercer')
 CompanyName = 'Telligent Systems, Inc.'
 
 # Copyright statement for this module
-Copyright = '(c) 2016 Telligent. All rights reserved.'
+Copyright = 'Copyright (c) 2016 Telligent'
 
 # Description of the functionality provided by this module
 Description = 'Telligent Instance Manager allows you to create and manage local Telligent Community instances.'
@@ -92,7 +92,14 @@ ModuleList = @()
 FileList = @()
 
 # Private data to pass to the module specified in ModuleToProcess
-PrivateData = ''
+# Private data to pass to the module specified in ModuleToProcess
+PrivateData = @{
+    PSData = @{
+        ProjectUri = 'https://github.com/afscrome/TelligentInstanceManager/'
+        LicenseUri = 'https://github.com/afscrome/TelligentInstanceManager/blob/master/License.md'
+        Tags = 'Telligent'
+    }
+}
 
 }
 

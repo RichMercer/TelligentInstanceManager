@@ -12,25 +12,25 @@
 ModuleToProcess = ''
 
 # Version number of this module.
-ModuleVersion = '0.0.1'
+ModuleVersion = '0.0.2'
 
 # ID used to uniquely identify this module
 GUID = '1ad0eb2e-ca95-4462-bec2-308e7967b3ce'
 
 # Author of this module
-Author = @('Alex Crome', 'Rich Me')
+Author = @('Alex Crome', 'Rich Mercer')
 
 # Company or vendor of this module
 CompanyName = 'Telligent Systems, Inc.'
 
 # Copyright statement for this module
-Copyright = '(c) 2012 Alex Crome. All rights reserved.'
+Copyright = 'Copyright (c) 2016 Telligent'
 
 # Description of the functionality provided by this module
-Description = 'Helper fucntions for installing Telligent Community'
+Description = 'Helper functions for installing Telligent Community'
 
 # Minimum version of the Windows PowerShell engine required by this module
-PowerShellVersion = '3.0'
+PowerShellVersion = '5.0'
 
 # Name of the Windows PowerShell host required by this module
 PowerShellHostName = ''
@@ -85,6 +85,8 @@ FunctionsToExport = @(
                     'Set-TelligentSolrUrl'
                     'Remove-SolrCore'
 
+                    'Install-Community'
+                    'Uninstall-Community'
                     'Install-TelligentLicense'
 
                     'New-IISAppPool'
@@ -126,7 +128,7 @@ CmdletsToExport = ''
 VariablesToExport = ''
 
 # Aliases to export from this module
-AliasesToExport = @('gcb','geb', 'get-evolutionbuild')
+AliasesToExport = ''
 
 # List of all modules packaged with this module
 ModuleList = @()
@@ -138,6 +140,9 @@ FileList = @()
 PrivateData = @{
     PSData = @{
         ExternalModuleDependencies = @('webadministration', 'sqlps')
+        ProjectUri = 'https://github.com/afscrome/TelligentInstanceManager/'
+        LicenseUri = 'https://github.com/afscrome/TelligentInstanceManager/blob/master/License.md'
+        Tags = 'Telligent'
     }
 }
 
