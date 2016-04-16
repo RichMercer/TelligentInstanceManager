@@ -3,9 +3,9 @@
 function Install-Community {
 	<#
 	.Synopsis
-		Sets up a new Evolution Community.
+		Sets up a new Telligent Community.
 	.Description
-		The Install-Community cmdlet automates the process of creating a new Telligent Evolution community.
+		The Install-Community cmdlet automates the process of creating a new Telligent Community.
 		
 		It takes the installation package, and from it deploys the website to IIS and a creates a new database using
 		the scripts from the package.  It also sets permissions automatically.
@@ -17,11 +17,11 @@ function Install-Community {
 	.Parameter Name
 	    The name of the community to create
 	.Parameter Package
-	    The path to the zip package containing the Telligent Evolution installation files from Telligent Support
+	    The path to the zip package containing the Telligent Community installation files from Telligent Support
 	.Parameter Hotfix
 	    If specified applys the hotfix from the referenced zip file.
 	.Parameter WebsitePath
-	    The directory to place the Telligent Evolution website in
+	    The directory to place the Telligent Community website in
 	.Parameter WebDomain
 	    The domain name the community will be accessible at
 	.Parameter ApplicationPool
@@ -43,7 +43,7 @@ function Install-Community {
 	.Parameter License
 	    The path to the License XML file to install in the community
 	.Example
-		Install-Community -name 'Telligent Evolution' -package d:\temp\TelligentCommunity-7.0.1824.27400.zip -webDir "d:\inetpub\TelligentEvolution\" -webdomain "mydomain.com" -searchUrl "http://localhost:8080/solr/"
+		Install-Community -name 'Telligent Community' -package d:\temp\TelligentCommunity-7.0.1824.27400.zip -webDir "d:\inetpub\TelligentCommunity\" -webdomain "mydomain.com" -searchUrl "http://localhost:8080/solr/"
 		
 		Description
 		-----------
@@ -233,13 +233,13 @@ function Install-Community {
 function Install-TelligentHotfix {
     <#
     .SYNOPSIS
-        Installs a Telligent Evolution hotfix 
+        Installs a Telligent Community hotfix 
     .Details
-        Applies a hotfix to a Telligent Evolution community.  It updates the web files, pulls the Database conneciton information from the website and updates the database.  If a Job Scheduler path is specified, it also updates the Job Scheduler.
+        Applies a hotfix to a Telligent Community.  It updates the web files, pulls the Database conneciton information from the website and updates the database.  If a Job Scheduler path is specified, it also updates the Job Scheduler.
     .PARAMETER WebsitePath
-        The path to the Telligent Evolution website files to apply the hotfix against.
+        The path to the Telligent Community website files to apply the hotfix against.
     .PARAMETER Package
-        The path to the Telligent Evolution hotfix installation packgae.
+        The path to the Telligent Community hotfix installation packgae.
     .PARAMETER WebsitePath
         The path to the community's Job Scheduler.
     #>
@@ -302,13 +302,13 @@ function Uninstall-Community {
 
         #Delete JS
         if($JobSchedulerPath) {
-            Write-Progress 'Uninstalling Evolution Community' 'Removing Job Scheduler'
+            Write-Progress 'Uninstalling Telligent Community' 'Removing Job Scheduler'
             Remove-Item $JobSchedulerPath -Recurse -Force
         }
 
         #Delete Solr
         $safeSolrUrl = $info.SolrUrl.TrimEnd('/')
-        Write-Progress 'Uninstalling Evolution Community' "Removing Solr instance '$safeSolrUrl'"
+        Write-Progress 'Uninstalling Telligent Community' "Removing Solr instance '$safeSolrUrl'"
 
         if (Invoke-WebRequest "$safeSolrUrl/admin/" -ErrorAction SilentlyContinue) {
             #Can't auto detect solr location, but we can submit a delete all query to reduce disk usage
@@ -322,11 +322,11 @@ function Uninstall-Community {
 
 
         #Delete Filestorage
-        Write-Progress 'Uninstalling Evolution Community' 'Removing Filestorage'
+        Write-Progress 'Uninstalling Telligent Community' 'Removing Filestorage'
         $info.CfsPath |? {Test-Path $_} | Remove-Item -Recurse -Force
 
         #Delete Web
-        Write-Progress 'Uninstalling Evolution Community' 'Removing Website'
+        Write-Progress 'Uninstalling Telligent Community' 'Removing Website'
         $iisSites = Get-IISWebsite $WebsitePath 
         $appPools = $iisSites | select -ExpandProperty applicationpool -Unique
 
@@ -336,7 +336,7 @@ function Uninstall-Community {
         Remove-Item $WebsitePath -Recurse -Force
 
         #Delete SQL
-        Write-Progress 'Uninstalling Evolution Community' 'Removing Database'
+        Write-Progress 'Uninstalling Telligent Community' 'Removing Database'
         Remove-Database -Server $info.DatabaseServer -Database $info.DatabaseName 
 
         #TODO: Remove from hosts file

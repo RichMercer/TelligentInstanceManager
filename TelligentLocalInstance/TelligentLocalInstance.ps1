@@ -86,7 +86,7 @@ function Get-TelligentInstance {
 function Install-TelligentInstance {
     <#
     .Synopsis
-	    Sets up a new Telligent Evolution community for development purposes.
+	    Sets up a new Telligent Community for development purposes.
     .Description
 	    The Install-TelligentInstance cmdlet automates the process of creating a new Telligent Community instance.
 		
@@ -109,7 +109,7 @@ function Install-TelligentInstance {
 	    The version being installed. 
 
     .Parameter BasePackage
-	    The path to the zip package containing the Telligent Evolution installation files, provided by Telligent Support.
+	    The path to the zip package containing the Telligent Community installation files, provided by Telligent Support.
 
     .Parameter HotfixPackage
 	    If specified applys the hotfix from the referenced zip file to the community.
@@ -275,7 +275,7 @@ function Remove-TelligentInstance {
             $domain = if($Name.Contains('.')) { $Name } else { "$Name.local"}
 
             #Delete the JS
-            Write-Progress 'Uninstalling Evolution Community' $Name -CurrentOperation 'Removing Job Scheduler'
+            Write-Progress 'Uninstalling Telligent Community' $Name -CurrentOperation 'Removing Job Scheduler'
             $jsDir = Join-Path $data.JobschedulerBase $Name
             if (Test-Path $jsDir -PathType Container) {
                 Get-Process |? Path -like "$jsDir*" | Stop-Process
@@ -283,7 +283,7 @@ function Remove-TelligentInstance {
             }
 
             #Delete the site in IIS
-            Write-Progress 'Uninstalling Evolution Community' $Name -CurrentOperation 'Removing Website from IIS'
+            Write-Progress 'Uninstalling Telligent Community' $Name -CurrentOperation 'Removing Website from IIS'
             if(Get-Website -Name $Name -ErrorAction SilentlyContinue) {
                 Remove-Website -Name $Name
             }
@@ -292,22 +292,22 @@ function Remove-TelligentInstance {
             }
 
             #Delete the DB
-            Write-Progress 'Uninstalling Evolution Community' $Name -CurrentOperation 'Removing Database'
+            Write-Progress 'Uninstalling Telligent Community' $Name -CurrentOperation 'Removing Database'
             Remove-Database -Database $info.DatabaseName -Server $info.DatabaseServer
 
             #Delete the files
-            Write-Progress 'Uninstalling Evolution Community' $Name -CurrentOperation 'Removing Website Files'
+            Write-Progress 'Uninstalling Telligent Community' $Name -CurrentOperation 'Removing Website Files'
             if(Test-Path $webDir) {
                 Remove-Item -Path $webDir -Recurse -Force
             }
     
             #Remove site from hosts files
-            Write-Progress 'Uninstalling Evolution Community' $Name -CurrentOperation 'Removing Hosts entry'
+            Write-Progress 'Uninstalling Telligent Community' $Name -CurrentOperation 'Removing Hosts entry'
             $hostsPath = join-path $env:SystemRoot system32\drivers\etc\hosts
             (Get-Content $hostsPath) | Foreach-Object {$_ -replace "127.0.0.1 $domain", ''} | Set-Content $hostsPath
     
             #Remove the solr core
-            Write-Progress 'Uninstalling Evolution Community' $Name -CurrentOperation 'Removing Solr Core'
+            Write-Progress 'Uninstalling Telligent Community' $Name -CurrentOperation 'Removing Solr Core'
             if($info) {
                 $solrVersion = Get-CommunitySolrVersion $info.PlatformVersion
                 $solrUrl = ($data.SolrUrl -f $solrVersion).TrimEnd('/') + '/admin/cores'

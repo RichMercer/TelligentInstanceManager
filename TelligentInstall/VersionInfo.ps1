@@ -10,9 +10,9 @@
 function Get-TelligentCommunity {
     <#
     .SYNOPSIS
-        Gets an summary of a Telligent Evolution community
+        Gets an summary of a Telligent Community
     .Descriptions
-        Gets information about a Telligent Evolution community including Filestorage, Solr and database locations as well as platform and addon version numbers.
+        Gets information about a Telligent Community including Filestorage, Solr and database locations as well as platform and addon version numbers.
     .PARAMETER path
         The path to the community's Website or Job Scheduler.
     #>
@@ -54,7 +54,7 @@ function Get-TelligentCommunity {
 function Get-CommunityVersionFromDlls {
     <#
     .SYNOPSIS
-        Gets version information from Telligent Evolution dlls
+        Gets version information from Telligent Community dlls
     .DESCRIPTION
         Helper function for getting the version of a Telligent extension.  It looks for the version number of the speciifed dll in both the root directoy and the /bin/ directory (to support both Web and Job Schedulers)        .
     .PARAMETER path

@@ -3,9 +3,9 @@
 function New-TelligentWebsite {
     <#
     .SYNOPSIS
-        Creates a new Evolution website
+        Creates a new Telligent Community website
     .DESCRIPTION
-        Creates a new Telligent Evolution Website, including extracting the installation package, creating the IIS website and setting up filestorage.
+        Creates a new Telligent Community Website, including extracting the installation package, creating the IIS website and setting up filestorage.
     .PARAMETER name
         The name of the site to be created in IIS.
     .PARAMETER Path
@@ -82,11 +82,11 @@ function New-TelligentWebsite {
 function Grant-TelligentNtfsPermission {
     <#
     .SYNOPSIS
-      Grants the required NTFS permissions for a Telligent Evolution community.
+      Grants the required NTFS permissions for a Telligent Community.
     .PARAMETER WebsitePath
-        The path to the Telligent Evolution Website. This location has read permissions granted to the Application Pool Identity
+        The path to the Telligent Community Website. This location has read permissions granted to the Application Pool Identity
     .PARAMETER FilestoragePath
-        The path to the Telligent Evolution Filestorage. This location has Modify permissions granted to the Application Pool Identity        
+        The path to the Telligent Community Filestorage. This location has Modify permissions granted to the Application Pool Identity        
     #>
     [CmdletBinding()]
     param(

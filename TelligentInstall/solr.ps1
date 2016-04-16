@@ -3,11 +3,11 @@
 function Add-SolrCore {
     <#
     .SYNOPSIS
-        Creates a new Solr Core for a Telligent Evolution Community
+        Creates a new Solr Core for a Telligent Community
     .PARAMETER Name
         The name of the Solr Core to create
     .PARAMETER Package
-        The Telligent Evolution installation package to use to create the core
+        The Telligent Community installation package to use to create the core
     .PARAMETER CoreBaseDir
         The path to the root of the Solr instance hosting the core
     .PARAMETER CoreAdmin

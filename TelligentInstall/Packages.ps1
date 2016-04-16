@@ -5,7 +5,7 @@ $versionRegex = [regex]'[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+'
 function Get-TelligentVersion {
     <#
     .SYNOPSIS
-	    Gets a list of Teligent Evolution builds in the Mass Install directory.
+	    Gets a list of Teligent Community builds in the TelligentPackages directory.
     .PARAMETER Version
 	    Filters to the most recent build whose version matches the given pattern
     .EXAMPLE
@@ -13,7 +13,7 @@ function Get-TelligentVersion {
         
         Gets a list of all available builds of Telligent Community.
     .EXAMPLE
-        Get-TelligentVersion 7.6
+        Get-TelligentVersion 9.1
         
         Gets the most recent build with major version 7 and minor version 6.
     #>
@@ -29,7 +29,7 @@ function Get-TelligentVersion {
 	}
 	$basePackageDir = Join-Path $base TelligentPackages
 	
-    $basePackages = Get-VersionedEvolutionPackage $basePackageDir
+    $basePackages = Get-VersionedTelligentCommunityPackage $basePackageDir
     $fullBuilds = $basePackages |
         % { 
             new-object psobject -Property ([ordered]@{
@@ -52,7 +52,7 @@ function Get-TelligentVersion {
 
 }
 
-function Get-VersionedEvolutionPackage {
+function Get-VersionedTelligentCommunityPackage {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$true)]

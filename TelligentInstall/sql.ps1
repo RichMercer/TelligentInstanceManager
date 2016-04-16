@@ -63,8 +63,7 @@ function Test-SqlServer {
 function New-TelligentDatabase {
 	<#
 	.SYNOPSIS
-		Grants a user access to an Evolution database.  If the user or login doesn't exist, in SQL server, they
-		are created before being granted access to the database.
+		Creates a new database for Telligent Community.
 	.PARAMETER Server
 		The SQL server to install the community to 
 	.PARAMETER  Database
@@ -146,7 +145,7 @@ function New-TelligentDatabase {
 function Update-TelligentDatabase {
 	<#
 	.SYNOPSIS
-        Updates an existing Telligent Evolution database to upgrade it to the version in the package
+        Updates an existing Telligent Community database to upgrade it to the version in the package
 	.PARAMETER Server
 		The SQL server to install the community to 
 	.PARAMETER  Database
@@ -181,7 +180,7 @@ function Update-TelligentDatabase {
 
     Write-Progress "Database: $Database" 'Checking if database can be upgraded'
     if(!(Test-SqlServer @connectionInfo -Table dbo.cs_schemaversion -EA SilentlyContinue)) {
-        throw "Database '$Database' on Server '$Server' is not a valid Telligent Evolution database to be upgraded"
+        throw "Database '$Database' on Server '$Server' is not a valid Telligent Community database to be upgraded"
     }
     
     Write-Progress "Database: $database" 'Creating Schema'
@@ -201,7 +200,7 @@ function Update-TelligentDatabase {
 function Grant-TelligentDatabaseAccess {
 	<#
 	.SYNOPSIS
-		Grants a user access to an Evolution database.  If the user or login doesn't exist, in SQL server, they
+		Grants a user access to a Telligent Community database.  If the user or login doesn't exist, in SQL server, they
 		are created before being granted access to the database.
 	.PARAMETER  Server
 		The SQL server the database is contained on
@@ -275,7 +274,7 @@ function Invoke-TelligentSqlCmd {
 	.SYNOPSIS
 		Executes a SQL Script agains the specified community's database.
     .PARAMETER WebsitePath
-        The path of the Telligent Evolution Community website.  If not specified, defaults to the current directory.
+        The path of the Telligent Community website.  If not specified, defaults to the current directory.
     .PARAMETER Query
         A bespoke query to run agains the community's database.
     .PARAMETER File

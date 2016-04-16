@@ -7,7 +7,7 @@ function Install-TelligentJobScheduler {
     .PARAMETER package
         The installation package containing the Job Scheduler installation files.        
     .PARAMETER webPath
-        The path containing the Telligent Evolution website. Any configuration, addons and hotfixed are copied from here into the Job Scheduler.
+        The path containing the Telligent Community website. Any configuration, addons and hotfixed are copied from here into the Job Scheduler.
     .PARAMETER jsPath
         The path to install the Job Scheduler at
     .PARAMETER InstallService

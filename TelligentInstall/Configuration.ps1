@@ -29,13 +29,13 @@ function Test-TelligentPath {
             throw "'$Path' does not exist"
         }
         if (!(Join-Path $Path communityserver.config | Test-Path  -ErrorAction SilentlyContinue)) {
-            throw "'$Path' does not contain a valid Telligent Evolution community"
+            throw "'$Path' does not contain a valid Telligent Community community"
         }
         if ($Web -and !(Join-Path $Path web.config | Test-Path  -ErrorAction SilentlyContinue)) {
-            throw "'$Path' does not contain a valid Telligent Evolution website"
+            throw "'$Path' does not contain a valid Telligent Community website"
         }
         elseif ($JobScheduler -and !((Join-Path $Path Telligent.JobScheduler.Service.exe | Test-Path) -or (Join-Path $Path Telligent.Jobs.Server.exe | Test-Path))) {
-            throw "'$Path' does not contain a valid Telligent Job Scheduler"
+            throw "'$Path' does not contain a valid Telligent Community Job Server"
         }
     }
     return $true
@@ -152,7 +152,7 @@ function New-CommunityApiKey {
     .PARAMETER UserId
         The User to create the API Key for
     .PARAMETER WebsitePath
-        The path of the Telligent Evolution Community website.  If not specified, defaults to the current directory.
+        The path of the Telligent Community website.  If not specified, defaults to the current directory.
     #>
     [CmdletBinding()]
     param (
@@ -184,7 +184,7 @@ function Add-TelligentOverrideChangeAttribute {
     .PARAMETER Value
         The new value of the node
     .PARAMETER WebsitePath
-        The path of the Telligent Evolution Community website.  If not specified, defaults to the current directory.
+        The path of the Telligent Community website.  If not specified, defaults to the current directory.
     #>
     [CmdletBinding()]
     param(
@@ -222,9 +222,9 @@ function Add-TelligentOverrideChangeAttribute {
 function Set-TelligentFilestorage {
     <#
     .SYNOPSIS
-        Sets the Filestorage location for a Telligent Evolution Community
+        Sets the Filestorage location for a Telligent Community
     .PARAMETER WebsitePath
-        The path of the Telligent Evolution Community website.
+        The path of the Telligent Community website.
     .PARAMETER FilestoragePath
         The Filestorage Location to use. The Filestorage should already have been moved to this location.
     #>
@@ -263,11 +263,11 @@ function Set-TelligentFilestorage {
 function Set-TelligentSolrUrl {
 	<#
 	.SYNOPSIS
-		Updates the Search Url used by the Telligent Evolution community in the current directory
+		Updates the Search Url used by the Telligent Community in the current directory
 	.PARAMETER Url
-	    The url of the solr instance to use
+	    The url of the Solr instance to use
     .PARAMETER WebsitePath
-        The path of the Telligent Evolution Community website.  If not specified, defaults to the current directory.
+        The path of the Telligent Community website.  If not specified, defaults to the current directory.
     #>
     [CmdletBinding()]
     param(
@@ -293,11 +293,11 @@ function Set-TelligentSolrUrl {
 function Install-TelligentLicense {
 	<#
 	.SYNOPSIS
-		Installs a License file into a Telligent Evolution Community
+		Installs a License file into a Telligent Community
 	.PARAMETER LicenseFile
 	    The XML License file
     .PARAMETER WebsitePath
-        The path of the Telligent Evolution Community website.  If not specified, defaults to the current directory.
+        The path of the Telligent Community website.  If not specified, defaults to the current directory.
 	#>
     [CmdletBinding()]
     param(
@@ -332,7 +332,7 @@ function Register-TelligentTasksInWebProcess {
 	.PARAMETER Package
 	    The path to the zip package containing the Telligent Evolution installation files from Telligent Support
     .PARAMETER WebsitePath
-        The path of the Telligent Evolution Community website.  If not specified, defaults to the current directory.
+        The path of the Telligent Community website.  If not specified, defaults to the current directory.
 	#>
     [CmdletBinding()]
     param (
@@ -391,7 +391,7 @@ function Disable-CustomErrors {
 	.SYNOPSIS
 		Disables Custom Errors for the ASP.Net website in the specified directory
     .PARAMETER WebsitePath
-        The path of the Telligent Evolution Community website.  If not specified, defaults to the current directory.
+        The path of the Telligent Community website.  If not specified, defaults to the current directory.
 	.EXAMPLE
 		Disable-CustomErrors 
 	#>
@@ -423,7 +423,7 @@ function Enable-TelligentWindowsAuth {
     .PARAMETER ProfileRefreshInterval
         The interval (in days) at which a user's profile should be updated.
     .PARAMETER WebsitePath
-        The path of the Telligent Evolution Community website.  If not specified, defaults to the current directory.
+        The path of the Telligent Community website.  If not specified, defaults to the current directory.
 	#>
     [CmdletBinding()]
     param (
