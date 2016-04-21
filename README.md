@@ -20,7 +20,6 @@ Powershell Scripts to automate the installation of Telligent Community on a loca
 Installs a Telligent Instance on your local machine. Accepts the piped results from `Get-TelligentVersion`.
 
 Example: `Get-TelligentVersion 9 | Install-TelligentInstance demo.local` 
-```
 
 ``` Get-TelligentInstance -Name [InstanceName] ```
 
