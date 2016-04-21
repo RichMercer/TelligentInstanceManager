@@ -94,7 +94,7 @@ function Install-TelligentInstance {
 	    the scripts from the package. It also sets permissions automatically.
 		
 	    This scripts install the new community as follows (where NAME is the value of the name paramater).
-    .Parameter name
+    .Parameter Name
 	    The name of the community to create. This is used when creating the locations used by the community.
 		    * Web Files - %TelligentInstanceManager%\Web\NAME\
 		    * Database Server - (local)
@@ -104,26 +104,18 @@ function Install-TelligentInstance {
 		    * Url - http://NAME.local/ (entry automatically added to hosts file)
 		    * Jobs run in web process
 		    * Custom Errors disabled
-
     .Parameter Version
-	    The version being installed. 
-
+	    The community version being installed.
     .Parameter BasePackage
 	    The path to the zip package containing the Telligent Community installation files, provided by Telligent Support.
-
     .Parameter HotfixPackage
 	    If specified applys the hotfix from the referenced zip file to the community.
-
-    .Parameter Version
-	    The version being installed. This is used to determine what version of .net to use for the app pool, and which version of Solr to use.
-    
-    .Parameter ApiKey
-	    If specified, a REST Api Key is created for the admin user with the given value. This is useful for automation scenarios where you want to go and automate creation of content after installation.
-	
-    .Parameter NoSearch
-	    Specify this switch to not set up a new search instance
+    .Parameter WindowsAuth
+	    Specify this switch to use Windows Authentication for the community.
     .Parameter DatabaseServerInstance
         Specify the SQL DB Instance name to install the site.
+    .Parameter ApiKey
+	    If specified, a REST Api Key is created for the admin user with the given value. This is useful for automation scenarios where you want to go and automate creation of content after installation.
     .Example
         Get-TelligentVersion 7.6 | Install-TelligentInstance TestSite
         
