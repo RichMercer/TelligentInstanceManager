@@ -2,9 +2,17 @@
 Powershell Scripts to automate the installation of Telligent Community on a local machine.
 
 ## Dependencies
-Coming soon.
+* IIS
+* Powershell 5
+* Java
+* Tomcat
+* SQL Server
 
-##Usage
+## Installation
+1. Set-ExecutionPolicy RemoteSigned
+2. Install-Module -Name TelligentLocalInstance
+
+## Usage
 ```Get-TelligentVersion -[VersionNumber]```
 Gets a list of Telligent Packages available.
 
