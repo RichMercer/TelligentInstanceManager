@@ -112,6 +112,8 @@ function Install-TelligentInstance {
 	    If specified applys the hotfix from the referenced zip file to the community.
     .Parameter WindowsAuth
 	    Specify this switch to use Windows Authentication for the community.
+    .Parameter NoDatabase
+	    Specify this switch to not set up a new database.
     .Parameter DatabaseServerInstance
         Specify the SQL DB Instance name to install the site.
     .Parameter ApiKey
@@ -141,6 +143,7 @@ function Install-TelligentInstance {
 		[ValidateScript({!$_ -or (Test-Zip $_) })]
         [string] $HotfixPackage,
         [switch] $WindowsAuth,
+        [switch] $NoDatabase,
         [string] $DatabaseServerInstance,
         [ValidatePattern('^[a-z0-9\-\._ ]+$')]
         [string] $ApiKey
@@ -177,6 +180,7 @@ function Install-TelligentInstance {
         -SolrBaseUrl ($data.SolrUrl -f $solrVersion).TrimEnd('/') `
         -SolrCoreDir ($data.SolrCoreBase -f $solrVersion) `
         -AdminPassword $data.AdminPassword `
+        -NoDatabase:$NoDatabase `
         -DatabaseServer $DatabaseServerInstance  `
         -ApiKey $ApiKey
 
