@@ -21,7 +21,7 @@ We recommend that the path you install to is high up on your file system (e.g. `
 
 ```Get-TelligentVersion [Version] | Install-TelligentInstance [Name]```
 
-Installs a Telligent Instance on your local machine. Replace [Version] with the required version number of Telligent Community e.g. 9 (will use the latest build of Telligent Community available in TelligentPackages) or a specific point release or build  e.g 9.1 or 9.1.0.792 and [Name] with the name and URL of the site e.g. demo.local. This is the URL the site will be accessible at in IIS.
+Installs a Telligent Instance on your local machine. Replace `[Version]` with the required version number of Telligent Community e.g. 9 (will use the latest build of Telligent Community available in TelligentPackages) or a specific point release or build  e.g 9.1 or 9.1.0.792 and `[Name]` with the name and URL of the site e.g. demo.local. This is the URL the site will be accessible at in IIS.
 
 Example: `Get-TelligentVersion 9 | Install-TelligentInstance demo.local` 
 
