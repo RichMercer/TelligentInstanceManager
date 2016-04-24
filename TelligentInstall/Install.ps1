@@ -94,9 +94,10 @@ function Install-TelligentCommunity {
 
 		#Database Connection
         [switch] $NoDatabase,
+
         [Parameter(ValueFromPipelineByPropertyName=$true)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({ Test-SqlServer $_ })]
+        [ValidateScript({ ($NoDatabase) -or (Test-SqlServer $_ )})]
         [string]$DatabaseServer = '(local)',
 
         [Parameter(ValueFromPipelineByPropertyName=$true)]
