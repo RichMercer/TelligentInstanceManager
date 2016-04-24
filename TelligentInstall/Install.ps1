@@ -93,7 +93,6 @@ function Install-TelligentCommunity {
 		[string]$ApplicationPool = $name,
 
 		#Database Connection
-        [switch] $NoDatabase,
         [Parameter(ValueFromPipelineByPropertyName=$true)]
         [ValidateNotNullOrEmpty()]
         [ValidateScript({ Test-SqlServer $_ })]
@@ -158,7 +157,7 @@ function Install-TelligentCommunity {
 		Database = $DatabaseName
 	}
 
-    if(!($NoDatabase) -and (Test-SqlServer @sqlConnectionSettings -EA SilentlyContinue)) {
+    if(Test-SqlServer @sqlConnectionSettings -EA SilentlyContinue) {
         throw "Database '$DatabaseName' already exists on server '$DatabaseServer'"
     }
 
@@ -172,7 +171,7 @@ function Install-TelligentCommunity {
         -Port $Port `
         -FilestoragePath $FilestoragePath
 
-    if(!$NoDatabase) {
+
 	$sqlAuthSettings = @{}
 	if($SqlCredential) {
 		$sqlAuthSettings.username = $SqlCredential.Username
@@ -182,13 +181,12 @@ function Install-TelligentCommunity {
 		$sqlAuthSettings.username = Get-IISAppPoolIdentity $name
 	}
 
-        Write-Progress 'Configuration' 'Setting Connection Strings'
-        Set-ConnectionString $WebsitePath @sqlConnectionSettings $SqlCredential
+    Write-Progress 'Configuration' 'Setting Connection Strings'
+    Set-ConnectionString $WebsitePath @sqlConnectionSettings $SqlCredential
     
-        New-TelligentDatabase -Package $Package -WebDomain $webDomain -AdminPassword $AdminPassword @sqlConnectionSettings        
+    New-TelligentDatabase -Package $Package -WebDomain $webDomain -AdminPassword $AdminPassword @sqlConnectionSettings        
 
-        Grant-TelligentDatabaseAccess -CommunityPath $WebsitePath @sqlAuthSettings
-    }
+    Grant-TelligentDatabaseAccess -CommunityPath $WebsitePath @sqlAuthSettings
 
 	if($Hotfix) {
         Install-TelligentHotfix -WebsitePath $WebsitePath -Package $Hotfix
