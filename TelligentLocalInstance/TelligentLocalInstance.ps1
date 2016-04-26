@@ -20,10 +20,7 @@ function Get-Configuration {
 	    LicensesPath = Join-Path $base Licenses | Resolve-Path
 
         # The directory where web folders are created for each website
-	    WebBase = Join-Path $base Web
-
-        # The directory where web folders are created for each website
-	    JobSchedulerBase = Join-Path $base JobScheduler
+	    InstanceBase = Join-Path $base Communities
 
         #Solr Url for solr cores.
         #{0} gets replaced with 1-4 or 3-6 depending on the solr version needed
@@ -65,8 +62,8 @@ function Get-TelligentInstance {
     )
 
     $data = Get-Configuration
-
-    $results = Get-ChildItem $data.WebBase |
+    
+    $results = Get-ChildItem $data.InstanceBase "Web" -Recurse |
             select -ExpandProperty FullName |
             Get-TelligentCommunity -EA SilentlyContinue
 
@@ -153,14 +150,18 @@ function Install-TelligentInstance {
     $name = $name.ToLower()
 
     $solrVersion = Get-CommunitySolrVersion $Version
-    $webDir = Join-Path $data.WebBase $Name
-    $jsDir = Join-Path $data.JobSchedulerBase $Name
-    $filestorageDir = Join-Path $webDir filestorage
+    $instanceDir = Join-Path $data.InstanceBase $Name
+    $webDir = Join-Path $instanceDir Web
+    $jsDir = Join-Path $instanceDir JobServer
+    $filestorageDir = Join-Path $instanceDir Filestorage
     $domain = if($Name.Contains('.')) { $Name } else { "$Name.local"}
     $DatabaseServerInstance = if($DatabaseServerInstance) { $DatabaseServerInstance } else { $data.SqlServer }
 	$licensePath = join-path $data.LicensesPath "Community$($Version.Major).xml"
 	if(!(Test-Path $licensePath)) { $licensePath = $null }
 
+    if(!(Test-Path $webDir)) {
+        New-Item $webDir -ItemType Directory | out-null
+    }
 
 	# To avoid ambiguity between the enviornment specificl Install-TelligentCommunity and
 	# the generic base, the base function is private, so have to pull it out via a bit
@@ -270,7 +271,10 @@ function Remove-TelligentInstance {
     process {
 
         $data = Get-Configuration
-        $webDir = Join-Path $data.WebBase $Name
+        $instanceDir = Join-Path $data.InstanceBase $Name
+        $webDir = Join-Path $instanceDir Web
+        $jsDir = Join-Path $instanceDir JobServer
+        $filestorageDir = Join-Path $instanceDir Filestorage
     
         $info = Get-TelligentCommunity $webDir -ErrorAction SilentlyContinue
         if(!($info -or $Force)) {
@@ -282,7 +286,6 @@ function Remove-TelligentInstance {
 
             #Delete the JS
             Write-Progress 'Uninstalling Telligent Community' $Name -CurrentOperation 'Removing Job Scheduler'
-            $jsDir = Join-Path $data.JobschedulerBase $Name
             if (Test-Path $jsDir -PathType Container) {
                 Get-Process |? Path -like "$jsDir*" | Stop-Process
                 Remove-Item $jsDir -Recurse -Force
@@ -301,6 +304,11 @@ function Remove-TelligentInstance {
             if(!$KeepData) {
                 Write-Progress 'Uninstalling Telligent Community' $Name -CurrentOperation 'Removing Database'
                 Remove-Database -Database $info.DatabaseName -Server $info.DatabaseServer
+                
+                Write-Progress 'Uninstalling Telligent Community' $Name -CurrentOperation 'Removing Filestorage Files'
+                if(Test-Path $filestorageDir) {
+                    Remove-Item -Path $filestorageDir -Recurse -Force
+                }
             }
 
             #Delete the files

@@ -24,17 +24,17 @@ function Get-TelligentCommunity {
         [string]$Path
     )
     process {
-        if (!(Test-Path $path)) {
+        if (!(Test-Path $Path)) {
             return
         }
 
-        $csConfig = Merge-CommunityConfigurationFile $path communityserver -ErrorAction SilentlyContinue
+        $csConfig = Merge-CommunityConfigurationFile $Path communityserver -ErrorAction SilentlyContinue
 
-        $dbInfo = Get-ConnectionString $path -ErrorAction SilentlyContinue
+        $dbInfo = Get-ConnectionString $Path -ErrorAction SilentlyContinue
 
         $info = [ordered]@{
-            Name = split-path $path -Leaf
-            Path = $path
+            Name = [IO.Directory]::GetParent($Path).Name
+            Path = $Path
             CfsPath = $csConfig.CommunityServer.CentralizedFileStorage |
                 select-xml '//fileStore[@basePath] | //fileStoreGroup[@basePath]' |
                 select -expandProperty Node |
@@ -44,7 +44,7 @@ function Get-TelligentCommunity {
             DatabaseName = $dbInfo.Database
         }
         $versionDllNames.GetEnumerator() |% {
-            $info["$($_.Key)Version"] = Get-CommunityVersionFromDlls $path $_.Value
+            $info["$($_.Key)Version"] = Get-CommunityVersionFromDlls $Path $_.Value
         }
 
         new-object psobject -Property $info
