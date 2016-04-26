@@ -115,7 +115,7 @@ function New-TelligentDatabase {
         Write-Progress "Database: $Database" 'Creating database'
         New-Database @connectionInfo
     } else {
-        Write-Warning 'Database' $Database 'already exists.'
+        Write-Warning "Database $Database already exists."
     }
     
     Write-Progress "Database: $Database" 'Checking if schema exists'
