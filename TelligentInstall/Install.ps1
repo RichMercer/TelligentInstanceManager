@@ -148,6 +148,9 @@ function Install-TelligentCommunity {
         [string]$License
     )   
 
+    Write-Progress 'Configuration' 'Unblocking Package'
+    Unblock-File $Package
+
     if($JobSchedulerPath -and -not $FilestoragePath) {
         throw 'FilestoragePath must be specified when using JobSchedulerPath'
     }

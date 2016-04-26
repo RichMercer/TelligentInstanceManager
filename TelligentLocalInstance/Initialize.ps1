@@ -47,9 +47,6 @@ Install-SolrMultiCore -InstallDirectory $InstallDirectory -TomcatDirectory $Tomc
 
 Initalize-Environment $InstallDirectory $DatabaseServerInstance
 
-Write-Progress 'Telligent Instance Manager Setup' "Ensuring files are unblocked" -PercentComplete 80
-Get-ChildItem $InstallDirectory -Recurse | Unblock-File
-
 Write-Progress 'Telligent Instance Manager Setup' -Completed
 
 #Provide hints for finishing installation
