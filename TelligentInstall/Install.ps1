@@ -148,6 +148,9 @@ function Install-TelligentCommunity {
         [string]$License
     )   
 
+    Write-Progress 'Configuration' 'Unblocking Package'
+    Unblock-File $Package
+
     if($JobSchedulerPath -and -not $FilestoragePath) {
         throw 'FilestoragePath must be specified when using JobSchedulerPath'
     }
@@ -156,11 +159,6 @@ function Install-TelligentCommunity {
 		Server = $DatabaseServer
 		Database = $DatabaseName
 	}
-
-    if(Test-SqlServer @sqlConnectionSettings -EA SilentlyContinue) {
-        throw "Database '$DatabaseName' already exists on server '$DatabaseServer'"
-    }
-
 
     New-TelligentWebsite `
         -Name $name `
