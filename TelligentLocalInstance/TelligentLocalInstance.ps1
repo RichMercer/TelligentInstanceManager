@@ -284,13 +284,6 @@ function Remove-TelligentInstance {
         if($Force -or $PSCmdlet.ShouldProcess($Name)) {
             $domain = if($Name.Contains('.')) { $Name } else { "$Name.local"}
 
-            #Delete the JS
-            Write-Progress 'Uninstalling Telligent Community' $Name -CurrentOperation 'Removing Job Scheduler'
-            if (Test-Path $jsDir -PathType Container) {
-                Get-Process |? Path -like "$jsDir*" | Stop-Process
-                Remove-Item $jsDir -Recurse -Force
-            }
-
             #Delete the site in IIS
             Write-Progress 'Uninstalling Telligent Community' $Name -CurrentOperation 'Removing Website from IIS'
             if(Get-Website -Name $Name -ErrorAction SilentlyContinue) {
@@ -304,19 +297,25 @@ function Remove-TelligentInstance {
             if(!$KeepData) {
                 Write-Progress 'Uninstalling Telligent Community' $Name -CurrentOperation 'Removing Database'
                 Remove-Database -Database $info.DatabaseName -Server $info.DatabaseServer
-                
-                Write-Progress 'Uninstalling Telligent Community' $Name -CurrentOperation 'Removing Filestorage Files'
-                if(Test-Path $filestorageDir) {
-                    Remove-Item -Path $filestorageDir -Recurse -Force
-                }
             }
 
-            #Delete the files
-            Write-Progress 'Uninstalling Telligent Community' $Name -CurrentOperation 'Removing Website Files'
-            if(Test-Path $webDir) {
-                Remove-Item -Path $webDir -Recurse -Force
-            }
-    
+            if(!$KeepData) {
+				# Remove everything
+				Remove-Item $instanceDir -Recurse -Force
+			} else {
+				#Delete the website files
+				Write-Progress 'Uninstalling Telligent Community' $Name -CurrentOperation 'Removing Website Files'
+				if(Test-Path $webDir) {
+					Remove-Item -Path $webDir -Recurse -Force
+				}
+				
+				#Delete the website files
+				Write-Progress 'Uninstalling Telligent Community' $Name -CurrentOperation 'Removing Job Server Files'
+				if(Test-Path $jsDir) {
+					Remove-Item -Path $jsDir -Recurse -Force
+				}							
+			}			
+			
             #Remove site from hosts files
             Write-Progress 'Uninstalling Telligent Community' $Name -CurrentOperation 'Removing Hosts entry'
             $hostsPath = join-path $env:SystemRoot system32\drivers\etc\hosts
