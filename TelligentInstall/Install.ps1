@@ -157,11 +157,6 @@ function Install-TelligentCommunity {
 		Database = $DatabaseName
 	}
 
-    if(Test-SqlServer @sqlConnectionSettings -EA SilentlyContinue) {
-        throw "Database '$DatabaseName' already exists on server '$DatabaseServer'"
-    }
-
-
     New-TelligentWebsite `
         -Name $name `
 		-Path $WebsitePath `

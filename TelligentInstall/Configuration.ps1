@@ -330,6 +330,8 @@ function Install-TelligentLicense {
     $LicenseId = ([xml]$LicenseContent).document.licenseId
     
     $sql = @"
+delete from cs_Licenses
+GO
 insert into cs_Licenses (LicenseID, LicenseValue, InstallDate)
 values ('$LicenseId', N'$LicenseContent', getdate())
 "@

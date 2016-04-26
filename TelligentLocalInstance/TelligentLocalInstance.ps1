@@ -114,6 +114,8 @@ function Install-TelligentInstance {
 	    Specify this switch to use Windows Authentication for the community.
     .Parameter DatabaseServerInstance
         Specify the SQL DB Instance name to install the site.
+    .Parameter DatabaseName
+	    The name of the database to be created or used. If the database doesn't exist, it will be created.
     .Parameter ApiKey
 	    If specified, a REST Api Key is created for the admin user with the given value. This is useful for automation scenarios where you want to go and automate creation of content after installation.
     .Example
@@ -142,6 +144,7 @@ function Install-TelligentInstance {
         [string] $HotfixPackage,
         [switch] $WindowsAuth,
         [string] $DatabaseServerInstance,
+        [string] $DatabaseName = $Name,
         [ValidatePattern('^[a-z0-9\-\._ ]+$')]
         [string] $ApiKey
     )
@@ -177,7 +180,8 @@ function Install-TelligentInstance {
         -SolrBaseUrl ($data.SolrUrl -f $solrVersion).TrimEnd('/') `
         -SolrCoreDir ($data.SolrCoreBase -f $solrVersion) `
         -AdminPassword $data.AdminPassword `
-        -DatabaseServer $DatabaseServerInstance  `
+        -DatabaseServer $DatabaseServerInstance `
+        -DatabaseName $DatabaseName `
         -ApiKey $ApiKey
 
     if ($info) {
@@ -237,6 +241,8 @@ function Remove-TelligentInstance {
             Removes a TelligentInstance Instance
         .PARAMETER Name
             The name of the instance to remove
+        .PARAMETER KeepData
+            The Database and Filestorage will not be deleted.
         .PARAMETER Force
             Forces removal of the named instance, even if the named instance cannot be found.
         .EXAMPLE
@@ -258,6 +264,7 @@ function Remove-TelligentInstance {
         [ValidatePattern('^[a-z0-9\-\._]+$')]
         [ValidateNotNullOrEmpty()]
         [string]$Name,
+        [switch]$KeepData,
         [switch]$Force
     )
     process {
@@ -291,8 +298,10 @@ function Remove-TelligentInstance {
             }
 
             #Delete the DB
-            Write-Progress 'Uninstalling Telligent Community' $Name -CurrentOperation 'Removing Database'
-            Remove-Database -Database $info.DatabaseName -Server $info.DatabaseServer
+            if(!$KeepData) {
+                Write-Progress 'Uninstalling Telligent Community' $Name -CurrentOperation 'Removing Database'
+                Remove-Database -Database $info.DatabaseName -Server $info.DatabaseServer
+            }
 
             #Delete the files
             Write-Progress 'Uninstalling Telligent Community' $Name -CurrentOperation 'Removing Website Files'

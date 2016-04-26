@@ -110,39 +110,42 @@ function New-TelligentDatabase {
         Database = $database
     }
 
-    #TODO: Check if DB exists first
     Write-Progress "Database: $Database" 'Checking if database exists'
     if(!(Test-SqlServer -Server $Server -Database $Database -EA SilentlyContinue)) {
         Write-Progress "Database: $Database" 'Creating database'
         New-Database @connectionInfo
+    } else {
+        Write-Warning "Database $Database already exists."
     }
     
-    Write-Progress "Database: $database" 'Creating Schema'
-    $tempDir = Join-Path ([System.IO.Path]::GetFullPath($env:TEMP)) ([guid]::NewGuid())
-    Expand-Zip -Path $package -Destination $tempDir -ZipDirectory SqlScripts
-    $sqlScript = @('Install.sql', 'cs_CreateFullDatabase.sql') |
-        ForEach-Object { Join-Path $tempDir $_ }|
-        Where-Object { Test-Path $_} |
-        Select-Object -First 1
+    Write-Progress "Database: $Database" 'Checking if schema exists'
+    if(!(Test-SqlServer -Server $Server -Database $Database -Table 'cs_SchemaVersion' -ErrorAction SilentlyContinue)) {
+        Write-Progress "Database: $database" 'Creating Schema'
+        $tempDir = Join-Path ([System.IO.Path]::GetFullPath($env:TEMP)) ([guid]::NewGuid())
+        Expand-Zip -Path $package -Destination $tempDir -ZipDirectory SqlScripts
+        $sqlScript = @('Install.sql', 'cs_CreateFullDatabase.sql') |
+            ForEach-Object { Join-Path $tempDir $_ }|
+            Where-Object { Test-Path $_} |
+            Select-Object -First 1
 
-    Write-ProgressFromVerbose "Database: $database" 'Creating Schema' {
-        Invoke-Sqlcmd @connectionInfo -InputFile $sqlScript -QueryTimeout 6000 -DisableVariables
-    }
-    Remove-Item $tempDir -Recurse -Force | out-null
+        Write-ProgressFromVerbose "Database: $database" 'Creating Schema' {
+            Invoke-Sqlcmd @connectionInfo -InputFile $sqlScript -QueryTimeout 6000 -DisableVariables
+        }
+        Remove-Item $tempDir -Recurse -Force | out-null
 
-    $createCommunityQuery = @"
-         EXECUTE [dbo].[cs_system_CreateCommunity]
-                @SiteUrl = N'http://${WebDomain}/'
-                , @ApplicationName = N'$Name'
-                , @AdminEmail = N'notset@${WebDomain}'
-                , @AdminUserName = N'admin'
-                , @AdminPassword = N'$adminPassword'
-                , @PasswordFormat = 0
-                , @CreateSamples = 0
+        $createCommunityQuery = @"
+             EXECUTE [dbo].[cs_system_CreateCommunity]
+                    @SiteUrl = N'http://${WebDomain}/'
+                    , @ApplicationName = N'$Name'
+                    , @AdminEmail = N'notset@${WebDomain}'
+                    , @AdminUserName = N'admin'
+                    , @AdminPassword = N'$adminPassword'
+                    , @PasswordFormat = 0
+                    , @CreateSamples = 0
 "@
-
-    Write-ProgressFromVerbose "Database: $database" 'Creating Community' {
+        Write-ProgressFromVerbose "Database: $database" 'Creating Community' {
         Invoke-Sqlcmd @connectionInfo -query $createCommunityQuery -DisableVariables
+        }
     }
 }
 
