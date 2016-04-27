@@ -38,7 +38,7 @@ if ($Error.Count -ne $initialErrorCount) {
 }
 
 #Make Required Folders
-@('Licenses', 'TelligentPackages', 'Web', 'Solr') |
+@('Licenses', 'TelligentPackages', 'Communities', 'Solr') |
     % { Join-Path $InstallDirectory $_} |
     ? {!(Test-Path $_)} |
     % {new-item $_ -ItemType Directory | Out-Null}
