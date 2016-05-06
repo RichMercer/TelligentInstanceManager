@@ -15,6 +15,14 @@ Powershell Scripts to automate the installation of Telligent Community on a loca
 
 We recommend that the path you install to is high up on your file system (e.g. `c:\TelligentInstances`) - if you install to a deep directory, you may encounter issues within Telligent Community due to Window's MAX_PATH length.
 
+### Packages
+
+After installation, you will need to place a Telligent Community zip package in the TelligentPackages folder in the install location. You can add as many packages as versions you want to support. 
+
+### Licenses
+
+License files can be added to the Licenses folder to allow the installer to add the lincese during the install process. The files should be named Community[Version].xml with [Version] being the product major version number e.g. Community9.xml for Telligent Community 9.
+
 ## Usage
 
 #### To install an instance
