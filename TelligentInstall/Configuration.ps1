@@ -428,6 +428,33 @@ function Disable-CustomErrors {
     $webConfig.Save($configPath)
 }
 
+function Enable-DeveloperMode {
+	<#
+	.SYNOPSIS
+		Enables developer mode for Telligent Community 9.x and above
+    .PARAMETER WebsitePath
+        The path of the ASP.Net Web Application. If not specified, defaults to the current directory.
+	.EXAMPLE
+		Enable-DeveloperMode 
+	#>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({ Test-TelligentPath $_ })]
+        [string]$WebsitePath
+    )
+    
+    $configPath = Join-Path $WebsitePath web.config | Resolve-Path
+    $webConfig = [xml] (Get-Content $configPath )
+	
+	$webConfig.configuration.appSettings.add |
+        ? { $_.key -eq 'EnableDeveloperMode'} |
+        % { $_.value = 'true'}		
+    
+    $webConfig.Save($configPath)
+}
+
 function Enable-TelligentWindowsAuth {
 	<#
 	.SYNOPSIS

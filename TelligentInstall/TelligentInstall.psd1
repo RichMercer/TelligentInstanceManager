@@ -110,6 +110,7 @@ FunctionsToExport = @(
 
                     'Write-ProgressFromVerbose'
 
+					'Enable-DeveloperMode'
                     'Enable-TelligentWindowsAuth'
                     'Enable-TelligentLdap'
 
