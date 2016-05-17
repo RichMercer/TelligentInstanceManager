@@ -198,6 +198,10 @@ function Install-TelligentInstance {
         if ($WindowsAuth) {
             Enable-TelligentWindowsAuth $webDir -EmailDomain '@tempuri.org' -ProfileRefreshInterval 0
         }        
+        
+        if($info.PlatformVersion.Major -ge 9) {
+            Enable-DeveloperMode $webDir
+        }
 
         #Add site to hosts files
         Add-Content -value "`r`n127.0.0.1 $domain" -Path (join-path $env:SystemRoot system32\drivers\etc\hosts)
