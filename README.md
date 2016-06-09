@@ -1,4 +1,4 @@
-# TelligentInstanceManager
+# Telligent Instance Manager
 Powershell Scripts to automate the installation of Telligent Community on a local machine.
 
 ## Dependencies
