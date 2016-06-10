@@ -1,7 +1,7 @@
 # Telligent Instance Manager
 Powershell Scripts to automate the installation of Telligent Community on a local machine.
 
-## Dependencies
+## Requirements
 * IIS 7.5 (or Higher)
 * Powershell 5
 * Java 8 (or higher)
