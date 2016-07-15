@@ -94,6 +94,10 @@ function Test-Prerequisites
 
 function Get-TomcatLocation {
     @(
+        "${env:ProgramFiles}\Apache Software Foundation\Tomcat 9.0"
+        "${env:ProgramFiles(x86)}\Apache Software Foundation\Tomcat 9.0"
+        "${env:ProgramFiles}\Apache Software Foundation\Tomcat 8.5"
+        "${env:ProgramFiles(x86)}\Apache Software Foundation\Tomcat 8.5"
         "${env:ProgramFiles}\Apache Software Foundation\Tomcat 8.0"
         "${env:ProgramFiles(x86)}\Apache Software Foundation\Tomcat 8.0"
         "${env:ProgramFiles}\Apache Software Foundation\Tomcat 7.0"
