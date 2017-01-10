@@ -11,7 +11,7 @@ Powershell Scripts to automate the installation of Telligent Community on a loca
 ## Installation
 1. `Set-ExecutionPolicy RemoteSigned`
 2. `Install-Module -Name TelligentLocalInstance`
-3. `Initialize-TelligentInstanceManager -Path [Path to install]`
+3. `Initialize-TelligentInstanceManager -InstallDirectory [Path to install]`
 
 We recommend that the path you install to is high up on your file system (e.g. `c:\TelligentInstances`) - if you install to a deep directory, you may encounter issues within Telligent Community due to Window's MAX_PATH length.
 
