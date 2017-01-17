@@ -23,6 +23,10 @@ After installation, you will need to place a Telligent Community zip package in 
 
 License files can be added to the Licenses folder to allow the installer to add the lincese during the install process. The files should be named Community[Version].xml with [Version] being the product major version number e.g. Community9.xml for Telligent Community 9.
 
+### Installation Problems
+
+`The term Install-Module is not recognized...` - You're probably running powershell v1 or v2.  Upgrade to [Powershell 5](https://www.microsoft.com/en-us/download/details.aspx?id=50395)
+
 ## Usage
 
 #### To install an instance
