@@ -100,6 +100,7 @@ FunctionsToExport = @(
 
                     'Remove-Database'
                     'Set-ConnectionString'
+                    'Set-DatabaseConnectionString'
                     'Grant-TelligentDatabaseAccess'
                     'New-TelligentDatabase'
                     'Update-TelligentDatabase'

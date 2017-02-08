@@ -180,7 +180,7 @@ function Install-TelligentCommunity {
 	}
 
     Write-Progress 'Configuration' 'Setting Connection Strings'
-    Set-ConnectionString $WebsitePath @sqlConnectionSettings $SqlCredential
+    Set-DatabaseConnectionString $WebsitePath @sqlConnectionSettings $SqlCredential
     
     New-TelligentDatabase -Package $Package -WebDomain $webDomain -AdminPassword $AdminPassword @sqlConnectionSettings        
 
