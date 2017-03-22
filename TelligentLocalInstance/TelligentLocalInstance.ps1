@@ -1,6 +1,5 @@
 ﻿Set-StrictMode -Version 2
 
-
 function Get-Configuration {
     $base = $env:TelligentInstanceManager
     if (!$base) {
@@ -156,14 +155,12 @@ function Install-TelligentInstance {
     $filestorageDir = Join-Path $instanceDir Filestorage
     $domain = if($Name.Contains('.')) { $Name } else { "$Name.local"}
     $DatabaseServerInstance = if($DatabaseServerInstance) { $DatabaseServerInstance } else { $data.SqlServer }
+    $sqlPassword = [string][guid]::NewGuid()
+    $sqlCred = New-Object PSCredential $Name, (ConvertTo-SecureString -String $sqlPassword -AsPlainText -fo)
 	$licensePath = join-path $data.LicensesPath "Community$($Version.Major).xml"
 	if(!(Test-Path $licensePath)) { $licensePath = $null }
 
-    if(!(Test-Path $webDir)) {
-        New-Item $webDir -ItemType Directory | out-null
-    }
-
-	# To avoid ambiguity between the enviornment specificl Install-TelligentCommunity and
+    # To avoid ambiguity between the enviornment specificl Install-TelligentCommunity and
 	# the generic base, the base function is private, so have to pull it out via a bit
 	# of module hackery
 	$module = Get-Module TelligentInstall
@@ -183,17 +180,17 @@ function Install-TelligentInstance {
         -AdminPassword $data.AdminPassword `
         -DatabaseServer $DatabaseServerInstance `
         -DatabaseName $DatabaseName `
+        -SqlCredential $sqlCred `
         -ApiKey $ApiKey
 
     if ($info) {
 	    Disable-CustomErrors $webDir
 
-        $dbUsername = Get-IISAppPoolIdentity $Name
-        Invoke-TelligentSqlCmd -WebsitePath $webDir -Query "EXEC sp_addrolemember N'db_owner', N'$dbUsername'"
+        Invoke-TelligentSqlCmd -WebsitePath $webDir -Query "EXEC sp_addrolemember N'db_owner', N'$name'"
 
-    	if($info.PlatformVersion -ge 5.6 -and $info.PlatformVersion.Major -lt 8){
-            Register-TelligentTasksInWebProcess $webDir $basePackage
-        }
+    	Write-Progress "Job Scheduler" "Installing Service"
+        $jsCredentials = New-Object PSCredential 'NT AUTHORITY\NETWORK SERVICE', (New-Object Security.SecureString)
+        Install-TelligentJobSchedulerService -Name $Name -JobSchedulerPath $jsDir -Credential $jsCredentials -StartupType Automatic
 
         if ($WindowsAuth) {
             Enable-TelligentWindowsAuth $webDir -EmailDomain '@tempuri.org' -ProfileRefreshInterval 0
@@ -204,6 +201,11 @@ function Install-TelligentInstance {
 
         $info | Add-Member Url "http://$domain/" -PassThru
 
+        # Copy AccessCode plugin to site
+        Copy-Item (Join-Path $data.InstanceBase '..\Telligent.Services.AccessCode\Web\*') $webDir -Recurse -Force
+
+		.\letsencrypt.exe --webroot $webDir --manualhost $domain --renew
+		
         if([Environment]::UserInteractive) {
             Start-Process $info.Url
         }
@@ -298,6 +300,11 @@ function Remove-TelligentInstance {
                 Write-Progress 'Uninstalling Telligent Community' $Name -CurrentOperation 'Removing Database'
                 Remove-Database -Database $info.DatabaseName -Server $info.DatabaseServer
             }
+            
+            #Remove Job Server Service
+			Stop-Service $Name
+			
+			Install-TelligentJobSchedulerService -Name $Name -JobSchedulerPath $jsDir -Credential $jsCredentials -StartupType Automatic
 
             if(!$KeepData) {
 				# Remove everything
