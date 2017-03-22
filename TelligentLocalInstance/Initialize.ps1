@@ -176,7 +176,7 @@ function Install-Solr {
         $war = Join-Path $solrBase "solr_${_}.war"
         if(!(Test-Path $war) -or $Force) {
             Write-Progress 'Telligent Instance Manager Setup' "Downloading $war"
-            $warUri = "https://github.com/afscrome/TelligentInstanceManager/blob/master/Solr/solr_${_}.war?raw=true"
+            $warUri = "https://github.com/RichMercer/TIM-Search/blob/master/solr_${_}.war?raw=true"
             Invoke-WebRequest -Uri $warUri -OutFile $war 
         }        
         
@@ -211,7 +211,7 @@ function Install-Solr {
         $tomcatLib= Join-Path "$TomcatDirectory" 'lib'        
         $filePath =  Join-Path $tomcatLib $_      
         if(!(Test-Path $filePath)) {
-            Invoke-WebRequest -Uri "https://github.com/afscrome/TelligentInstanceManager/blob/master/Solr/_tomcatlib/${_}?raw=true" -OutFile $filePath
+            Invoke-WebRequest -Uri "https://github.com/RichMercer/TIM-Search/blob/master/_tomcatlib/${_}?raw=true" -OutFile $filePath
         }
     }
 
@@ -221,8 +221,8 @@ function Install-Solr {
 	# Install new Solr 6+ Version. Add to the array for each version required to be downloaded and installed.
     @('6-3-0') |% {
         $FilePath = Join-Path $solrBase "$($_).zip"
-        if(!(Test-Path (Join-Path $solrBase $_)) -or $Force) {
-            Invoke-WebRequest -Uri "https://github.com/afscrome/TelligentInstanceManager/raw/10updates/Solr/$($_).zip?raw=true" -OutFile $FilePath
+        if(!(Test-Path (Join-Path $solrBase $_))) {
+            Invoke-WebRequest -Uri "https://github.com/RichMercer/TIM-Search/blob/master/$($_).zip?raw=true" -OutFile $FilePath
     
             Expand-Zip $FilePath $SolrBase
             Remove-Item $FilePath
