@@ -204,19 +204,34 @@ function Install-TelligentCommunity {
 		Write-Warning 'No search url specified. Many features will not work until search is configured.'
 	}
 	else {
-        $solrUrl = $SolrBaseUrl.AbsoluteUri.TrimEnd('/')
-        Write-Progress 'Search' 'Setting Up Search'
-        $solrCoreParams = @{}
-        if($info.PlatformVersion.Major -ge 8) {
-            $solrCoreParams.ModernCore = $true
-        }
-        Add-SolrCore $SolrCoreName `
-		    -package $Package `
-		    -coreBaseDir $SolrCoreDir `
-		    -coreAdmin "$solrUrl/admin/cores" `
-            @solrCoreParams
+        
+        if($info.PlatformVersion.Major -ge 10) {
+            # TODO: Create 6.3.0 core here....
+            Write-Progress 'Search' 'Setting Up Search'
+            $solrUrl = $SolrBaseUrl.AbsoluteUri.TrimEnd('/')
+            Write-Progress 'Search' 'Setting Up Search'
+            Add-SolrCore $SolrCoreName `
+		        -package $Package `
+		        -coreBaseDir $SolrCoreDir `
+		        -coreAdmin "$solrUrl/admin/cores"
+	       
 
-	    Set-TelligentSolrUrl $WebsitePath "$solrUrl/$SolrCoreName/"
+        }
+        else {
+            $solrUrl = $SolrBaseUrl.AbsoluteUri.TrimEnd('/')
+            Write-Progress 'Search' 'Setting Up Search'
+            $solrCoreParams = @{}
+            if($info.PlatformVersion.Major -ge 8) {
+                $solrCoreParams.ModernCore = $true
+            }
+            Add-SolrCore $SolrCoreName `
+		        -package $Package `
+		        -coreBaseDir $SolrCoreDir `
+		        -coreAdmin "$solrUrl/admin/cores" `
+                @solrCoreParams
+
+	        Set-TelligentSolrUrl $WebsitePath "$solrUrl/$SolrCoreName/"
+        }
 	}
 
     if($ApiKey) {

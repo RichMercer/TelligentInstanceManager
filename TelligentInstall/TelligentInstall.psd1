@@ -82,8 +82,10 @@ FunctionsToExport = @(
                     'Get-TelligentCommunity'
 
                     'Add-SolrCore'
+					'Add-LegacySolrCore'
                     'Set-TelligentSolrUrl'
                     'Remove-SolrCore'
+					'Remove-LegacySolrCore'
 
                     'Install-Community'
                     'Uninstall-Community'

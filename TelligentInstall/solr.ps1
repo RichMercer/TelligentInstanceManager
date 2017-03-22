@@ -1,6 +1,6 @@
 ﻿Set-StrictMode -Version 2
 
-function Add-SolrCore {
+function Add-LegacySolrCore {
     <#
     .SYNOPSIS
         Creates a new Solr Core for a Telligent Community
@@ -57,8 +57,61 @@ function Add-SolrCore {
     Invoke-WebRequest $url -UseBasicParsing -Method Post | Out-Null
 }
 
+function Add-SolrCore {
+    <#
+    .SYNOPSIS
+        Creates a new Solr Core for a Telligent Community
+    .PARAMETER Name
+        The name of the Solr Core to create
+    .PARAMETER Package
+        The Telligent Community installation package to use to create the core
+    .PARAMETER CoreBaseDir
+        The path to the root of the Solr instance hosting the core
+    .PARAMETER CoreAdmin
+        The url to the solr instance's Core Admin API.
+    .PARAMETER LegacyCore
+        Creates a core for Telligent Community 7.6 and below
+	.PARAMETER ModernCore
+		Creates a core for Telligent Community 8.0 and above
+    #>
+    [CmdletBinding(DefaultParameterSetName='Legacy')]
+    param (
+        [Parameter(Mandatory=$true, Position=0)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Name,
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+		[ValidateScript({Test-Zip $_ })]
+        [string]$Package,
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+		[ValidateScript({Test-Path $_ -PathType Container})]
+        [string]$CoreBaseDir,
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [Uri]$CoreAdmin
+    )   
+    $instanceDir = "${name}\$(get-date -f yyy-MM-dd)\"
+    $coreDir = join-path $coreBaseDir $instanceDir
+    new-item $coreDir -type directory | out-null
+        
+    Write-Progress "Solr Core" "Creating Core"
+    
+    $coreZipDir = if ($PSCmdlet.ParameterSetName -eq 'Legacy') { 'search\solr\' } else { 'search\solr\content\' } 
+    Expand-Zip $package $coreDir -ZipDirectory $coreZipDir
+    
+    if ($PSCmdlet.ParameterSetName -eq 'Modern') {
+        #Remove existing core.properties to allow us to create the core
+        Join-Path $coreDir core.properties | Remove-Item
+    }
 
-function Remove-SolrCore {
+    Write-Progress "Solr Core" "Registering Core"
+	$url = "${coreAdmin}?action=CREATE&name=${name}&instanceDir=${instanceDir}"
+    Invoke-WebRequest $url -UseBasicParsing -Method Post | Out-Null
+}
+
+
+function Remove-LegacySolrCore {
     <#
     .SYNOPSIS
         Removes a Solr Core
