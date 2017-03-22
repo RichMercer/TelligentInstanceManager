@@ -218,17 +218,18 @@ function Install-Solr {
     Write-Progress 'Telligent Instance Manager Setup' 'Starting Tocmat' -PercentComplete 50
     Start-Service tomcat* -ErrorAction Continue
 
-	# Install new Solr 6+ Version
-    $PackageName = '6-3-0.zip'
-    $FilePath = Join-Path $solrBase $PackageName
-    if(!(Test-Path $war) -or $Force) {
-        Invoke-WebRequest -Uri "https://github.com/afscrome/TelligentInstanceManager/raw/10updates/Solr/$($PackageName)?raw=true" -OutFile $FilePath
+	# Install new Solr 6+ Version. Add to the array for each version required to be downloaded and installed.
+    @('6-3-0') |% {
+        $FilePath = Join-Path $solrBase "$($_).zip"
+        if(!(Test-Path (Join-Path $solrBase $_)) -or $Force) {
+            Invoke-WebRequest -Uri "https://github.com/afscrome/TelligentInstanceManager/raw/10updates/Solr/$($_).zip?raw=true" -OutFile $FilePath
     
-        #Expand-Zip $FilePath $SolrBase
-        Remove-Item $FilePath
+            Expand-Zip $FilePath $SolrBase
+            Remove-Item $FilePath
 
-        $InstallScript = Join-Path $SolrBase 'Solr-6-3-0/bin/ServiceInstall.ps1'
-        &$InstallScript -ServiceName "TIM-Search-6-3-0" -DisplayName "TIM Search 6.3.0" -Port 8630
+            $InstallScript = Join-Path $SolrBase "$($_)/bin/ServiceInstall.ps1"
+            &$InstallScript -ServiceName "TIM-Search-$($_)" -DisplayName "TIM Search $($_)" -Port 8630
+        }
     }
 }
 
