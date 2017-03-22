@@ -133,7 +133,7 @@ function Set-DatabaseConnectionString {
         $connectionString = "Server=$Server;Database=$Database;Trusted_Connection=yes;"
     }
     
-    Set-ConnectionString $WebsitePath -Name SiteSqlServer -Value $connectionString
+    Set-ConnectionString $WebsitePath -Name 'SiteSqlServer' -Value $connectionString
 }
 
 
@@ -332,12 +332,20 @@ function Set-TelligentSolrUrl {
         [uri]$Url
     )
 
-    Write-Progress "Configuration" "Updating Solr Url"
-    Add-TelligentOverrideChangeAttribute `
+	$version = Get-TelligentCommunity $WebsitePath | select -ExpandProperty PlatformVersion
+
+	Write-Progress "Configuration" "Updating Solr Url"
+    if ($Version.Major -ge 10) {
+        Set-ConnectionString $WebsitePath -Name SearchContentUrl -Value $Url
+		Set-ConnectionString $WebsitePath -Name SearchConversationsUrl -Value $Url
+    }
+	else{
+		Add-TelligentOverrideChangeAttribute `
         -XPath /CommunityServer/Search/Solr `
         -Name host `
         -Value $Url `
         -WebsitePath $WebsitePath
+	}
 }
 
 function Install-TelligentLicense {
