@@ -79,15 +79,51 @@ function Set-ConnectionString {
         [ValidateScript({ Test-TelligentPath $_ })]
         [string]$WebsitePath,
         [Parameter(Mandatory=$true)]
+        [string]$Name,
+        [Parameter(Mandatory=$true)]
+        [string]$Value,
+        [string]$ConfigurationFile = 'connectionstrings.config'
+    )
+    
+    $path = Join-Path $WebsitePath $ConfigurationFile | Resolve-Path | select -ExpandProperty ProviderPath
+    $connectionStrings = [xml](gc $path)  
+    $connectionStrings.connectionStrings.add |
+        ? { $_.name -eq $Name} |
+        % { $_.connectionString = $Value}
+    $connectionStrings.Save($path)     
+}
+
+function Set-DatabaseConnectionString {
+    <#
+    .SYNOPSIS
+        Sets the Connection Strings in the .net configurationf ile
+    .PARAMETER WebsitePath
+        The path to the application you want to set connection strings for
+    .PARAMETER Server
+        The SQL Server the connection string will point to
+    .PARAMETER Database
+        The database to use
+    .PARAMETER SqlCredentials
+        If using SQL Authenticaiton, specifies the username nad password to use in the connection string. If not specified, the connection string uses Integrated Security.
+    .PARAMETER ConfigurationFile
+        The configuration file to set the connection strings in.
+    .PARAMETER ConnectionStringName
+        The name of the connection string to set.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({ Test-TelligentPath $_ })]
+        [string]$WebsitePath,
+        [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
 		[alias('ServerInstance')]
         [string]$Server,
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [string]$Database,
-        [PSCredential]$SqlCredentials,
-        [string]$ConfigurationFile = 'connectionstrings.config',
-        [string]$ConnectionStringName = 'SiteSqlServer'
+        [PSCredential]$SqlCredentials
     )
 
     if ($SqlCredentials){
@@ -97,13 +133,9 @@ function Set-ConnectionString {
         $connectionString = "Server=$Server;Database=$Database;Trusted_Connection=yes;"
     }
     
-    $path = Join-Path $WebsitePath connectionstrings.config | Resolve-Path | select -ExpandProperty ProviderPath
-    $connectionStrings = [xml](gc $path)  
-    $connectionStrings.connectionStrings.add |
-        ? { $_.name -eq $ConnectionStringName} |
-        % { $_.connectionString = $connectionString}
-    $connectionStrings.Save($path)     
+    Set-ConnectionString $WebsitePath -Name 'SiteSqlServer' -Value $connectionString
 }
+
 
 function Get-ConnectionString {
     <#
@@ -257,7 +289,10 @@ function Set-TelligentFilestorage {
 
     $version = Get-TelligentCommunity $WebsitePath | select -ExpandProperty PlatformVersion
 
-    if ($version.Major -ge 7) {
+    if ($Version.Major -ge 10) {
+        Set-ConnectionString $WebsitePath -Name FileStorage -Value $FilestoragePath
+    }
+    elseif ($version.Major -ge 7) {
         Add-TelligentOverrideChangeAttribute $WebsitePath `
             -XPath "/CommunityServer/CentralizedFileStorage/fileStoreGroup[@name='default']" `
             -Name basePath `
@@ -297,12 +332,20 @@ function Set-TelligentSolrUrl {
         [uri]$Url
     )
 
-    Write-Progress "Configuration" "Updating Solr Url"
-    Add-TelligentOverrideChangeAttribute `
+	$version = Get-TelligentCommunity $WebsitePath | select -ExpandProperty PlatformVersion
+
+	Write-Progress "Configuration" "Updating Solr Url"
+    if ($Version.Major -ge 10) {
+        Set-ConnectionString $WebsitePath -Name SearchContentUrl -Value $Url
+		Set-ConnectionString $WebsitePath -Name SearchConversationsUrl -Value $Url
+    }
+	else{
+		Add-TelligentOverrideChangeAttribute `
         -XPath /CommunityServer/Search/Solr `
         -Name host `
         -Value $Url `
         -WebsitePath $WebsitePath
+	}
 }
 
 function Install-TelligentLicense {
@@ -425,6 +468,33 @@ function Disable-CustomErrors {
     $webConfig = [xml] (get-content $configPath )
     
     $webConfig.configuration.{system.web}.customErrors.mode = 'Off'
+    $webConfig.Save($configPath)
+}
+
+function Enable-DeveloperMode {
+	<#
+	.SYNOPSIS
+		Enables developer mode for Telligent Community 9.x and above
+    .PARAMETER WebsitePath
+        The path of the ASP.Net Web Application. If not specified, defaults to the current directory.
+	.EXAMPLE
+		Enable-DeveloperMode 
+	#>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({ Test-TelligentPath $_ })]
+        [string]$WebsitePath
+    )
+    
+    $configPath = Join-Path $WebsitePath web.config | Resolve-Path
+    $webConfig = [xml] (Get-Content $configPath )
+	
+	$webConfig.configuration.appSettings.add |
+        ? { $_.key -eq 'EnableDeveloperMode'} |
+        % { $_.value = 'true'}		
+    
     $webConfig.Save($configPath)
 }
 

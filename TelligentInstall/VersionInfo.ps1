@@ -1,5 +1,5 @@
 ﻿$versionDllNames = [ordered]@{
-    Platform = 'Telligent.Evolution.Components.dll', 'CommunityServer.Components.dll'
+    Platform = 'Telligent.Evolution.Platform.dll', 'Telligent.Evolution.Components.dll', 'CommunityServer.Components.dll'
     Calendar = 'Telligent.Evolution.Extensions.Calendar.dll'
     Chat = 'Telligent.Evolution.Chat.dll'
     DocPreview = 'Telligent.Evolution.FlexPaperDocumentViewer.dll'
@@ -114,10 +114,10 @@ function Merge-CommunityConfigurationFile {
                 $override = $_
                 switch($override.mode) {
                     remove {
-                        $attName = $node.Attributes.GetNamedItem($override.name)
+                        $attrName = $node.Attributes.GetNamedItem($override.name)
                         if ($attrName) {
-                            if(!$node.Attributes.GetNamedItem($attName)) {                                
-                                Write-Error ("Attribute $attName does not exist at $($override.xpath)")
+                            if(!$node.Attributes.GetNamedItem($attrName)) {                                
+                                Write-Error ("Attribute $attrName does not exist at $($override.xpath)")
                             }
                             else {
                                 $node.Attributes.Remove($override.name)

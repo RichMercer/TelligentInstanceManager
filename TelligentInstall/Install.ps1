@@ -180,7 +180,7 @@ function Install-TelligentCommunity {
 	}
 
     Write-Progress 'Configuration' 'Setting Connection Strings'
-    Set-ConnectionString $WebsitePath @sqlConnectionSettings $SqlCredential
+    Set-DatabaseConnectionString $WebsitePath @sqlConnectionSettings $SqlCredential
     
     New-TelligentDatabase -Package $Package -WebDomain $webDomain -AdminPassword $AdminPassword @sqlConnectionSettings        
 
@@ -204,19 +204,35 @@ function Install-TelligentCommunity {
 		Write-Warning 'No search url specified. Many features will not work until search is configured.'
 	}
 	else {
-        $solrUrl = $SolrBaseUrl.AbsoluteUri.TrimEnd('/')
-        Write-Progress 'Search' 'Setting Up Search'
-        $solrCoreParams = @{}
-        if($info.PlatformVersion.Major -ge 8) {
-            $solrCoreParams.ModernCore = $true
-        }
-        Add-SolrCore $SolrCoreName `
-		    -package $Package `
-		    -coreBaseDir $SolrCoreDir `
-		    -coreAdmin "$solrUrl/admin/cores" `
-            @solrCoreParams
+        
+        if($info.PlatformVersion.Major -ge 10) {
+            Write-Progress 'Search' 'Setting Up Search'
+            $solrUrl = $SolrBaseUrl.AbsoluteUri.TrimEnd('/')
+            Write-Progress 'Search' 'Setting Up Search'
+            Add-SolrCore $SolrCoreName `
+		        -package $Package `
+		        -coreBaseDir $SolrCoreDir `
+		        -coreAdmin "$solrUrl/admin/cores"
+	       
+        Set-ConnectionString $WebsitePath "SearchContentUrl" "${solrUrl}/${SolrCoreName}-content/"
+        Set-ConnectionString $WebsitePath "SearchConversationsUrl" "${solrUrl}/solr/${SolrCoreName}-conversations/"
 
-	    Set-TelligentSolrUrl $WebsitePath "$solrUrl/$SolrCoreName/"
+        }
+        else {
+            $solrUrl = $SolrBaseUrl.AbsoluteUri.TrimEnd('/')
+            Write-Progress 'Search' 'Setting Up Search'
+            $solrCoreParams = @{}
+            if($info.PlatformVersion.Major -ge 8) {
+                $solrCoreParams.ModernCore = $true
+            }
+            Add-LegacySolrCore $SolrCoreName `
+		        -package $Package `
+		        -coreBaseDir $SolrCoreDir `
+		        -coreAdmin "$solrUrl/admin/cores" `
+                @solrCoreParams
+
+	        Set-TelligentSolrUrl $WebsitePath "$solrUrl/$SolrCoreName/"
+        }
 	}
 
     if($ApiKey) {

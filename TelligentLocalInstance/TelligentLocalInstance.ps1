@@ -20,14 +20,6 @@ function Get-Configuration {
 
         # The directory where web folders are created for each website
 	    InstanceBase = Join-Path $base Communities
-
-        #Solr Url for solr cores.
-        #{0} gets replaced with 1-4 or 3-6 depending on the solr version needed
-	    SolrUrl = "http://${env:COMPUTERNAME}:8080/{0}"
-
-        # Solr core Directories.
-        # {0} gets replaced in the same way as for SolrUrl
-	    SolrCoreBase = Join-Path $base 'Solr\{0}\'
     }
 
     $data
@@ -149,6 +141,8 @@ function Install-TelligentInstance {
     $name = $name.ToLower()
 
     $solrVersion = Get-CommunitySolrVersion $Version
+    $solrUrl = Get-CommunitySolrUrl $Version
+    $solrDir = Get-CommunitySolrFolder $Version
     $instanceDir = Join-Path $data.InstanceBase $Name
     $webDir = Join-Path $instanceDir Web
     $jsDir = Join-Path $instanceDir JobServer
@@ -175,8 +169,8 @@ function Install-TelligentInstance {
         -WebDomain $domain `
         -License $licensePath `
         -SolrCore `
-        -SolrBaseUrl ($data.SolrUrl -f $solrVersion).TrimEnd('/') `
-        -SolrCoreDir ($data.SolrCoreBase -f $solrVersion) `
+        -SolrBaseUrl $solrUrl `
+        -SolrCoreDir $solrDir `
         -AdminPassword $data.AdminPassword `
         -DatabaseServer $DatabaseServerInstance `
         -DatabaseName $DatabaseName `
@@ -195,6 +189,10 @@ function Install-TelligentInstance {
         if ($WindowsAuth) {
             Enable-TelligentWindowsAuth $webDir -EmailDomain '@tempuri.org' -ProfileRefreshInterval 0
         }        
+        
+        if($info.PlatformVersion.Major -ge 9) {
+            Enable-DeveloperMode $webDir
+        }
 
         #Add site to hosts files
         Add-Content -value "`r`n127.0.0.1 $domain" -Path (join-path $env:SystemRoot system32\drivers\etc\hosts)
@@ -227,7 +225,10 @@ function Get-CommunitySolrVersion {
         [ValidateNotNullOrEmpty()]
         [Version]$Version
     )
-	if($Version.Major -ge 9) {
+    if($Version.Major -ge 10) {
+		'6-3-0'
+	}
+	elseif($Version.Major -ge 9) {
 		'4-10-3'
 	}
 	elseif($Version.Major -ge 8) {
@@ -236,6 +237,51 @@ function Get-CommunitySolrVersion {
 	else {
 		'3-6'
 	}
+}
+
+function Get-CommunitySolrUrl {
+    <#
+        .SYNOPSIS
+            Gets the Solr version for a given community version numeber
+        .PARAMETER Version
+            The community version
+        .EXAMPLE
+            Get-CommunitySolrVersion 9.0
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
+        [ValidateNotNullOrEmpty()]
+        [Version]$Version
+    )
+    $solrVersion = Get-CommunitySolrVersion $Version
+
+    if($Version.Major -ge 10) {
+		"http://${env:COMPUTERNAME}:8630/solr"
+	}
+	else {
+		"http://${env:COMPUTERNAME}:8080/$solrVersion"
+	}
+}
+
+function Get-CommunitySolrFolder {
+    <#
+        .SYNOPSIS
+            Gets the Solr version for a given community version numeber
+        .PARAMETER Version
+            The community version
+        .EXAMPLE
+            Get-CommunitySolrVersion 9.0
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
+        [ValidateNotNullOrEmpty()]
+        [Version]$Version
+    )
+    $solrVersion = Get-CommunitySolrVersion $Version
+
+    Join-Path $env:TelligentInstanceManager "Solr\$solrVersion"
 }
 
 function Remove-TelligentInstance {
@@ -331,9 +377,16 @@ function Remove-TelligentInstance {
             #Remove the solr core
             Write-Progress 'Uninstalling Telligent Community' $Name -CurrentOperation 'Removing Solr Core'
             if($info) {
-                $solrVersion = Get-CommunitySolrVersion $info.PlatformVersion
-                $solrUrl = ($data.SolrUrl -f $solrVersion).TrimEnd('/') + '/admin/cores'
-                Remove-SolrCore -Name $Name -CoreBaseDir ($data.SolrCoreBase -f $solrVersion) -CoreAdmin $solrUrl -EA SilentlyContinue
+				if($info.PlatformVersion.Major -ge 10) {
+					$SolrUrl = (Get-CommunitySolrUrl $info.PlatformVersion) + '/admin/cores'
+					Remove-SolrCore -Name $Name -CoreAdmin $SolrUrl -EA SilentlyContinue
+				}
+				else {
+					$solrVersion = Get-CommunitySolrVersion $info.PlatformVersion
+					$SolrUrl = (Get-CommunitySolrUrl $info.PlatformVersion) + '/admin/cores'
+					$SolrDir = Get-CommunitySolrFolder $info.PlatformVersion
+					Remove-LegacySolrCore -Name $Name -CoreBaseDir $SolrDir -CoreAdmin $SolrUrl -EA SilentlyContinue
+				}
             }
             else {
                 Write-Warning "Unable to determine Solr version"
