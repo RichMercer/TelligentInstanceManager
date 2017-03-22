@@ -43,7 +43,7 @@ if ($Error.Count -ne $initialErrorCount) {
     ? {!(Test-Path $_)} |
     % {new-item $_ -ItemType Directory | Out-Null}
 
-Install-SolrMultiCore -InstallDirectory $InstallDirectory -TomcatDirectory $TomcatDirectory -Force:$Force
+Install-Solr -InstallDirectory $InstallDirectory -TomcatDirectory $TomcatDirectory -Force:$Force
 
 Initalize-Environment $InstallDirectory $DatabaseServerInstance
 
