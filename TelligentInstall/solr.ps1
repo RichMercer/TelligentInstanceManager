@@ -81,7 +81,7 @@ function Add-SolrCore {
         [string]$Name,
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-		[ValidateScript({Test-Zip $_ })]
+		##[ValidateScript({Test-Zip $_ })]
         [string]$Package,
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
@@ -91,22 +91,13 @@ function Add-SolrCore {
         [ValidateNotNullOrEmpty()]
         [Uri]$CoreAdmin
     )   
-    $instanceDir = "${name}\$(get-date -f yyy-MM-dd)\"
-    $coreDir = join-path $coreBaseDir $instanceDir
-    new-item $coreDir -type directory | out-null
         
-    Write-Progress "Solr Core" "Creating Core"
-    
-    $coreZipDir = if ($PSCmdlet.ParameterSetName -eq 'Legacy') { 'search\solr\' } else { 'search\solr\content\' } 
-    Expand-Zip $package $coreDir -ZipDirectory $coreZipDir
-    
-    if ($PSCmdlet.ParameterSetName -eq 'Modern') {
-        #Remove existing core.properties to allow us to create the core
-        Join-Path $coreDir core.properties | Remove-Item
-    }
+    Write-Progress "Solr Core" "Registering Content Core"
+    # TODO: Test for telligent-content-cb15392 or the correct config set for the current version
+	$url = "${coreAdmin}?action=CREATE&configSet=telligent-content-cb15392&name=${Name}-content"
+    Invoke-WebRequest $url -UseBasicParsing -Method Post | Out-Null
 
-    Write-Progress "Solr Core" "Registering Core"
-	$url = "${coreAdmin}?action=CREATE&name=${name}&instanceDir=${instanceDir}"
+    $url = "${coreAdmin}?action=CREATE&configSet=telligent-conversations-de63a3d&name=${Name}-conversations"
     Invoke-WebRequest $url -UseBasicParsing -Method Post | Out-Null
 }
 
@@ -143,6 +134,35 @@ function Remove-LegacySolrCore {
     if(Test-Path $coreDir) {
         Remove-Item $coreDir -Recurse -Force
     }
+}
+
+function Remove-SolrCore {
+    <#
+    .SYNOPSIS
+        Removes a Solr Core
+    .PARAMETER Name
+        The name of the Solr Core to remove
+    .PARAMETER CoreBaseDir
+        The path to the root of the Solr instance hosting the core
+    .PARAMETER CoreAdmin
+        The url to the solr instance's Core Admin API.
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory=$true, Position=0)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Name,
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [Uri]$CoreAdmin
+    )
+
+    $url = "${CoreAdmin}?action=UNLOAD&core=${Name}-content&deleteindex=true"
+    Invoke-WebRequest $url -UseBasicParsing -Method Post | Out-Null
+
+    $url = "${CoreAdmin}?action=UNLOAD&core=${Name}-conversations&deleteindex=true"
+    Invoke-WebRequest $url -UseBasicParsing -Method Post | Out-Null
+    
 }
 
 

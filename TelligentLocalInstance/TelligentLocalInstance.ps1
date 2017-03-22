@@ -370,10 +370,16 @@ function Remove-TelligentInstance {
             #Remove the solr core
             Write-Progress 'Uninstalling Telligent Community' $Name -CurrentOperation 'Removing Solr Core'
             if($info) {
-                $solrVersion = Get-CommunitySolrVersion $info.PlatformVersion
-                $SolrUrl = (Get-CommunitySolrUrl $info.PlatformVersion) + '/admin/cores'
-                $SolrDir = Get-CommunitySolrFolder $info.PlatformVersion
-                Remove-SolrCore -Name $Name -CoreBaseDir $SolrDir -CoreAdmin $SolrUrl -EA SilentlyContinue
+				if($info.PlatformVersion.Major -ge 10) {
+					$SolrUrl = (Get-CommunitySolrUrl $info.PlatformVersion) + '/admin/cores'
+					Remove-SolrCore -Name $Name -CoreAdmin $SolrUrl -EA SilentlyContinue
+				}
+				else {
+					$solrVersion = Get-CommunitySolrVersion $info.PlatformVersion
+					$SolrUrl = (Get-CommunitySolrUrl $info.PlatformVersion) + '/admin/cores'
+					$SolrDir = Get-CommunitySolrFolder $info.PlatformVersion
+					Remove-LegacySolrCore -Name $Name -CoreBaseDir $SolrDir -CoreAdmin $SolrUrl -EA SilentlyContinue
+				}
             }
             else {
                 Write-Warning "Unable to determine Solr version"

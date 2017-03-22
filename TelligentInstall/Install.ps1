@@ -206,7 +206,6 @@ function Install-TelligentCommunity {
 	else {
         
         if($info.PlatformVersion.Major -ge 10) {
-            # TODO: Create 6.3.0 core here....
             Write-Progress 'Search' 'Setting Up Search'
             $solrUrl = $SolrBaseUrl.AbsoluteUri.TrimEnd('/')
             Write-Progress 'Search' 'Setting Up Search'
@@ -215,6 +214,8 @@ function Install-TelligentCommunity {
 		        -coreBaseDir $SolrCoreDir `
 		        -coreAdmin "$solrUrl/admin/cores"
 	       
+        Set-ConnectionString $WebsitePath "SearchContentUrl" "${solrUrl}/${SolrCoreName}-content/"
+        Set-ConnectionString $WebsitePath "SearchConversationsUrl" "${solrUrl}/solr/${SolrCoreName}-conversations/"
 
         }
         else {
@@ -224,7 +225,7 @@ function Install-TelligentCommunity {
             if($info.PlatformVersion.Major -ge 8) {
                 $solrCoreParams.ModernCore = $true
             }
-            Add-SolrCore $SolrCoreName `
+            Add-LegacySolrCore $SolrCoreName `
 		        -package $Package `
 		        -coreBaseDir $SolrCoreDir `
 		        -coreAdmin "$solrUrl/admin/cores" `
