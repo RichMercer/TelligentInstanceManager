@@ -235,7 +235,7 @@ function Install-Solr {
         if(!(Test-Path (Join-Path $solrBase $_))) {
             Invoke-WebRequest -Uri "https://github.com/RichMercer/TIM-Search/blob/master/$($_).zip?raw=true" -OutFile $FilePath
     
-            Expand-Zip $FilePath $SolrBase
+            Expand-Archive $FilePath $SolrBase
             Remove-Item $FilePath
 
             $InstallScript = Join-Path $SolrBase "$($_)/bin/ServiceInstall.ps1"
@@ -405,34 +405,3 @@ function Expand-Zip {
         $zipPackage.Dispose()
     }
 }
-
-function Test-Zip {
-	<#
-	.Synopsis
-		Tests whether a file exists and is a valid zip file.
-
-	.Parameter Path
-	    The path to the file to test
-
-	.Example
-		Test-Zip c:\sample.zip
-		
-		Description
-		-----------
-		This command checks if the file c:\sample.zip exists		
-	#>
-	[CmdletBinding()]
-    param(
-        [parameter(Mandatory=$true, Position=0, ValueFromPipeline=$true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$Path
-    )
-
-    Test-Path $Path -PathType Leaf
-    if((Get-Item $Path).Extension -ne '.zip') {
-		throw "$Path is not a zip file"
-    }
-}
-
-
-

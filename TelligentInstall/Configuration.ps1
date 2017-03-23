@@ -292,22 +292,12 @@ function Set-TelligentFilestorage {
     if ($Version.Major -ge 10) {
         Set-ConnectionString $WebsitePath -Name FileStorage -Value $FilestoragePath
     }
-    elseif ($version.Major -ge 7) {
+    else {
         Add-TelligentOverrideChangeAttribute $WebsitePath `
             -XPath "/CommunityServer/CentralizedFileStorage/fileStoreGroup[@name='default']" `
             -Name basePath `
             -Value $FilestoragePath
     }
-    else {
-        $csConfig = Merge-CommunityConfigurationFile $WebsitePath communityserver
-        $csConfig.CommunityServer.CentralizedFileStorage.fileStore.name |% {
-            Add-TelligentOverrideChangeAttribute $WebsitePath `
-                -XPath "/CommunityServer/CentralizedFileStorage/fileStore[@name='$_']" `
-                -Name basePath `
-                -Value $FilestoragePath
-        }
-    }
-
 }
 
 function Set-TelligentSolrUrl {
