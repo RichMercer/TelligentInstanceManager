@@ -211,7 +211,7 @@ function Install-TelligentInstance {
 function Get-CommunitySolrVersion {
     <#
         .SYNOPSIS
-            Gets the Solr version for a given community version numeber
+            Gets the Solr version for a given community version number
         .PARAMETER Version
             The community version
         .EXAMPLE
@@ -240,7 +240,7 @@ function Get-CommunitySolrVersion {
 function Get-CommunitySolrUrl {
     <#
         .SYNOPSIS
-            Gets the Solr version for a given community version numeber
+            Gets the Solr instance URL for a given community version number
         .PARAMETER Version
             The community version
         .EXAMPLE
@@ -265,7 +265,7 @@ function Get-CommunitySolrUrl {
 function Get-CommunitySolrFolder {
     <#
         .SYNOPSIS
-            Gets the Solr version for a given community version numeber
+            Gets the Solr version for a given community version number
         .PARAMETER Version
             The community version
         .EXAMPLE
