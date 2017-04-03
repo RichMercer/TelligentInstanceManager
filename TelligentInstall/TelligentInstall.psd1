@@ -12,7 +12,7 @@
 ModuleToProcess = ''
 
 # Version number of this module.
-ModuleVersion = '0.0.6'
+ModuleVersion = '0.0.7'
 
 # ID used to uniquely identify this module
 GUID = '1ad0eb2e-ca95-4462-bec2-308e7967b3ce'
@@ -82,8 +82,10 @@ FunctionsToExport = @(
                     'Get-TelligentCommunity'
 
                     'Add-SolrCore'
+					'Add-LegacySolrCore'
                     'Set-TelligentSolrUrl'
                     'Remove-SolrCore'
+					'Remove-LegacySolrCore'
 
                     'Install-Community'
                     'Uninstall-Community'
@@ -100,6 +102,7 @@ FunctionsToExport = @(
 
                     'Remove-Database'
                     'Set-ConnectionString'
+                    'Set-DatabaseConnectionString'
                     'Grant-TelligentDatabaseAccess'
                     'New-TelligentDatabase'
                     'Update-TelligentDatabase'
