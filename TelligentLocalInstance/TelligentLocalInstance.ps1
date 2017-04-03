@@ -54,7 +54,7 @@ function Get-TelligentInstance {
 
     $data = Get-Configuration
     
-    $results = Get-ChildItem $data.InstanceBase "Web" -Recurse |
+    $results = Get-ChildItem (Join-Path $data.InstanceBase "*/Web") |
             select -ExpandProperty FullName |
             Get-TelligentCommunity -EA SilentlyContinue
 
