@@ -9,11 +9,16 @@ Powershell Scripts to automate the installation of Telligent Community on a loca
 * SQL Server 2012 (or higher)
 
 ## Installation
+
+The easiest way to install from the powershell gallery.  To do this run teh following 3 commands.
+
 1. `Set-ExecutionPolicy RemoteSigned`
 2. `Install-Module -Name TelligentLocalInstance`
 3. `Initialize-TelligentInstanceManager -InstallDirectory [Path to install]`
 
 We recommend that the path you install to is high up on your file system (e.g. `c:\TelligentInstances`) - if you install to a deep directory, you may encounter issues within Telligent Community due to Window's MAX_PATH length.
+
+If you want to run from source instead of the powershell gallery, replace step 2 with cloning this repo, and adding the repo path to the `PSModulePath` environment variable.
 
 ### Packages
 
