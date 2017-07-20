@@ -222,9 +222,7 @@ function Install-TelligentCommunity {
             $solrUrl = $SolrBaseUrl.AbsoluteUri.TrimEnd('/')
             Write-Progress 'Search' 'Setting Up Search'
             $solrCoreParams = @{}
-            if($info.PlatformVersion.Major -ge 8) {
-                $solrCoreParams.ModernCore = $true
-            }
+            
             Add-LegacySolrCore $SolrCoreName `
 		        -package $Package `
 		        -coreBaseDir $SolrCoreDir `
