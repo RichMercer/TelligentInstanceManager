@@ -53,7 +53,3 @@ Remove-TelligentInstance
 Deletes an instance of Telligent Community currently installed. Accepts piped parameter from `Get-TelligentInstance -Name [Instance Name]`
 
 Example: `Get-TelligentInstance example.local | Remove-TelligentInstance`
-
-## TODO: Job Server
-
-Explain how to run Job Server instances.
