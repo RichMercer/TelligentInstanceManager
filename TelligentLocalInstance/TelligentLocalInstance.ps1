@@ -1,6 +1,5 @@
 ﻿Set-StrictMode -Version 2
 
-
 function Get-Configuration {
     $base = $env:TelligentInstanceManager
     if (!$base) {
@@ -135,7 +134,9 @@ function Install-TelligentInstance {
         [string] $DatabaseServerInstance,
         [string] $DatabaseName = $Name,
         [ValidatePattern('^[a-z0-9\-\._ ]+$')]
-        [string] $ApiKey
+        [string] $ApiKey,
+        [switch] $EnableDeveloperMode,
+        [switch] $InstallInternalJobs = $true
     )
 
     $data = Get-Configuration
@@ -185,16 +186,17 @@ function Install-TelligentInstance {
         $dbUsername = Get-IISAppPoolIdentity $Name
         Invoke-TelligentSqlCmd -WebsitePath $webDir -Query "EXEC sp_addrolemember N'db_owner', N'$dbUsername'"
 
-    	if($info.PlatformVersion -ge 5.6 -and $info.PlatformVersion.Major -lt 8){
-            Register-TelligentTasksInWebProcess $webDir $basePackage
-        }
-
-        if ($WindowsAuth) {
+    	if ($WindowsAuth) {
             Enable-TelligentWindowsAuth $webDir -EmailDomain '@tempuri.org' -ProfileRefreshInterval 0
         }        
         
-        if($info.PlatformVersion.Major -ge 9) {
+        if($info.PlatformVersion.Major -ge 9 -and $EnableDeveloperMode) {
             Enable-DeveloperMode $webDir
+        }
+
+		Write-Host "Installing local jobs?" $InstallInternalJobs
+        if($info.PlatformVersion.Major -ge 9 -and $InstallInternalJobs) {
+            Enable-InternalJobs $webDir
         }
 
         #Add site to hosts files
@@ -365,7 +367,7 @@ function Remove-TelligentInstance {
             #Remove site from hosts files
             Write-Progress 'Uninstalling Telligent Community' $Name -CurrentOperation 'Removing Hosts entry'
             $hostsPath = join-path $env:SystemRoot system32\drivers\etc\hosts
-            (Get-Content $hostsPath) | Where-Object {$_ -ne "127.0.0.1 $domain"} | Set-Content $hostsPath
+            (Get-Content $hostsPath) | Where-Object {$_ -ne "127.0.0.1 $domain"} | Out-File $hostsPath
     
             #Remove the solr core
             Write-Progress 'Uninstalling Telligent Community' $Name -CurrentOperation 'Removing Solr Core'

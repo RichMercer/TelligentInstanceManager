@@ -136,7 +136,6 @@ function Set-DatabaseConnectionString {
     Set-ConnectionString $WebsitePath -Name 'SiteSqlServer' -Value $connectionString
 }
 
-
 function Get-ConnectionString {
     <#
     .SYNOPSIS
@@ -371,71 +370,6 @@ values ('$LicenseId', N'$LicenseContent', getdate())
 	Invoke-TelligentSqlCmd -WebsitePath $WebsitePath -Query $sql
 }
 
-function Register-TelligentTasksInWebProcess {
-	<#
-	.SYNOPSIS
-		Registers the Job Scheduler tasks in the web process of the Telligent Community instance in the current directory for a development environment
-    .DESCRIPTION
-        Do NOT use this in a production environment
-        
-        In production environments, the Job Scheduler must be used to offload tasks from the Web Server and to ensure tasks continue to run through Application Pool recycles, as well as to avoid conflicts in a multi server environment
-    .PARAMETER WebsitePath
-        The path of the Telligent Community website. If not specified, defaults to the current directory.
-	.PARAMETER Package
-	    The path to the zip package containing the Telligent Community installation files from Telligent Support
-	#>
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [ValidateScript({ Test-TelligentPath $_ })]
-        [string]$WebsitePath,
-        [Parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-		[ValidateScript({Test-Zip $_ })]
-        [string]$Package
-    )
-    $info = Get-TelligentCommunity $WebsitePath
-	if($info.PlatformVersion -lt 5.6){
-        Write-Error 'Job Scheduler not supported on 5.5 or below'
-    }
-    elseif($info.PlatformVersion.Major -ge 8) { 
-        Write-Error 'Jobs can no longer be run in the web process in 8.0 or higher'
-    }
-    else {
-        Write-Warning "Registering Tasks in the web process is not supported for production environments. Only do this in non production environments"
-
-        $tempDir = Join-Path $env:temp ([guid]::NewGuid())
-        Expand-Zip -Path $Package -destination $tempDir -ZipDirectory Tasks -zipFile tasks.config
-        $webTasksPath = Join-Path $WebsitePath tasks.config | Resolve-Path
-        if ($webTasksPath) {
-            $webTasks = [xml](gc $webTasksPath)
-	        if($webTasks.jobs.cron){
-		        #6.0+
-		        $jsTasks = [xml](Join-Path $tempDir tasks.config | Resolve-Path | Get-Content)
-		        $jsTasks.jobs.cron.jobs.job |% {
-    	            $webTasks.jobs.cron.jobs.AppendChild($webTasks.ImportNode($_, $true)) | Out-Null
-	            }
-		        $webTasks.jobs.dynamic.mode = 'Server'
-	        }
-	        else {
-		        #5.6
-		        $tasks = [xml]$tasks5x
-		        $tasks.jobs.job |% {
-    	            $webTasks.scheduler.jobs.AppendChild($webTasks.ImportNode($_, $true)) | out-null
-	            }
-		        $version = (Get-TelligentCommunity $WebsitePath).PlatformVersion
-		        if($version.Revision -ge 17537) {
-			        $reindexNode = [xml]'<job schedule="30 * * * * ? *" type="CommunityServer.Search.SiteReindexJob, CommunityServer.Search" />'
-    	            $webTasks.scheduler.jobs.AppendChild($webTasks.ImportNode($reindexNode.job, $true)) | out-null
-		        }
-	        }
-
-	        $webTasks.Save($webTasksPath)
-        }
-	}
-}
-
 function Disable-CustomErrors {
 	<#
 	.SYNOPSIS
@@ -484,6 +418,32 @@ function Enable-DeveloperMode {
 	$webConfig.configuration.appSettings.add |
         ? { $_.key -eq 'EnableDeveloperMode'} |
         % { $_.value = 'true'}		
+    
+    $webConfig.Save($configPath)
+}
+
+function Enable-InternalJobs {
+	<#
+	.SYNOPSIS
+		Enables job server to run as an internal process of the website.
+    .PARAMETER WebsitePath
+        The path of the ASP.Net Web Application. If not specified, defaults to the current directory.
+	.EXAMPLE
+		Enable-InternalJobs 
+	#>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({ Test-TelligentPath $_ })]
+        [string]$WebsitePath
+    )
+    
+    $configPath = Join-Path $WebsitePath web.config | Resolve-Path
+    $webConfig = [xml] (Get-Content $configPath )
+	
+    $jobSection = [xml]'<add key="RunJobsInternally" value="true" />'
+    $webConfig.configuration.appSettings.AppendChild($webConfig.ImportNode($jobSection.DocumentElement, $true)) | out-null
     
     $webConfig.Save($configPath)
 }
@@ -620,96 +580,3 @@ function Enable-TelligentLdap {
 
     $webConfig.Save($webConfigPath)
 }
-
-$tasks5x = data {@"
-<jobs>
-	<job schedule="0 */3 * * * ? *" type="CommunityServer.Components.AnonymousUserJob, CommunityServer.Components" />
-	<job schedule="0 */3 * * * ? *" type="CommunityServer.Components.ReferralsJob, CommunityServer.Components" />
-	<job schedule="0 */3 * * * ? *" type="CommunityServer.Components.ViewsJob, CommunityServer.Components" />
-	<job schedule="0 */3 * * * ? *" type="CommunityServer.Wikis.Components.PageViewsJob, CommunityServer.Wikis" />
-
-	<job schedule="0 */1 * * * ? *" type="CommunityServer.MailRoom.Components.EmailJob, CommunityServer.MailGateway.MailRoom">
-		<settings>
-			<add key="failureInterval" value="1" />
-			<add key="numberOfTries" value="10" />
-		</settings>
-	</job>
-	<job schedule="0 */1 * * * ? *" type="CommunityServer.MailRoom.Components.BulkEmailJob, CommunityServer.MailGateway.MailRoom">
-		<settings>
-			<add key="failureInterval" value="1" />
-			<add key="numberOfTries" value="10" />
-		</settings>
-	</job>
-	<job schedule="0 */1 * * * ? *" type="CommunityServer.Search.Tasks.SearchIndexingContentHandlerTask, CommunityServer.Search">
-		<settings>
-			<add key="documentsPerRun" value="100" />
-			<add key="handler-1" value="CommunityServer.Search.UserContentHandler, CommunityServer.Search" />
-			<add key="handler-2" value="CommunityServer.Search.GroupContentHandler, CommunityServer.Search" />
-			<add key="handler-3" value="CommunityServer.Search.ForumContentHandler, CommunityServer.Search" />
-			<add key="handler-4" value="CommunityServer.Search.WeblogContentHandler, CommunityServer.Search" />
-			<add key="handler-5" value="CommunityServer.Search.ContentFragmentPageContentHandler, CommunityServer.Search" />
-			<add key="handler-6" value="CommunityServer.Search.MediaGalleryContentHandler, CommunityServer.Search" />
-			<add key="handler-7" value="CommunityServer.Search.WikiContentHandler, CommunityServer.Search" />
-			<add key="handler-8" value="CommunityServer.Search.WeblogPostContentHandler, CommunityServer.Search" />
-			<add key="handler-9" value="CommunityServer.Search.MediaGalleryPostContentHandler, CommunityServer.Search" />
-			<add key="handler-10" value="CommunityServer.Search.WikiPageContentHandler, CommunityServer.Search" />
-			<add key="handler-11" value="CommunityServer.Search.ForumPostContentHandler, CommunityServer.Search" />
-		</settings>
-	</job>
-	<job schedule="0 0 3 ? * SUN,WED" type="CommunityServer.Search.Solr.IndexOptimizationJob, CommunityServer.Search.Providers" />
-	<job schedule="0 */2 * * * ? *" type="CommunityServer.Components.TagCleanupJob, CommunityServer.Components">
-		<settings>
-			<add key="applications" value="forum" />
-		</settings>
-	</job>
-	<job schedule="0 */2 * * * ? *" type="CommunityServer.Blogs.Components.RecentContentJob, CommunityServer.Blogs" />
-	<job schedule="0 */2 * * * ? *" type="CommunityServer.Components.CalculateTagCountsJob, CommunityServer.Components" />
-	<job schedule="0 */3 * * * ? *" type="CommunityServer.Components.SiteStatisticsJob, CommunityServer.Components" />
-	<job schedule="0 */3 * * * ? *" type="CommunityServer.Components.EventLogJob, CommunityServer.Components" />
-	<job schedule="0 */3 * * * ? *" type="CommunityServer.Blogs.Components.ModeratedFeedbackNotificationJob, CommunityServer.Blogs" />
-	<job schedule="0 */3 * * * ? *" type="CommunityServer.Blogs.Components.GenerateWeblogYearMonthDayListJob, CommunityServer.Blogs" />
-	<job schedule="0 */3 * * * ? *" type="CommunityServer.Components.TemporaryUserTokenExpirationTask, CommunityServer.Components" />
-	<job schedule="0 */3 * * * ? *" type="CommunityServer.Components.TemporaryStoreExpirationTask, CommunityServer.Components" />
-	<job schedule="0 */3 * * * ? *" type="CommunityServer.Components.CalculateSectionTotalsJob, CommunityServer.Components" />
-	<job schedule="0 */3 * * * ? *" type="CommunityServer.Blogs.Components.RollerBlogUpdater, CommunityServer.Blogs" />
-	<job schedule="0 */3 * * * ? *" type="CommunityServer.Components.PostAttachmentCleanupJob, CommunityServer.Components">
-		<settings>
-			<add key="expiresAfterHours" value="2" />
-		</settings>
-	</job>
-	<job schedule="0 */3 * * * ? *" type="CommunityServer.Components.ThemeConfigurationPreviewCleanupJob, CommunityServer.Components">
-		<settings>
-			<add key="expiresAfterHours" value="2" />
-		</settings>
-	</job>
-	<job schedule="0 */3 * * * ? *" type="CommunityServer.Components.UserInvitationExpirationJob, CommunityServer.Components">
-		<settings>
-			<add key="expirationDays" value="30" />
-		</settings>
-	</job>
-	<job schedule="0 */3 * * * ? *" type="CommunityServer.Blogs.Components.DeleteStaleSpamCommentsJob, CommunityServer.Blogs">
-		<settings>
-			<add key="expirationDays" value="2" />
-		</settings>
-	</job>
-	<job schedule="0 */3 * * * ? *" type="CommunityServer.Components.MultipleFileUploadCleanupJob, CommunityServer.Components">
-		<settings>
-			<add key="expiresAfterHours" value="2" />
-		</settings>
-	</job>
-	<job schedule="0 */5 * * * ? *" type="CommunityServer.Components.LdapSyncJob, CommunityServer.Components" />
-	<!-- Enable this task to enable background deletion of old activity messages.
-					expirationDays (int) = messages older than this number of days can be deleted
-					minUserMessages (int) = the minimum number of messages a user should retain. -->
-	<!--<job schedule="0 */3 * * * ? *" type="CommunityServer.Messages.Tasks.MessageRemovalTask, CommunityServer.Messages">
-			<settings>
-				<add key="expirationDays" value="30" />
-				<add key="minUserMessages" value="30" />
-			</settings>
-		</job>-->
-
-
-</jobs>
-"@}
-
-
