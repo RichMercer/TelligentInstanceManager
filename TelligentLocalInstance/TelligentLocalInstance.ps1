@@ -367,7 +367,7 @@ function Remove-TelligentInstance {
             #Remove site from hosts files
             Write-Progress 'Uninstalling Telligent Community' $Name -CurrentOperation 'Removing Hosts entry'
             $hostsPath = join-path $env:SystemRoot system32\drivers\etc\hosts
-            (Get-Content $hostsPath) | Where-Object {$_ -ne "127.0.0.1 $domain"} | Out-File $hostsPath
+            (Get-Content $hostsPath) | Where-Object {$_ -ne "127.0.0.1 $domain"} | Out-File $hostsPath -Encoding UTF8
     
             #Remove the solr core
             Write-Progress 'Uninstalling Telligent Community' $Name -CurrentOperation 'Removing Solr Core'
