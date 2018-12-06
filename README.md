@@ -14,6 +14,7 @@ The easiest way to install from the powershell gallery.  To do this run the foll
 
 ```powershell
 Set-ExecutionPolicy RemoteSigned
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 
 Install-Module -Name TelligentLocalInstance
 Initialize-TelligentInstanceManager -InstallDirectory [Path to install]
 ```
