@@ -152,11 +152,8 @@ function Install-TelligentInstance {
     $domain = if($Name.Contains('.')) { $Name } else { "$Name.local"}
     $DatabaseServerInstance = if($DatabaseServerInstance) { $DatabaseServerInstance } else { $data.SqlServer }
 	$licensePath = join-path $data.LicensesPath "Community$($Version.Major).xml"
-	if(!(Test-Path $licensePath)) { $licensePath = $null }
-
-    if(!(Test-Path $webDir)) {
-        New-Item $webDir -ItemType Directory | out-null
-    }
+	
+    if(!(Test-Path $licensePath)) { $licensePath = $null }
 
 	# To avoid ambiguity between the enviornment specificl Install-TelligentCommunity and
 	# the generic base, the base function is private, so have to pull it out via a bit
