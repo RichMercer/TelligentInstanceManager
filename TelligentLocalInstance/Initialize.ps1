@@ -230,7 +230,7 @@ function Install-Solr {
     Start-Service tomcat* -ErrorAction Continue
 
 	# Install new Solr 6+ Version. Add to the array for each version required to be downloaded and installed.
-    @('6-3-0') |% {
+    @('6-3-0', '7-6-0') |% {
         $FilePath = Join-Path $solrBase "$($_).zip"
         if(!(Test-Path (Join-Path $solrBase $_))) {
             Invoke-WebRequest -Uri "https://github.com/RichMercer/TIM-Search/blob/master/$($_).zip?raw=true" -OutFile $FilePath
@@ -238,8 +238,9 @@ function Install-Solr {
             Expand-Archive $FilePath $SolrBase
             Remove-Item $FilePath
 
+            $PortNumber = "8$($_.Replace('-', ''))"
             $InstallScript = Join-Path $SolrBase "$($_)/bin/ServiceInstall.ps1"
-            &$InstallScript -ServiceName "TIM-Search-$($_)" -DisplayName "TIM Search $($_)" -Port 8630
+            &$InstallScript -ServiceName "TIM-Search-$($_)" -DisplayName "TIM Search $($_)" -Port $PortNumber
         }
     }
 }

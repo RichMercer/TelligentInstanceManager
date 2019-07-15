@@ -125,12 +125,19 @@ function Install-TelligentCommunity {
         [ValidateNotNullOrEmpty()]
         [string]$SolrCoreName = $Name,
 
+        [Parameter(ParameterSetName='SolrCore', Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$SolrContentConfigSet,
+
+        [Parameter(ParameterSetName='SolrCore', Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$SolrConversationsConfigSet,
 
 		#Misc
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
         [ValidatePattern('^[a-z0-9\-\._ ]+$')]
         [ValidateNotNullOrEmpty()]
-        [string]$AdminPassword ,
+        [string]$AdminPassword,
 
         [Parameter(ValueFromPipelineByPropertyName=$true)]
         [string]$ApiKey,
@@ -182,7 +189,10 @@ function Install-TelligentCommunity {
     Write-Progress 'Configuration' 'Setting Connection Strings'
     Set-DatabaseConnectionString $WebsitePath @sqlConnectionSettings $SqlCredential
     
-    New-TelligentDatabase -Package $Package -WebDomain $webDomain -AdminPassword $AdminPassword @sqlConnectionSettings        
+    $info = Get-TelligentCommunity $WebsitePath 
+
+    $LegacyDb = ($info.PlatformVersion.Major -lt 11)
+    New-TelligentDatabase -Package $Package -WebDomain $webDomain -AdminPassword $AdminPassword @sqlConnectionSettings -Legacy:$LegacyDb
 
     Grant-TelligentDatabaseAccess -CommunityPath $WebsitePath @sqlAuthSettings
 
@@ -199,7 +209,6 @@ function Install-TelligentCommunity {
 		Write-Warning 'No License installed.'
 	}
 
-    $info = Get-TelligentCommunity $WebsitePath 
 	if(!$SolrCore) {
 		Write-Warning 'No search url specified. Many features will not work until search is configured.'
 	}
@@ -212,19 +221,20 @@ function Install-TelligentCommunity {
             Add-SolrCore $SolrCoreName `
 		        -package $Package `
 		        -coreBaseDir $SolrCoreDir `
-		        -coreAdmin "$solrUrl/admin/cores"
+		        -coreAdmin "$solrUrl/admin/cores" `
+                -contentConfigSet $SolrContentConfigSet `
+                -conversationsConfigSet $SolrConversationsConfigSet
+
 	       
         Set-ConnectionString $WebsitePath "SearchContentUrl" "${solrUrl}/${SolrCoreName}-content/"
-        Set-ConnectionString $WebsitePath "SearchConversationsUrl" "${solrUrl}/solr/${SolrCoreName}-conversations/"
+        Set-ConnectionString $WebsitePath "SearchConversationsUrl" "${solrUrl}/${SolrCoreName}-conversations/"
 
         }
         else {
             $solrUrl = $SolrBaseUrl.AbsoluteUri.TrimEnd('/')
             Write-Progress 'Search' 'Setting Up Search'
             $solrCoreParams = @{}
-            if($info.PlatformVersion.Major -ge 8) {
-                $solrCoreParams.ModernCore = $true
-            }
+            
             Add-LegacySolrCore $SolrCoreName `
 		        -package $Package `
 		        -coreBaseDir $SolrCoreDir `
@@ -234,6 +244,10 @@ function Install-TelligentCommunity {
 	        Set-TelligentSolrUrl $WebsitePath "$solrUrl/$SolrCoreName/"
         }
 	}
+
+    if($info.PlatformVersion.Major -ge 11) {
+        Set-ConnectionString $WebsitePath 'SiteUrl' "http://$webDomain/"
+    }
 
     if($ApiKey) {
         New-CommunityApiKey $WebsitePath $ApiKey -UserId 2100 -Name "Well Known API Key $(Get-Date -f g)"

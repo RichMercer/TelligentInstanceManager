@@ -12,10 +12,6 @@ function Add-LegacySolrCore {
         The path to the root of the Solr instance hosting the core
     .PARAMETER CoreAdmin
         The url to the solr instance's Core Admin API.
-    .PARAMETER LegacyCore
-        Creates a core for Telligent Community 7.6 and below
-	.PARAMETER ModernCore
-		Creates a core for Telligent Community 8.0 and above
     #>
     [CmdletBinding(DefaultParameterSetName='Legacy')]
     param (
@@ -40,16 +36,13 @@ function Add-LegacySolrCore {
         
     Write-Progress "Solr Core" "Creating Core"
     
-    $coreZipDir = if ($PSCmdlet.ParameterSetName -eq 'Legacy') { 'search\solr\' } else { 'search\solr\content\' } 
-    Expand-Zip $package $coreDir -ZipDirectory $coreZipDir
+    Expand-Zip $package $coreDir -ZipDirectory "search\solr\content\"
     
-    if ($PSCmdlet.ParameterSetName -eq 'Modern') {
-        #Remove existing core.properties to allow us to create the core
-        Join-Path $coreDir core.properties | Remove-Item
-    }
+    Join-Path $coreDir core.properties | Remove-Item
 
     Write-Progress "Solr Core" "Registering Core"
 	$url = "${coreAdmin}?action=CREATE&name=${name}&instanceDir=${instanceDir}"
+
     Invoke-WebRequest $url -UseBasicParsing -Method Post | Out-Null
 }
 
@@ -67,8 +60,6 @@ function Add-SolrCore {
         The url to the solr instance's Core Admin API.
     .PARAMETER LegacyCore
         Creates a core for Telligent Community 7.6 and below
-	.PARAMETER ModernCore
-		Creates a core for Telligent Community 8.0 and above
     #>
     [CmdletBinding(DefaultParameterSetName='Legacy')]
     param (
@@ -85,15 +76,21 @@ function Add-SolrCore {
         [string]$CoreBaseDir,
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [Uri]$CoreAdmin
+        [Uri]$CoreAdmin,
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [Uri]$ContentConfigSet,
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [Uri]$ConversationsConfigSet
     )   
         
     Write-Progress "Solr Core" "Registering Content Core"
-    # TODO: Test for telligent-content-cb15392 or the correct config set for the current version
-	$url = "${coreAdmin}?action=CREATE&configSet=telligent-content-cb15392&name=${Name}-content"
+    
+    $url = "${coreAdmin}?action=CREATE&configSet=${ContentConfigSet}&name=${Name}-content"
     Invoke-WebRequest $url -UseBasicParsing -Method Post | Out-Null
 
-    $url = "${coreAdmin}?action=CREATE&configSet=telligent-conversations-de63a3d&name=${Name}-conversations"
+    $url = "${coreAdmin}?action=CREATE&configSet=$ConversationsConfigSet&name=${Name}-conversations"
     Invoke-WebRequest $url -UseBasicParsing -Method Post | Out-Null
 }
 

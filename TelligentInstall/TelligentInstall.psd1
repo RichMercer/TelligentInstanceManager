@@ -12,7 +12,7 @@
 ModuleToProcess = ''
 
 # Version number of this module.
-ModuleVersion = '0.0.7'
+ModuleVersion = '0.0.11'
 
 # ID used to uniquely identify this module
 GUID = '1ad0eb2e-ca95-4462-bec2-308e7967b3ce'
@@ -24,7 +24,7 @@ Author = @('Alex Crome', 'Rich Mercer')
 CompanyName = 'Telligent Systems, Inc.'
 
 # Copyright statement for this module
-Copyright = 'Copyright (c) 2016 Telligent'
+Copyright = 'Copyright (c) 2018 Telligent'
 
 # Description of the functionality provided by this module
 Description = 'Helper functions for installing Telligent Community'
@@ -98,8 +98,7 @@ FunctionsToExport = @(
                     'Install-TelligentJobScheduler'
                     'Install-TelligentJobSchedulerService'
                     'Update-TelligentJobSchedulerFromWeb'
-                    'Register-TelligentTasksInWebProcess'
-
+                    
                     'Remove-Database'
                     'Set-ConnectionString'
                     'Set-DatabaseConnectionString'
@@ -114,6 +113,7 @@ FunctionsToExport = @(
                     'Write-ProgressFromVerbose'
 
 					'Enable-DeveloperMode'
+                    'Enable-InternalJobs'
                     'Enable-TelligentWindowsAuth'
                     'Enable-TelligentLdap'
 
@@ -144,8 +144,8 @@ FileList = @()
 PrivateData = @{
     PSData = @{
         ExternalModuleDependencies = @('webadministration', 'sqlps')
-        ProjectUri = 'https://github.com/afscrome/TelligentInstanceManager/'
-        LicenseUri = 'https://github.com/afscrome/TelligentInstanceManager/blob/master/License.md'
+        ProjectUri = 'https://github.com/RichMercer/TelligentInstanceManager/'
+        LicenseUri = 'https://github.com/RichMercer/TelligentInstanceManager/blob/master/License.md'
         Tags = 'Telligent'
     }
 }

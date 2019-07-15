@@ -134,7 +134,9 @@ function Install-TelligentInstance {
         [string] $DatabaseServerInstance,
         [string] $DatabaseName = $Name,
         [ValidatePattern('^[a-z0-9\-\._ ]+$')]
-        [string] $ApiKey
+        [string] $ApiKey,
+        [switch] $EnableDeveloperMode,
+        [switch] $InstallInternalJobs = $true
     )
 
     $data = Get-Configuration
@@ -143,6 +145,8 @@ function Install-TelligentInstance {
     $solrVersion = Get-CommunitySolrVersion $Version
     $solrUrl = Get-CommunitySolrUrl $Version
     $solrDir = Get-CommunitySolrFolder $Version
+    $solrContentConfigSet = Get-CommunitySolrContentConfigSet $Version
+    $solrConversationsConfigSet = Get-CommunitySolrConversationsConfigSet $Version
     $instanceDir = Join-Path $data.InstanceBase $Name
     $webDir = Join-Path $instanceDir Web
     $jsDir = Join-Path $instanceDir JobServer
@@ -152,9 +156,10 @@ function Install-TelligentInstance {
     $sqlPassword = [string][guid]::NewGuid()
     $sqlCred = New-Object PSCredential $Name, (ConvertTo-SecureString -String $sqlPassword -AsPlainText -fo)
 	$licensePath = join-path $data.LicensesPath "Community$($Version.Major).xml"
-	if(!(Test-Path $licensePath)) { $licensePath = $null }
+	
+    if(!(Test-Path $licensePath)) { $licensePath = $null }
 
-    # To avoid ambiguity between the enviornment specificl Install-TelligentCommunity and
+	# To avoid ambiguity between the enviornment specificl Install-TelligentCommunity and
 	# the generic base, the base function is private, so have to pull it out via a bit
 	# of module hackery
 	$module = Get-Module TelligentInstall
@@ -171,6 +176,8 @@ function Install-TelligentInstance {
         -SolrCore `
         -SolrBaseUrl $solrUrl `
         -SolrCoreDir $solrDir `
+        -SolrContentConfigSet $solrContentConfigSet `
+        -SolrConversationsConfigSet $solrConversationsConfigSet `
         -AdminPassword $data.AdminPassword `
         -DatabaseServer $DatabaseServerInstance `
         -DatabaseName $DatabaseName `
@@ -190,6 +197,19 @@ function Install-TelligentInstance {
             Enable-TelligentWindowsAuth $webDir -EmailDomain '@tempuri.org' -ProfileRefreshInterval 0
         }        
         
+    	if ($WindowsAuth) {
+            Enable-TelligentWindowsAuth $webDir -EmailDomain '@tempuri.org' -ProfileRefreshInterval 0
+        }        
+        
+        if($info.PlatformVersion.Major -ge 9 -and $EnableDeveloperMode) {
+            Enable-DeveloperMode $webDir
+        }
+
+		Write-Host "Installing local jobs?" $InstallInternalJobs
+        if($info.PlatformVersion.Major -ge 9 -and $InstallInternalJobs) {
+            Enable-InternalJobs $webDir
+        }
+
         #Add site to hosts files
         Add-Content -value "`r`n127.0.0.1 $domain" -Path (join-path $env:SystemRoot system32\drivers\etc\hosts)
 
@@ -242,7 +262,10 @@ function Get-CommunitySolrVersion {
         [ValidateNotNullOrEmpty()]
         [Version]$Version
     )
-    if($Version.Major -ge 10) {
+    if($Version.Major -ge 11) {
+		'7-6-0'
+	}
+    elseif($Version.Major -ge 10) {
 		'6-3-0'
 	}
 	elseif($Version.Major -ge 9) {
@@ -273,12 +296,69 @@ function Get-CommunitySolrUrl {
     )
     $solrVersion = Get-CommunitySolrVersion $Version
 
-    if($Version.Major -ge 10) {
+    if($Version.Major -ge 11) {
+		"http://${env:COMPUTERNAME}:8760/solr"
+	}
+    elseif($Version.Major -ge 10) {
 		"http://${env:COMPUTERNAME}:8630/solr"
 	}
 	else {
 		"http://${env:COMPUTERNAME}:8080/$solrVersion"
 	}
+}
+
+function Get-CommunitySolrContentConfigSet {
+    <#
+        .SYNOPSIS
+            Gets the Solr instance URL for a given community version number
+        .PARAMETER Version
+            The community version
+        .EXAMPLE
+            Get-CommunitySolrVersion 9.0
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
+        [ValidateNotNullOrEmpty()]
+        [Version]$Version
+    )
+    
+    if($Version.Major -ge 11) {
+		"telligent-content-3db1dc6"
+	}
+    elseif($Version.Major -ge 10) {
+		"telligent-content-cb15392"
+	}
+    else {
+        ""
+    }
+}
+
+function Get-CommunitySolrConversationsConfigSet {
+    <#
+        .SYNOPSIS
+            Gets the Solr instance URL for a given community version number
+        .PARAMETER Version
+            The community version
+        .EXAMPLE
+            Get-CommunitySolrVersion 9.0
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
+        [ValidateNotNullOrEmpty()]
+        [Version]$Version
+    )
+    
+    if($Version.Major -ge 11) {
+		"telligent-conversations-3db1dc6"
+	}
+    elseif($Version.Major -ge 10) {
+		"telligent-conversations-de63a3d"
+	}
+    else {
+        ""
+    }
 }
 
 function Get-CommunitySolrFolder {
@@ -389,7 +469,7 @@ function Remove-TelligentInstance {
             #Remove site from hosts files
             Write-Progress 'Uninstalling Telligent Community' $Name -CurrentOperation 'Removing Hosts entry'
             $hostsPath = join-path $env:SystemRoot system32\drivers\etc\hosts
-            (Get-Content $hostsPath) | Where-Object {$_ -ne "127.0.0.1 $domain"} | Set-Content $hostsPath
+            (Get-Content $hostsPath) | Where-Object {$_ -ne "127.0.0.1 $domain"} | Out-File $hostsPath -Encoding UTF8
     
             #Remove the solr core
             Write-Progress 'Uninstalling Telligent Community' $Name -CurrentOperation 'Removing Solr Core'

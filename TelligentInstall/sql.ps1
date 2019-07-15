@@ -102,7 +102,9 @@ function New-TelligentDatabase {
         [string]$WebDomain,
         [parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-		[string]$AdminPassword
+		[string]$AdminPassword,
+        [parameter(Mandatory=$true)]
+        [switch]$Legacy
     )
 
     $connectionInfo = @{
@@ -132,20 +134,31 @@ function New-TelligentDatabase {
             Invoke-Sqlcmd @connectionInfo -InputFile $sqlScript -QueryTimeout 6000 -DisableVariables
         }
         Remove-Item $tempDir -Recurse -Force | out-null
-
-        $createCommunityQuery = @"
-             EXECUTE [dbo].[cs_system_CreateCommunity]
-                    @SiteUrl = N'http://${WebDomain}/'
-                    , @ApplicationName = N'$Name'
-                    , @AdminEmail = N'notset@${WebDomain}'
-                    , @AdminUserName = N'admin'
-                    , @AdminPassword = N'$adminPassword'
-                    , @PasswordFormat = 0
-                    , @CreateSamples = 0
+        
+        if($Legacy) {
+            $createCommunityQuery = @"
+                 EXECUTE [dbo].[cs_system_CreateCommunity]
+                        @SiteUrl = N'http://${WebDomain}/'
+                        , @ApplicationName = N'$Name'
+                        , @AdminEmail = N'notset@${WebDomain}'
+                        , @AdminUserName = N'admin'
+                        , @AdminPassword = N'$adminPassword'
+                        , @PasswordFormat = 0
+                        , @CreateSamples = 0
 "@
-        Write-ProgressFromVerbose "Database: $database" 'Creating Community' {
-        Invoke-Sqlcmd @connectionInfo -query $createCommunityQuery -DisableVariables
         }
+        else {
+            $createCommunityQuery = @"
+                        EXECUTE [dbo].[cs_system_CreateCommunity]
+                            @ApplicationName = N'$Name'
+                            , @AdminEmail = N'notset@${WebDomain}'
+                            , @AdminUserName = N'admin'
+                            , @AdminPassword = N'$adminPassword'
+                            , @PasswordFormat = 0
+                            , @CreateSamples = 0
+"@
+        }
+        Invoke-Sqlcmd @connectionInfo -query $createCommunityQuery -DisableVariables
     }
 }
 
