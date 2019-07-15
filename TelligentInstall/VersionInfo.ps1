@@ -1,5 +1,5 @@
 ﻿$versionDllNames = [ordered]@{
-    Platform = 'Telligent.Evolution.Platform.dll', 'Telligent.Evolution.Components.dll', 'CommunityServer.Components.dll'
+    Platform = 'Telligent.Evolution.Platform.dll', 'Telligent.Evolution.Components.dll'
     Calendar = 'Telligent.Evolution.Extensions.Calendar.dll'
     Chat = 'Telligent.Evolution.Chat.dll'
     DocPreview = 'Telligent.Evolution.FlexPaperDocumentViewer.dll'

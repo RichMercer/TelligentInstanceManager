@@ -215,7 +215,7 @@ function Install-TelligentCommunity {
 		        -coreAdmin "$solrUrl/admin/cores"
 	       
         Set-ConnectionString $WebsitePath "SearchContentUrl" "${solrUrl}/${SolrCoreName}-content/"
-        Set-ConnectionString $WebsitePath "SearchConversationsUrl" "${solrUrl}${SolrCoreName}-conversations/"
+        Set-ConnectionString $WebsitePath "SearchConversationsUrl" "${solrUrl}/solr/${SolrCoreName}-conversations/"
 
         }
         else {

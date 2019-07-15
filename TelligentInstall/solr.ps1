@@ -32,11 +32,7 @@ function Add-LegacySolrCore {
         [string]$CoreBaseDir,
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [Uri]$CoreAdmin,
-        [Parameter(ParameterSetName='Legacy')]
-        [Switch]$LegacyCore,
-        [Parameter(ParameterSetName='Modern')]
-        [Switch]$ModernCore
+        [Uri]$CoreAdmin
     )   
     $instanceDir = "${name}\$(get-date -f yyy-MM-dd)\"
     $coreDir = join-path $coreBaseDir $instanceDir

@@ -3,9 +3,9 @@
 function Initialize-TelligentInstanceManager {
 [CmdletBinding(SupportsShouldProcess=$true)]
 param(
-    [Parameter(Mandatory=$true, HelpMessage="The path where Telligent Instances Manager will store instances and builds.")]
+    [Parameter(HelpMessage="The path where Telligent Instances Manager will store instances and builds.")]
     [string]$InstallDirectory,
-    [string]$DatabaseServerInstance = '(local)',
+    [string]$DatabaseServerInstance,
     [Parameter(Mandatory=$false, HelpMessage="The path where Tomcat is installed. Used to add Tomcat contexts used for Solr multi core setup.")]
     [ValidateScript({$_ -and (Test-TomcatPath $_) })]
     [string]$TomcatDirectory,
@@ -20,6 +20,17 @@ Write-Host
 #Test Prerequisites
 $initialErrorCount = $Error.Count
 Write-Progress "Telligent Instance Manager Setup" "Checking Prerequisites" -CurrentOperation "This may take a few moments"
+if(!$InstallDirectory){
+    $InstallDirectory = $env:TelligentInstanceManager
+    if(!(Test-Path $InstallDirectory)) {
+        Write-Error 'Could not auto-detect Install location. Please run the command with the -InstallDirectory paramater to specify this location manually'
+    }
+}
+
+if(!$DatabaseServerInstance) {
+    if([string]::IsNullOrEmpty($env:TelligentDatabaseServerInstance)) { $DatabaseServerInstance = "(local)" } else { $DatabaseServerInstance= $env:TelligentDatabaseServerInstance }
+}
+
 if (!$TomcatDirectory) {
     $TomcatDirectory = Get-TomcatLocation
 	if (!$TomcatDirectory) {
@@ -224,7 +235,7 @@ function Install-Solr {
         if(!(Test-Path (Join-Path $solrBase $_))) {
             Invoke-WebRequest -Uri "https://github.com/RichMercer/TIM-Search/blob/master/$($_).zip?raw=true" -OutFile $FilePath
     
-            Expand-Zip $FilePath $SolrBase
+            Expand-Archive $FilePath $SolrBase
             Remove-Item $FilePath
 
             $InstallScript = Join-Path $SolrBase "$($_)/bin/ServiceInstall.ps1"
@@ -394,34 +405,3 @@ function Expand-Zip {
         $zipPackage.Dispose()
     }
 }
-
-function Test-Zip {
-	<#
-	.Synopsis
-		Tests whether a file exists and is a valid zip file.
-
-	.Parameter Path
-	    The path to the file to test
-
-	.Example
-		Test-Zip c:\sample.zip
-		
-		Description
-		-----------
-		This command checks if the file c:\sample.zip exists		
-	#>
-	[CmdletBinding()]
-    param(
-        [parameter(Mandatory=$true, Position=0, ValueFromPipeline=$true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$Path
-    )
-
-    Test-Path $Path -PathType Leaf
-    if((Get-Item $Path).Extension -ne '.zip') {
-		throw "$Path is not a zip file"
-    }
-}
-
-
-
