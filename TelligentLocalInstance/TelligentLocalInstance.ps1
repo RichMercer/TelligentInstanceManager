@@ -189,14 +189,6 @@ function Install-TelligentInstance {
 
         Invoke-TelligentSqlCmd -WebsitePath $webDir -Query "EXEC sp_addrolemember N'db_owner', N'$name'"
 
-    	Write-Progress "Job Scheduler" "Installing Service"
-        $jsCredentials = New-Object PSCredential 'NT AUTHORITY\NETWORK SERVICE', (New-Object Security.SecureString)
-        Install-TelligentJobSchedulerService -Name $Name -JobSchedulerPath $jsDir -Credential $jsCredentials -StartupType Automatic
-
-        if ($WindowsAuth) {
-            Enable-TelligentWindowsAuth $webDir -EmailDomain '@tempuri.org' -ProfileRefreshInterval 0
-        }        
-        
     	if ($WindowsAuth) {
             Enable-TelligentWindowsAuth $webDir -EmailDomain '@tempuri.org' -ProfileRefreshInterval 0
         }        

@@ -132,7 +132,7 @@ function Install-TelligentJobSchedulerService {
         Write-Verbose 'Setting up service'
     }
 
-    $displayName = "Telligent Job Server - $Name"
+    $displayName = "Telligent Job Scheduler - $Name"
     $localSqlServer = ('.','(local)','localhost') -contains (Get-TelligentCommunity $JobSchedulerPath).DatabaseServer
 
     Invoke-Command @splat -ArgumentList @($serviceName, $servicePath, $displayName, $StartupType, $Credential, $localSqlServer) {
