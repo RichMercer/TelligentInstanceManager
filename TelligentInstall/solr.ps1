@@ -76,15 +76,21 @@ function Add-SolrCore {
         [string]$CoreBaseDir,
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [Uri]$CoreAdmin
+        [Uri]$CoreAdmin,
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [Uri]$ContentConfigSet,
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [Uri]$ConversationsConfigSet
     )   
         
     Write-Progress "Solr Core" "Registering Content Core"
-    # TODO: Test for telligent-content-cb15392 or the correct config set for the current version
-	$url = "${coreAdmin}?action=CREATE&configSet=telligent-content-cb15392&name=${Name}-content"
+    
+    $url = "${coreAdmin}?action=CREATE&configSet=${ContentConfigSet}&name=${Name}-content"
     Invoke-WebRequest $url -UseBasicParsing -Method Post | Out-Null
 
-    $url = "${coreAdmin}?action=CREATE&configSet=telligent-conversations-de63a3d&name=${Name}-conversations"
+    $url = "${coreAdmin}?action=CREATE&configSet=$ConversationsConfigSet&name=${Name}-conversations"
     Invoke-WebRequest $url -UseBasicParsing -Method Post | Out-Null
 }
 
