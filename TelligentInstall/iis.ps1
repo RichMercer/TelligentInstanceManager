@@ -47,8 +47,7 @@ function New-TelligentWebsite {
         [ValidateScript({Test-Path $_ -PathType Container -IsValid})]
         [string]$FilestoragePath
     )
-    Write-Verbose 'test3'
-
+    
     Write-Progress "Website: $Name" "Extracting Web Files: $Path"
     Expand-Zip $Package $Path -ZipDirectory Web
 
