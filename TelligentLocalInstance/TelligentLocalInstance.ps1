@@ -190,10 +190,6 @@ function Install-TelligentInstance {
             Enable-TelligentWindowsAuth $webDir -EmailDomain '@tempuri.org' -ProfileRefreshInterval 0
         }        
         
-        if($info.PlatformVersion.Major -ge 9) {
-            Enable-DeveloperMode $webDir
-        }
-
         #Add site to hosts files
         Add-Content -value "`r`n127.0.0.1 $domain" -Path (join-path $env:SystemRoot system32\drivers\etc\hosts)
 
@@ -202,12 +198,33 @@ function Install-TelligentInstance {
         # Copy AccessCode plugin to site
         Copy-Item (Join-Path $data.InstanceBase '..\Telligent.Services.AccessCode\Web\*') $webDir -Recurse -Force
 
-		.\letsencrypt.exe --webroot $webDir --manualhost $domain --renew
+		Install-Ssl -Host $domain
 		
         if([Environment]::UserInteractive) {
             Start-Process $info.Url
         }
     }
+}
+
+function Install-Ssl {
+	[CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
+        [ValidateNotNullOrEmpty()]
+        [String]$Host
+	)
+
+	$path = Join-Path $env:TelligentInstanceManager LetsEncrypt
+	
+	if (Test-Path IIS:\Sites\$Host) {
+        Write-Progress "Website: Creating SSL Certificate"
+        
+		$SiteId = (Get-ItemProperty IIS:\Sites\$Host -Name Id).Value
+		
+		cd $path
+		.\letsencrypt.exe --plugin iissite --siteid $SiteId
+    }
+	
 }
 
 function Get-CommunitySolrVersion {
@@ -348,11 +365,11 @@ function Remove-TelligentInstance {
             }
             
             #Remove Job Server Service
-			Stop-Service $Name
+			Write-Progress 'Uninstalling Telligent Community' $Name -CurrentOperation 'Removing Job Service'
+			Stop-Service "Telligent.Jobs.Server-$Name"
+			sc.exe delete "Telligent.Jobs.Server-$Name"
 			
-			Install-TelligentJobSchedulerService -Name $Name -JobSchedulerPath $jsDir -Credential $jsCredentials -StartupType Automatic
-
-            if(!$KeepData) {
+			if(!$KeepData) {
 				# Remove everything
 				Remove-Item $instanceDir -Recurse -Force
 			} else {

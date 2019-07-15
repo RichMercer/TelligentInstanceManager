@@ -50,7 +50,6 @@ ProcessorArchitecture = ''
 # Modules that must be imported into the global environment prior to importing this module
 RequiredModules = @(
 					'TelligentInstall'
-					'ACMESharp'
 )
 
 # Assemblies that must be loaded prior to importing this module
@@ -77,6 +76,7 @@ FunctionsToExport = @(
                     'Install-TelligentInstance'
                     'Remove-TelligentInstance'
 					'Initialize-TelligentInstanceManager'
+					'Install-Ssl'
                 )
 
 # Cmdlets to export from this module
