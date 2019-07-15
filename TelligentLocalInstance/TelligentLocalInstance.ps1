@@ -145,6 +145,8 @@ function Install-TelligentInstance {
     $solrVersion = Get-CommunitySolrVersion $Version
     $solrUrl = Get-CommunitySolrUrl $Version
     $solrDir = Get-CommunitySolrFolder $Version
+    $solrContentConfigSet = Get-CommunitySolrContentConfigSet $Version
+    $solrConversationsConfigSet = Get-CommunitySolrConversationsConfigSet $Version
     $instanceDir = Join-Path $data.InstanceBase $Name
     $webDir = Join-Path $instanceDir Web
     $jsDir = Join-Path $instanceDir JobServer
@@ -172,6 +174,8 @@ function Install-TelligentInstance {
         -SolrCore `
         -SolrBaseUrl $solrUrl `
         -SolrCoreDir $solrDir `
+        -SolrContentConfigSet $solrContentConfigSet `
+        -SolrConversationsConfigSet $solrConversationsConfigSet `
         -AdminPassword $data.AdminPassword `
         -DatabaseServer $DatabaseServerInstance `
         -DatabaseName $DatabaseName `
@@ -222,7 +226,10 @@ function Get-CommunitySolrVersion {
         [ValidateNotNullOrEmpty()]
         [Version]$Version
     )
-    if($Version.Major -ge 10) {
+    if($Version.Major -ge 11) {
+		'7-6-0'
+	}
+    elseif($Version.Major -ge 10) {
 		'6-3-0'
 	}
 	elseif($Version.Major -ge 9) {
@@ -253,12 +260,69 @@ function Get-CommunitySolrUrl {
     )
     $solrVersion = Get-CommunitySolrVersion $Version
 
-    if($Version.Major -ge 10) {
+    if($Version.Major -ge 11) {
+		"http://${env:COMPUTERNAME}:8760/solr"
+	}
+    elseif($Version.Major -ge 10) {
 		"http://${env:COMPUTERNAME}:8630/solr"
 	}
 	else {
 		"http://${env:COMPUTERNAME}:8080/$solrVersion"
 	}
+}
+
+function Get-CommunitySolrContentConfigSet {
+    <#
+        .SYNOPSIS
+            Gets the Solr instance URL for a given community version number
+        .PARAMETER Version
+            The community version
+        .EXAMPLE
+            Get-CommunitySolrVersion 9.0
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
+        [ValidateNotNullOrEmpty()]
+        [Version]$Version
+    )
+    
+    if($Version.Major -ge 11) {
+		"telligent-content-3db1dc6"
+	}
+    elseif($Version.Major -ge 10) {
+		"telligent-content-cb15392"
+	}
+    else {
+        ""
+    }
+}
+
+function Get-CommunitySolrConversationsConfigSet {
+    <#
+        .SYNOPSIS
+            Gets the Solr instance URL for a given community version number
+        .PARAMETER Version
+            The community version
+        .EXAMPLE
+            Get-CommunitySolrVersion 9.0
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
+        [ValidateNotNullOrEmpty()]
+        [Version]$Version
+    )
+    
+    if($Version.Major -ge 11) {
+		"telligent-conversations-3db1dc6"
+	}
+    elseif($Version.Major -ge 10) {
+		"telligent-conversations-de63a3d"
+	}
+    else {
+        ""
+    }
 }
 
 function Get-CommunitySolrFolder {
