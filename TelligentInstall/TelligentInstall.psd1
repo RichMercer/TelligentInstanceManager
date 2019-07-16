@@ -120,6 +120,7 @@ FunctionsToExport = @(
                     'Disable-CustomErrors'
                     'Add-TelligentOverrideChangeAttribute'
                     'Merge-CommunityOverrideFile'
+                    'Get-ConnectionStrings'
 
                     'Test-TelligentPath'
                     'Test-SqlServer'
