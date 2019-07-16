@@ -28,23 +28,33 @@ function Get-TelligentCommunity {
             return
         }
 
-        $csConfig = Merge-CommunityConfigurationFile $Path communityserver -ErrorAction SilentlyContinue
-
+        $version = Get-CommunityVersionFromDlls $Path $versionDllNames.Platform
         $dbInfo = Get-ConnectionString $Path -ErrorAction SilentlyContinue
 
         $info = [ordered]@{
             Name = [IO.Directory]::GetParent($Path).Name
             Path = $Path
-            CfsPath = $csConfig.CommunityServer.CentralizedFileStorage |
-                select-xml '//fileStore[@basePath] | //fileStoreGroup[@basePath]' |
-                select -expandProperty Node |
-                select -ExpandProperty basePath
-            SolrUrl = $csConfig.CommunityServer.Search.Solr.host
             DatabaseServer = $dbInfo.ServerInstance
             DatabaseName = $dbInfo.Database
         }
         $versionDllNames.GetEnumerator() |% {
             $info["$($_.Key)Version"] = Get-CommunityVersionFromDlls $Path $_.Value
+        }
+
+        if($version.Major -ge 10) {
+            $config = Get-ConnectionStrings $Path
+
+            $info["CfsPath"] = $config.FileStorage
+            $info["SolrUrl"] = $config.SearchContentUrl
+        } else {
+            $csConfig = Merge-CommunityConfigurationFile $Path communityserver -ErrorAction SilentlyContinue
+
+            $info["CfsPath"] = $csConfig.CommunityServer.CentralizedFileStorage |
+            select-xml '//fileStore[@basePath] | //fileStoreGroup[@basePath]' |
+            select -expandProperty Node |
+            select -ExpandProperty basePath
+
+            $info["SolrUrl"] = $csConfig.CommunityServer.Search.Solr.host
         }
 
         new-object psobject -Property $info
@@ -177,5 +187,3 @@ function Merge-CommunityConfigurationFile {
     }
     return $config
 }
-
-

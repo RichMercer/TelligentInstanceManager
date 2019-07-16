@@ -187,6 +187,30 @@ function Get-ConnectionString {
     $connectionInfo
 }
 
+function Get-ConnectionStrings {
+    <#
+    .SYNOPSIS
+        Gets the values from the ConnectionStrings file for a community.
+    .PARAMETER Path
+        The path to the community's Website or Job Scheduler.
+    .PARAMETER FileName
+        The name of the connection strings file to open
+    #>
+    param(
+        [ValidateNotNullOrEmpty()]
+        [string]$Path,
+        [string]$ConfigurationFile = 'connectionstrings.config'
+    )
+    
+    $config = @{}
+
+    ([xml](Get-Content (Join-Path $Path "$ConfigurationFile"))).connectionStrings.add |% {
+        $config[$_.name] = $_.connectionString
+    }
+
+    $config
+}
+
 function New-CommunityApiKey {
     <#
     .SYNOPSIS
