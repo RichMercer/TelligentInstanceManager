@@ -158,7 +158,7 @@ function New-TelligentDatabase {
                             , @CreateSamples = 0
 "@
         }
-        Invoke-Sqlcmd @connectionInfo -query $createCommunityQuery -DisableVariables
+        Invoke-Sqlcmd @connectionInfo -query $createCommunityQuery -DisableVariables | Out-Null
     }
 }
 
