@@ -96,8 +96,6 @@ function Install-TelligentInstance {
 	    The community version being installed.
     .Parameter BasePackage
 	    The path to the zip package containing the Telligent Community installation files, provided by Telligent Support.
-    .Parameter HotfixPackage
-	    If specified applys the hotfix from the referenced zip file to the community.
     .Parameter WindowsAuth
 	    Specify this switch to use Windows Authentication for the community.
     .Parameter DatabaseServerInstance
@@ -109,7 +107,7 @@ function Install-TelligentInstance {
     .Example
         Get-TelligentVersion 7.6 | Install-TelligentInstance TestSite
         
-        Output can be piped from Get-TelligentVersion to automatically fill in the version, basePackage and hotfixPackage paramaters
+        Output can be piped from Get-TelligentVersion to automatically fill in the version andbasePackage paramaters
     
 				
     #>
@@ -129,7 +127,6 @@ function Install-TelligentInstance {
         [string] $BasePackage,
         [Parameter(ValueFromPipelineByPropertyName=$true)]
 		[ValidateScript({!$_ -or (Test-Zip $_) })]
-        [string] $HotfixPackage,
         [switch] $WindowsAuth,
         [string] $DatabaseServerInstance,
         [string] $DatabaseName = $Name,
@@ -165,7 +162,6 @@ function Install-TelligentInstance {
     $info = & $installCommunityFunc `
 		-Name $Name `
         -Package $BasePackage `
-        -Hotfix $HotfixPackage `
         -WebsitePath $webDir `
         -JobSchedulerPath $jsDir `
         -FilestoragePath $filestorageDir `

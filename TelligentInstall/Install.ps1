@@ -71,10 +71,6 @@ function Install-TelligentCommunity {
 		[ValidateScript({Test-Zip $_ })]
         [string]$Package,
 
-        [Parameter(ValueFromPipelineByPropertyName=$true)]
-		[ValidateScript({!$_ -or (Test-Zip $_) })]
-        [string]$Hotfix,
-
 		#Web Settings
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
         [ValidateNotNullOrEmpty()]
@@ -133,7 +129,7 @@ function Install-TelligentCommunity {
         [ValidateNotNullOrEmpty()]
         [string]$SolrConversationsConfigSet,
 
-		#Misc
+		
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
         [ValidatePattern('^[a-z0-9\-\._ ]+$')]
         [ValidateNotNullOrEmpty()]
@@ -195,11 +191,6 @@ function Install-TelligentCommunity {
     New-TelligentDatabase -Package $Package -WebDomain $webDomain -AdminPassword $AdminPassword @sqlConnectionSettings -Legacy:$LegacyDb
 
     Grant-TelligentDatabaseAccess -CommunityPath $WebsitePath @sqlAuthSettings
-
-	if($Hotfix) {
-        Install-TelligentHotfix -WebsitePath $WebsitePath -Package $Hotfix
-	}	
-
 
 	if ($License) {
         Write-Progress 'Configuration' 'Installing License'
@@ -266,61 +257,6 @@ function Install-TelligentCommunity {
         Add-Member AdminApiKey $ApiKey -PassThru
 }
 
-function Install-TelligentHotfix {
-    <#
-    .SYNOPSIS
-        Installs a Telligent Community hotfix 
-    .Description
-        Applies a hotfix to a Telligent Community. It updates the web files, pulls the Database conneciton information from the website and updates the database. If a Job Scheduler path is specified, it also updates the Job Scheduler.
-    .PARAMETER WebsitePath
-        The path to the Telligent Community website files to apply the hotfix against.
-    .PARAMETER Package
-        The path to the Telligent Community hotfix installation packgae.
-    .PARAMETER JobSchedulerPath
-        The path to the community's Job Scheduler.
-    #>
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [ValidateScript({ Test-TelligentPath $_ -Web })]
-        [string]$WebsitePath,
-        [Parameter(Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$Package,
-        [ValidateNotNullOrEmpty()]
-        [ValidateScript({ Test-TelligentPath $_ -JobScheduler -AllowEmpty})]
-        [string]$JobSchedulerPath
-    )
-   
-    #TODO: Verify hotfix version is higher than current version
-    #TODO: Verify major versions of hotfix & existing community are the same
-    
-    Write-Progress 'Applying Hotfix' 'Updating Web'
-    Expand-Zip -Path $Package -destination $WebsitePath -ZipDirectory "Web"
-   
-    Write-Progress 'Applying Hotfix' 'Updating Database'
-    $tempDir = join-path ([System.IO.Path]::GetFullPath($env:TEMP)) ([guid]::NewGuid())
-    @('update.sql', 'updates.sql') |% {
-        Expand-Zip -Path $package -destination $tempDir -zipFile $_
-        $sqlFile = join-path $tempDir $_
-
-        if (Test-Path $sqlFile -PathType Leaf) {
-            Write-ProgressFromVerbose 'Applying Hotfix' 'Updating Database' {
-                Invoke-TelligentSqlCmd -WebsitePath $WebsitePath -File $sqlFile 
-            }
-        }
-    }
-
-    if($JobSchedulerPath) {
-        Write-Progress 'Applying Hotfix' 'Updating Job Scheduler'
-        Update-TelligentJobSchedulerFromWeb $WebsitePath $JobSchedulerPath
-    }
-
-    Write-Progress 'Applying Hotfix' 'Cleanup'
-    Remove-Item $tempDir -Recurse -Force | Out-Null
-}
-
 function Uninstall-TelligentCommunity {
     <#
     .SYNOPSIS
@@ -382,8 +318,6 @@ function Uninstall-TelligentCommunity {
         #Delete SQL
         Write-Progress 'Uninstalling Telligent Community' 'Removing Database'
         Remove-Database -Server $info.DatabaseServer -Database $info.DatabaseName 
-
-        #TODO: Remove from hosts file
     }
 }
 
