@@ -9,6 +9,7 @@ param(
     [Parameter(Mandatory=$false, HelpMessage="The path where Tomcat is installed. Used to add Tomcat contexts used for Solr multi core setup.")]
     [ValidateScript({$_ -and (Test-TomcatPath $_) })]
     [string]$TomcatDirectory,
+    [switch]$SkipSearch,
     [switch]$Force
 )
 
@@ -54,7 +55,9 @@ if ($Error.Count -ne $initialErrorCount) {
     ? {!(Test-Path $_)} |
     % {new-item $_ -ItemType Directory | Out-Null}
 
-Install-Solr -InstallDirectory $InstallDirectory -TomcatDirectory $TomcatDirectory -Force:$Force
+if(!$SkipSearch) {
+    Install-Solr -InstallDirectory $InstallDirectory -TomcatDirectory $TomcatDirectory -Force:$Force
+}
 
 Initalize-Environment $InstallDirectory $DatabaseServerInstance
 
