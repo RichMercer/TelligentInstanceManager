@@ -187,8 +187,7 @@ function Install-TelligentCommunity {
     
     $info = Get-TelligentCommunity $WebsitePath 
 
-    $LegacyDb = ($info.PlatformVersion.Major -lt 11)
-    New-TelligentDatabase -Package $Package -WebDomain $webDomain -AdminPassword $AdminPassword @sqlConnectionSettings -Legacy:$LegacyDb
+    New-TelligentDatabase -Package $Package -WebDomain $webDomain -AdminPassword $AdminPassword @sqlConnectionSettings -Version $info.PlatformVersion.Major
 
     Grant-TelligentDatabaseAccess -CommunityPath $WebsitePath @sqlAuthSettings
 

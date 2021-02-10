@@ -104,7 +104,7 @@ function New-TelligentDatabase {
         [ValidateNotNullOrEmpty()]
 		[string]$AdminPassword,
         [parameter(Mandatory=$true)]
-        [switch]$Legacy
+        [int]$Version
     )
 
     $connectionInfo = @{
@@ -135,7 +135,7 @@ function New-TelligentDatabase {
         }
         Remove-Item $tempDir -Recurse -Force | out-null
         
-        if($Legacy) {
+        if($Version -lt 11) {
             $createCommunityQuery = @"
                  EXECUTE [dbo].[cs_system_CreateCommunity]
                         @SiteUrl = N'http://${WebDomain}/'
@@ -147,7 +147,7 @@ function New-TelligentDatabase {
                         , @CreateSamples = 0
 "@
         }
-        else {
+        elseif($Version -lt 12) {
             $createCommunityQuery = @"
                         EXECUTE [dbo].[cs_system_CreateCommunity]
                             @ApplicationName = N'$Name'
@@ -156,6 +156,16 @@ function New-TelligentDatabase {
                             , @AdminPassword = N'$adminPassword'
                             , @PasswordFormat = 0
                             , @CreateSamples = 0
+"@
+        }
+        else {
+            $createCommunityQuery = @"
+                        EXECUTE [dbo].[cs_system_CreateCommunity]
+                            @ApplicationName = N'$Name'
+                            , @AdminEmail = N'notset@${WebDomain}'
+                            , @AdminUserName = N'admin'
+                            , @AdminPassword = N'$adminPassword'
+                            , @PasswordFormat = 0
 "@
         }
         Write-ProgressFromVerbose "Database: $database" 'Creating Community' {
