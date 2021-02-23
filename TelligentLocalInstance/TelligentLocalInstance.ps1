@@ -316,7 +316,7 @@ function Get-CommunitySolrContentConfigSet {
     )
     
     if($Version.Major -ge 11) {
-		"telligent-content-3db1dc6"
+		"telligent-content-ca80c34"
 	}
     elseif($Version.Major -ge 10) {
 		"telligent-content-cb15392"
@@ -343,7 +343,7 @@ function Get-CommunitySolrConversationsConfigSet {
     )
     
     if($Version.Major -ge 11) {
-		"telligent-conversations-3db1dc6"
+		"telligent-conversations-ca80c34"
 	}
     elseif($Version.Major -ge 10) {
 		"telligent-conversations-de63a3d"
