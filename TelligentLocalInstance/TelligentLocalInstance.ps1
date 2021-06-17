@@ -208,35 +208,13 @@ function Install-TelligentInstance {
         $info | Add-Member Url "http://$domain/" -PassThru
 
         # Copy AccessCode plugin to site
-        Copy-Item (Join-Path $data.InstanceBase '..\Telligent.Services.AccessCode\Web\*') $webDir -Recurse -Force
+		# We need a v12 version here
+        # Copy-Item (Join-Path $data.InstanceBase '..\Telligent.Services.AccessCode\Web\*') $webDir -Recurse -Force
 
-		Install-Ssl -Host $domain
-		
-        if([Environment]::UserInteractive) {
+		if([Environment]::UserInteractive) {
             Start-Process $info.Url
         }
     }
-}
-
-function Install-Ssl {
-	[CmdletBinding()]
-    param(
-        [Parameter(Mandatory=$true, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
-        [ValidateNotNullOrEmpty()]
-        [String]$Host
-	)
-
-	$path = Join-Path $env:TelligentInstanceManager LetsEncrypt
-	
-	if (Test-Path IIS:\Sites\$Host) {
-        Write-Progress "Website: Creating SSL Certificate"
-        
-		$SiteId = (Get-ItemProperty IIS:\Sites\$Host -Name Id).Value
-		
-		cd $path
-		.\letsencrypt.exe --plugin iissite --siteid $SiteId
-    }
-	
 }
 
 function Get-CommunitySolrVersion {
