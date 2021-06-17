@@ -6,7 +6,7 @@ Powershell Scripts to automate the installation of Telligent Community on a loca
 * Powershell 5
 * Java 8 (or higher)
 * Tomcat 8 
-* SQL Server 2012 (or higher)
+* SQL Server 2016 (or higher)
 
 ## Installation
 

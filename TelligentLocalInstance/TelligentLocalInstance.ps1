@@ -266,7 +266,10 @@ function Get-CommunitySolrUrl {
     )
     $solrVersion = Get-CommunitySolrVersion $Version
 
-    if($Version.Major -ge 11) {
+    if($Version.Major -ge 12) {
+		"http://${env:COMPUTERNAME}:8870/solr"
+	}
+    elseif($Version.Major -ge 11) {
 		"http://${env:COMPUTERNAME}:8760/solr"
 	}
     elseif($Version.Major -ge 10) {
@@ -293,7 +296,10 @@ function Get-CommunitySolrContentConfigSet {
         [Version]$Version
     )
     
-    if($Version.Major -ge 11) {
+    if($Version.Major -ge 12) {
+		"telligent-content-03e7623"
+	}
+    elseif($Version.Major -ge 11) {
 		"telligent-content-ca80c34"
 	}
     elseif($Version.Major -ge 10) {
@@ -320,7 +326,10 @@ function Get-CommunitySolrConversationsConfigSet {
         [Version]$Version
     )
     
-    if($Version.Major -ge 11) {
+    if($Version.Major -ge 12) {
+		"telligent-conversations-d72669d"
+	}
+    elseif($Version.Major -ge 11) {
 		"telligent-conversations-ca80c34"
 	}
     elseif($Version.Major -ge 10) {

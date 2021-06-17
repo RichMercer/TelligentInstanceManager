@@ -6,9 +6,6 @@ param(
     [Parameter(HelpMessage="The path where Telligent Instances Manager will store instances and builds.")]
     [string]$InstallDirectory,
     [string]$DatabaseServerInstance,
-    [Parameter(Mandatory=$false, HelpMessage="The path where Tomcat is installed. Used to add Tomcat contexts used for Solr multi core setup.")]
-    [ValidateScript({$_ -and (Test-TomcatPath $_) })]
-    [string]$TomcatDirectory,
     [switch]$SkipSearch,
     [switch]$Force
 )
@@ -32,18 +29,6 @@ if(!$DatabaseServerInstance) {
     if([string]::IsNullOrEmpty($env:TelligentDatabaseServerInstance)) { $DatabaseServerInstance = "(local)" } else { $DatabaseServerInstance= $env:TelligentDatabaseServerInstance }
 }
 
-if (!$TomcatDirectory) {
-    $TomcatDirectory = Get-TomcatLocation
-	if (!$TomcatDirectory) {
-		Write-Error 'Could not auto-detect Tomcat location. Please run the command with the -TomcatDirectory paramater to specify this location manually'
-	}
-}
-else {
-	if (!(Test-TomcatPath $TomcatDirectory)) {
-		Write-Error "'$TomcatDirectory' does not contain a valid Tomcat instance"
-	}
-}
-
 Test-Prerequisites $installDirectory
 if ($Error.Count -ne $initialErrorCount) {
     throw 'Prerequisites not met (see previous errors for more details)'
@@ -55,9 +40,9 @@ if ($Error.Count -ne $initialErrorCount) {
     ? {!(Test-Path $_)} |
     % {new-item $_ -ItemType Directory | Out-Null}
 
-if(!$SkipSearch) {
-    Install-Solr -InstallDirectory $InstallDirectory -TomcatDirectory $TomcatDirectory -Force:$Force
-}
+    if(!$SkipSearch) {
+        Install-Solr -InstallDirectory $InstallDirectory -Force:$Force
+    }
 
 Initalize-Environment $InstallDirectory $DatabaseServerInstance
 
@@ -106,56 +91,14 @@ function Test-Prerequisites
         % { Write-Error "Required Module '$_' is not available" }
 }
 
-function Get-TomcatLocation {
-    @(
-        "${env:ProgramFiles}\Apache Software Foundation\Tomcat 9.0"
-        "${env:ProgramFiles(x86)}\Apache Software Foundation\Tomcat 9.0"
-        "${env:ProgramFiles}\Apache Software Foundation\Tomcat 8.5"
-        "${env:ProgramFiles(x86)}\Apache Software Foundation\Tomcat 8.5"
-        "${env:ProgramFiles}\Apache Software Foundation\Tomcat 8.0"
-        "${env:ProgramFiles(x86)}\Apache Software Foundation\Tomcat 8.0"
-        "${env:ProgramFiles}\Apache Software Foundation\Tomcat 7.0"
-        "${env:ProgramFiles(x86)}\Apache Software Foundation\Tomcat 7.0"
-        "${env:ProgramFiles}\Apache Software Foundation\Tomcat 6.0"
-        "${env:ProgramFiles(x86)}\Apache Software Foundation\Tomcat 6.0"
-    ) |
-		? { Test-TomcatPath $_ } |
-		select -First 1
-}
-
-function Test-TomcatPath {
-    param(
-    	[Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true, ValueFromPipeline=$true)]
-        [string]$TomcatPath
-    )
-    process {
-        (Test-Path $TomcatPath -PathType Container) `
-            -and (Join-Path $TomcatPath conf\server.xml | Test-Path -PathType Leaf)
-    }
-}
-
 function Install-Solr {
     param(
         [Parameter(Mandatory=$true)]
 	    [ValidateScript({Test-Path $_ -PathType Container -IsValid})]
         [string]$InstallDirectory,
-        [Parameter(Mandatory=$true)]
-		[ValidateScript({Test-TomcatPath $_ })]
-        [string]$TomcatDirectory,
         [switch]$Force
     )
 
-    $tomcatContext = @"
-<Context docBase="{0}" debug="0" crossContext="true" >
-   <Environment name="solr/home" type="java.lang.String" value="{1}" override="true" />
-</Context>
-"@
-    $legacySolrXml = @"
-<?xml version='1.0' encoding='UTF-8'?>
-<solr sharedLib="lib" persistent="true">
-    <cores adminPath="/admin/cores" />
-</solr>
-"@
     $modernSolrXml = @"
 <?xml version="1.0" encoding="UTF-8" ?>
 <solr>
@@ -176,64 +119,9 @@ function Install-Solr {
 "@
     
     $solrBase = Join-Path $InstallDirectory Solr
-    $tomcatContextDirectory = Join-Path $TomcatDirectory conf\Catalina\localhost
-
-	if(!(Test-Path $tomcatContextDirectory)) {
-		Write-Host "Creating $tomcatContextDirectory"
-		New-Item $tomcatContextDirectory -ItemType Directory | Out-Null
-	}
-	
-    @('3-6', '4-5-1', '4-10-3') |% {
-        $solrHome = Join-Path $solrBase $_
-        $contextPath = Join-Path $tomcatContextDirectory "${_}.xml" 
-
-        $war = Join-Path $solrBase "solr_${_}.war"
-        if(!(Test-Path $war) -or $Force) {
-            Write-Progress 'Telligent Instance Manager Setup' "Downloading $war"
-            $warUri = "https://github.com/RichMercer/TIM-Search/blob/master/solr_${_}.war?raw=true"
-            Invoke-WebRequest -Uri $warUri -OutFile $war 
-        }        
-        
-        if ((Test-Path $contextPath) -and !$Force) {
-            #Don't treat existing context file as an error - most likely means it's already set up
-            Write-Verbose "Not seting up Multi Core Solr $_ Instance - manually ensure this is set up. Context already exists at '$contextPath'"
-        }
-        elseif ((Test-Path $solrHome) -and !$Force) {
-            Write-Warning "Not seting up Multi Core Solr $_ Instance - manually ensure this is set up. SolrHome already exists at '$solrHome'"
-        }        
-        else {
-            Write-Host "Installing Solr $_"
-            if(!(Test-Path $solrHome)) {
-                New-Item $solrHome -ItemType Directory | Out-Null
-            }
-
-            #Create Solr.xml to enable multicore
-            $solrXml = if($_ -in '3-6') { $legacySolrXml } else { $modernSolrXml}
-            $solrXmlPath = Join-Path $solrHome solr.xml 
-            $solrXml | out-file $solrXmlPath -Encoding utf8
-
-            #Create context file
-            $tomcatContext -f $war, $solrHome | out-file $contextPath
-        }
-    }
-
-    Write-Progress 'Telligent Instance Manager Setup' 'Stopping Tocmat'
-    Stop-Service tomcat*
-
-    @('jcl-over-slf4j-1.6.6.jar', 'jul-to-slf4j-1.6.6.jar', 'log4j-1.2.16.jar', 'slf4j-api-1.6.6.jar', 'slf4j-log4j12-1.6.6.jar') |% {
-        Write-Progress 'Telligent Instance Manager Setup' 'Downloading Tomcat dependencies'
-        $tomcatLib= Join-Path "$TomcatDirectory" 'lib'        
-        $filePath =  Join-Path $tomcatLib $_      
-        if(!(Test-Path $filePath)) {
-            Invoke-WebRequest -Uri "https://github.com/RichMercer/TIM-Search/blob/master/_tomcatlib/${_}?raw=true" -OutFile $filePath
-        }
-    }
-
-    Write-Progress 'Telligent Instance Manager Setup' 'Starting Tocmat' -PercentComplete 50
-    Start-Service tomcat* -ErrorAction Continue
 
 	# Install new Solr 6+ Version. Add to the array for each version required to be downloaded and installed.
-    @('6-3-0', '7-6-0') |% {
+    @('6-3-0', '7-6-0', '8-7-0') |% {
         $FilePath = Join-Path $solrBase "$($_).zip"
         if(!(Test-Path (Join-Path $solrBase $_))) {
             Invoke-WebRequest -Uri "https://github.com/RichMercer/TIM-Search/blob/master/$($_).zip?raw=true" -OutFile $FilePath
