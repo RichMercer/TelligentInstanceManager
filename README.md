@@ -34,6 +34,16 @@ License files can be added to the Licenses folder to allow the installer to add 
 
 `The term Install-Module is not recognized...` - You're probably running powershell v1 or v2.  Upgrade to [Powershell 5](https://www.microsoft.com/en-us/download/details.aspx?id=50395)
 
+### Update
+
+To update to the latest version, run the follwing command:
+
+`Update-Module -Name TelligentLocalInstance`. 
+
+You will then need to re-run the initilaization script to ensure all dependecies are present:
+
+`Initialize-TelligentInstanceManager -InstallDirectory [Path to install]`
+
 ## Usage
 
 #### To install an instance
