@@ -48,7 +48,7 @@ CLRVersion = '4.0'
 ProcessorArchitecture = ''
 
 # Modules that must be imported into the global environment prior to importing this module
-RequiredModules = @('webadministration','sqlps')
+RequiredModules = @('webadministration','sqlserver')
 
 # Assemblies that must be loaded prior to importing this module
 RequiredAssemblies = @('System.IO.Compression', 'System.IO.Compression.FileSystem')
@@ -144,7 +144,7 @@ FileList = @()
 # Private data to pass to the module specified in ModuleToProcess
 PrivateData = @{
     PSData = @{
-        ExternalModuleDependencies = @('webadministration', 'sqlps')
+        ExternalModuleDependencies = @('webadministration', 'SqlServer')
         ProjectUri = 'https://github.com/RichMercer/TelligentInstanceManager/'
         LicenseUri = 'https://github.com/RichMercer/TelligentInstanceManager/blob/master/License.md'
         Tags = 'Telligent'

@@ -86,7 +86,7 @@ function Test-Prerequisites
     }
 
     #Check for required modules
-    @('webadministration','sqlps') |
+    @('webadministration','SqlServer') |
         ? { !(Get-Module $_ -ListAvailable) } |
         % { Write-Error "Required Module '$_' is not available" }
 }

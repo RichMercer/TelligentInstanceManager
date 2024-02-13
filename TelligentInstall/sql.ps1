@@ -131,7 +131,7 @@ function New-TelligentDatabase {
             Select-Object -First 1
 
         Write-ProgressFromVerbose "Database: $database" 'Creating Schema' {
-            Invoke-Sqlcmd @connectionInfo -InputFile $sqlScript -QueryTimeout 6000 -DisableVariables
+            Invoke-Sqlcmd @connectionInfo -InputFile $sqlScript -QueryTimeout 6000 -DisableVariables -TrustServerCertificate
         }
         Remove-Item $tempDir -Recurse -Force | out-null
         
@@ -169,7 +169,7 @@ function New-TelligentDatabase {
 "@
         }
         Write-ProgressFromVerbose "Database: $database" 'Creating Community' {
-            Invoke-Sqlcmd @connectionInfo -query $createCommunityQuery -DisableVariables
+            Invoke-Sqlcmd @connectionInfo -query $createCommunityQuery -DisableVariables -TrustServerCertificate
         }
     }
 }
@@ -224,7 +224,7 @@ function Update-TelligentDatabase {
         Select-Object -First 1
 
     Write-ProgressFromVerbose "Database: $Database" 'Upgrading Schema' {
-        Invoke-Sqlcmd @connectionInfo -InputFile $sqlScript -QueryTimeout 6000 -DisableVariables
+        Invoke-Sqlcmd @connectionInfo -InputFile $sqlScript -QueryTimeout 6000 -DisableVariables -TrustServerCertificate
     }
     Remove-Item $tempDir -Recurse -Force | out-null
 }
@@ -341,7 +341,7 @@ function Invoke-TelligentSqlCmd {
         $sqlParams.QueryTimeout = $QueryTimeout
     }
 
-    Invoke-Sqlcmd @sqlParams -DisableVariables
+    Invoke-Sqlcmd @sqlParams -DisableVariables -TrustServerCertificate
 }
 
 function New-Database {
@@ -364,7 +364,7 @@ function New-Database {
         [string]$Server = "."
     )
     $query = "Create Database [$Name]";
-    Invoke-Sqlcmd -ServerInstance $Server -Query $query
+    Invoke-Sqlcmd -ServerInstance $Server -Query $query -TrustServerCertificate
 }
 
 function Remove-Database {
@@ -395,7 +395,7 @@ function Remove-Database {
             drop database [$Database]
         end
 "@
-    Invoke-Sqlcmd -ServerInstance $Server -Query $query
+    Invoke-Sqlcmd -ServerInstance $Server -Query $query -TrustServerCertificate
 }
 
 
