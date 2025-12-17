@@ -121,7 +121,8 @@ function Install-Solr {
     $solrBase = Join-Path $InstallDirectory Solr
 
 	# Install new Solr 6+ Version. Add to the array for each version required to be downloaded and installed.
-    @('6-3-0', '7-6-0', '8-7-0') |% {
+    # @('6-3-0', '7-6-0', '8-7-0') |% {
+    @('7-6-0', '8-7-0') |% {
         $FilePath = Join-Path $solrBase "$($_).zip"
         if(!(Test-Path (Join-Path $solrBase $_))) {
             Invoke-WebRequest -Uri "https://github.com/RichMercer/TIM-Search/blob/master/$($_).zip?raw=true" -OutFile $FilePath
