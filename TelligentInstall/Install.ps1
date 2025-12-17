@@ -58,7 +58,7 @@ function Install-TelligentCommunity {
 		Local install using Windows Auth to connect to DB
 
 	#>
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName='NoSearch')]
     param (
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
         [ValidatePattern('^[a-z0-9\-\._ ]+$')]

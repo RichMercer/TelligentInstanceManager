@@ -22,6 +22,12 @@ We recommend that the path you install to is high up on your file system (e.g. `
 
 If you want to run from source instead of the powershell gallery, replace the second command with cloning this repo, and adding the repo path to the `PSModulePath` environment variable.
 
+The latest versions of SQL Server do not come with the sqlserver PowerShell scripts included, so they must be installed.
+
+```
+Install-Module -Name SqlServer -Scope CurrentUser -AllowClobber
+```
+
 ### Packages
 
 After installation, you will need to place a Telligent Community zip package in the `TelligentPackages` folder in the install location. You can add as many packages as versions you want to support. 

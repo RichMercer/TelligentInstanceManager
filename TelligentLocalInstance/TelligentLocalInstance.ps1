@@ -133,17 +133,13 @@ function Install-TelligentInstance {
         [ValidatePattern('^[a-z0-9\-\._ ]+$')]
         [string] $ApiKey,
         [switch] $EnableDeveloperMode,
-        [switch] $InstallInternalJobs = $true
+        [switch] $InstallInternalJobs = $true,
+        [switch] $NoSearch
     )
 
     $data = Get-Configuration
     $name = $name.ToLower()
 
-    $solrVersion = Get-CommunitySolrVersion $Version
-    $solrUrl = Get-CommunitySolrUrl $Version
-    $solrDir = Get-CommunitySolrFolder $Version
-    $solrContentConfigSet = Get-CommunitySolrContentConfigSet $Version
-    $solrConversationsConfigSet = Get-CommunitySolrConversationsConfigSet $Version
     $instanceDir = Join-Path $data.InstanceBase $Name
     $webDir = Join-Path $instanceDir Web
     $jsDir = Join-Path $instanceDir JobServer
@@ -159,23 +155,41 @@ function Install-TelligentInstance {
 	# of module hackery
 	$module = Get-Module TelligentInstall
 	$installCommunityFunc = $module.Invoke({Get-Command Install-TelligentCommunity})
-    $info = & $installCommunityFunc `
-		-Name $Name `
-        -Package $BasePackage `
-        -WebsitePath $webDir `
-        -JobSchedulerPath $jsDir `
-        -FilestoragePath $filestorageDir `
-        -WebDomain $domain `
-        -License $licensePath `
-        -SolrCore `
-        -SolrBaseUrl $solrUrl `
-        -SolrCoreDir $solrDir `
-        -SolrContentConfigSet $solrContentConfigSet `
-        -SolrConversationsConfigSet $solrConversationsConfigSet `
-        -AdminPassword $data.AdminPassword `
-        -DatabaseServer $DatabaseServerInstance `
-        -DatabaseName $DatabaseName `
-        -ApiKey $ApiKey
+    
+    # Build parameters for Install-TelligentCommunity
+    $installParams = @{
+        Name = $Name
+        Package = $BasePackage
+        WebsitePath = $webDir
+        WebDomain = $domain
+        AdminPassword = $data.AdminPassword
+        DatabaseServer = $DatabaseServerInstance
+        DatabaseName = $DatabaseName
+    }
+    
+    # Add optional parameters only if they have values
+    if ($jsDir) { $installParams['JobSchedulerPath'] = $jsDir }
+    if ($filestorageDir) { $installParams['FilestoragePath'] = $filestorageDir }
+    if ($licensePath) { $installParams['License'] = $licensePath }
+    if ($ApiKey) { $installParams['ApiKey'] = $ApiKey }
+    
+    # Only add Solr parameters when NoSearch is NOT specified
+    # (Omitting SolrCore entirely avoids triggering the SolrCore parameter set)
+    if (!$NoSearch) {
+        $solrVersion = Get-CommunitySolrVersion $Version
+        $solrUrl = Get-CommunitySolrUrl $Version
+        $solrDir = Get-CommunitySolrFolder $Version
+        $solrContentConfigSet = Get-CommunitySolrContentConfigSet $Version
+        $solrConversationsConfigSet = Get-CommunitySolrConversationsConfigSet $Version
+        
+        $installParams['SolrCore'] = $true
+        $installParams['SolrBaseUrl'] = $solrUrl
+        $installParams['SolrCoreDir'] = $solrDir
+        $installParams['SolrContentConfigSet'] = $solrContentConfigSet
+        $installParams['SolrConversationsConfigSet'] = $solrConversationsConfigSet
+    }
+    
+    $info = & $installCommunityFunc @installParams
 
     if ($info) {
 	    Disable-CustomErrors $webDir
